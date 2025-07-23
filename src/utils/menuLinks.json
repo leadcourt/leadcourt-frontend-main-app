@@ -1,0 +1,87 @@
+[
+  {
+    "role": "users",
+    "links": [
+      {
+        "text": "Data",
+        "img": "pi-server",
+        "link": "/",
+        "sub": []
+      },
+      {
+        "text": "Lists",
+        "img": "pi-list",
+        "link": "#",
+        "sub": [
+          {
+            "text": "View List",
+            "link": "list"
+          },
+          {
+            "text": "Create New",
+            "link": "list/new-list"
+          }
+        ]
+      },
+      {
+        "text": "Integrations",
+        "img": "pi-arrow-right-arrow-left",
+        "link": "/integrations",
+        "sub": []
+      },
+      {
+        "text": "Team",
+        "img": "pi-sitemap",
+        "link": "/teams",
+        "sub": []
+      },
+      {
+        "text": "Subscription",
+        "img": "pi-ticket",
+        "link": "#",
+        "sub": [
+          {
+            "text": "Buy Credit",
+            "link": "/subscription"
+          },
+          {
+            "text": "Balance",
+            "link": "/subscription/balance"
+          }
+        ]
+      } 
+    ]
+  },
+  {
+    "role": "users",
+    "links": [
+      {
+        "text": "Home",
+        "img": "pi-server",
+        "link": "dashboard",
+        "sub": []
+      },
+      {
+        "text": "Lists",
+        "img": "pi-list",
+        "link": "#",
+        "sub": [
+          {
+            "text": "View List",
+            "link": "list"
+          },
+          {
+            "text": "Create New",
+            "link": "list/new-list"
+          }
+        ]
+      },
+      {
+        "text": "Integrations",
+        "img": "pi-arrow-right-arrow-left",
+        "link": "integrations",
+        "sub": []
+      } 
+    ]
+  }
+]

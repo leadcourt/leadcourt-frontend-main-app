@@ -1,0 +1,126 @@
+@import 'primeicons/primeicons.css';
+@import "primereact/resources/primereact.min.css";
+@import "primereact/resources/themes/lara-light-indigo/theme.css";
+
+
+@import "tailwindcss";
+
+:root {
+  --primary-color: #F35114;
+  --primary-tr-color: #f34f146c;
+  --secondary-color: #503E9D;
+  --secondary-tr-color: #503E9D1A;
+}
+
+.primary-btn-blue{
+  @apply hover:bg-[#4f3e9d36] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
+  background-color: var(--primary-tr-color);
+  color: var(--primary-color);
+}
+.secondary-btn-blue{
+  @apply text-white hover:text-[#503E9D] hover:bg-[#4f3e9d36] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
+  background-color: var(--primary-color);
+  
+}
+
+.primary-btn-red{
+  @apply text-white hover:text-[#b66f55] hover:bg-[#f34f146c] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
+  background-color: var(--primary-tr-color);
+  color: var(--primary-color);
+}
+
+.secondary-btn-red{
+  @apply text-white hover:bg-[#f34f14c2] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
+  background-color: var(--primary-color);
+  
+}
+ 
+.secondary-btn-red2{
+  @apply text-white hover:bg-[#f34f14c2] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
+  background-color: var(--primary-color);
+  
+}
+ 
+
+.sub_bg_gradient {
+  background: linear-gradient(to right, #F35114, #F35114, #f34f14cb, #f34f146c, #f34f146c, #f34f146c, #f34f146c, #F35114) ;
+}
+
+.transition_hover{
+  @apply transition-all ease-in-out duration-300;
+}
+
+.button_hover{
+  @apply transition-all ease-in-out duration-300 bg-[#F35114] hover:bg-white text-white hover:text-[#F35114] hover:border border-[#F35114];
+}
+
+/* .--bg-primary-color{
+  @apply 
+} */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* If you want to style all item labels (both checked and unchecked) */
+.p-multiselect-item .p-multiselect-item-label {
+  color: black !important;
+  font-size: 0.875rem;
+}
+
+
+/* Target the checked checkboxes in the dropdown */
+.p-multiselect-item.p-highlight .p-checkbox .p-checkbox-box {
+  @apply border-gray-100 bg-red-50;
+
+  /* border-color: red !important; */
+  /* background: red !important; */
+}
+
+/* Check icon: the mark symbole */
+.p-multiselect-item.p-highlight .p-checkbox .p-checkbox-box .p-checkbox-icon {
+  @apply text-red-500;
+  /* color: white !important; */
+}
+
+/* Hover state of the checkbox */
+.p-multiselect-item .p-checkbox .p-checkbox-box:hover {
+  border: solid 3px red !important;
+}
+
+
+.p-multiselect-header {
+  @apply bg-red-100 ;
+  /* background-color: ; */
+  padding: 0 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+
+.p-multiselect-header .p-checkbox .p-checkbox-box {
+  border-color: green !important;
+}
+
+.p-multiselect-header .p-checkbox.p-checkbox-checked .p-checkbox-box {
+  background: green !important;
+  border-color: green !important;
+}
+
+
+/* Style the "Select All" checkbox box */
+.p-multiselect-header .p-checkbox .p-checkbox-box {
+  border-color: red !important;
+  color: red !important ;
+}
