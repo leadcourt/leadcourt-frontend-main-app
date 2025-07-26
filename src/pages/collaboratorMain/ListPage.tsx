@@ -8,10 +8,10 @@ import { collaboration_getAllList_api } from "../../utils/api/collaborationData"
 // import { getAllDash } from "../../utils/api/collaborationAPI";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
-interface ListType {
-  name: string;
-  total: number;
-}
+// interface ListType {
+//   name: string;
+//   total: number;
+// }
 export default function Collab_ListPage() {
   const navigate = useNavigate();
   const user = useRecoilValue(userState);
