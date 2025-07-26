@@ -139,7 +139,7 @@ export default function Collab_DataTablePage() {
 
   const debouncedFetchData = useRef(
     debounce(async (payload: any) => {
-      console.log("inside debouncedFetchData", payload);
+      // console.log("inside debouncedFetchData", payload);
       
       try {
         const res = await collaboration_getAllData_api(payload);

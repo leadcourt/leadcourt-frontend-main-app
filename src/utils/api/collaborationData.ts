@@ -3,96 +3,46 @@ import { toast } from "react-toastify";
 
 const baseUrl = import.meta.env.VITE_BE_URL;
 
-const collab_baseUrl = "http://localhost:3000/api/teams/dashboard/dashboard";
+const collab_baseUrl = "http://localhost:3000/api/collaboration";
 
 const collaboration_getAllData_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/filter` 
-    },
-  });
+  return await axios.post( `${baseUrl}/filter`, payload);
 };
 
 const collaboration_searchOption_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/filter/search-options` 
-    },
-  });
+  return await axios.post( `${baseUrl}/filter/search-options`, payload);
 };
 
 const collaboration_searchOptionDesignation_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/filter/designations` 
-    },
-  });
+  return await axios.post( `${baseUrl}/filter/designations`, payload);
 };
 
 const collaboration_getDataPhoneAndEmail_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/filter/row-access` 
-    },
-  });
+  return await axios.post( `${baseUrl}/filter/row-access`, payload);
 };
 
 const collaboration_getLinkedInUrl_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/filter/linkedin` 
-    },
-  });
+  return await axios.post( `${baseUrl}/filter/linkedin`, payload);
 };
 
 const collaboration_getAllList_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/list/summary`
-    },
-  });
+  return await axios.post( `${baseUrl}/list/summary`, payload);
 };
 
 const collaboration_getSingleListDetail_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/list/show` 
-    },
-  });
+  return await axios.post( `${baseUrl}/list/show`, payload);
 };
 
 const collaboration_addProfilesToList_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/list/store` 
-    },
-  });
+  return await axios.post( `${baseUrl}/list/store`, payload);
 };
 
 const collaboration_createNewList_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/list/create` 
-    },
-  });
+  return await axios.post( `${baseUrl}/list/create`, payload);
 };
 
 const collaboration_exportList_api = async (payload: any) => {
-  return await axios.post(collab_baseUrl, payload, {
-    headers: { 
-        "x-collab-method": `post`,
-        "x-collab-url": `${baseUrl}/list/export` 
-    },
-  });
+  return await axios.post( `${baseUrl}/list/export`, payload);
 };
 
 // ================= CREDITS ======================

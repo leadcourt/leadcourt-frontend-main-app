@@ -1,13 +1,12 @@
 import axios from 'axios';
 
 // const baseUrl = import.meta.env.VITE_BE_URL
-const baseUrl = 'http://localhost:3000/api/teams'
+const baseUrl = 'https://dev.kyoto-creative.online/api/collaboration'
 
 
 const getAllInvitations = async ( ) => {
     return await axios.get(`${baseUrl}/invitations`);
 }
-
 
 const getAcceptedInvitations = async ( ) => {
     return await axios.get(`${baseUrl}/acceptedInvitations`);

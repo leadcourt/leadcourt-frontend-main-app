@@ -1,6 +1,5 @@
 import { useRecoilValue } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
-import { useEffect } from "react";
 import { useFormik } from "formik";
 import { paymentInIndiaValidation } from "../../utils/validation/validation";
 import { makeSabpaisaPayment } from "../../utils/api/payment";
@@ -34,7 +33,6 @@ const PaymentInIndia = ({ paymentData }: any) => {
     amount: paymentData?.amount || 0,
   };
 
-
   const onSubmit = async (values: userData) => {
     const payload = {
       amount: values.amount,
@@ -43,44 +41,40 @@ const PaymentInIndia = ({ paymentData }: any) => {
     };
     await makeSabpaisaPayment(payload).then((res) => {
       if (res?.data?.success) {
-
         const URL = res.data.formData.spURL;
         const sabpaisaPayload = {
           encData: res.data.formData.encData,
           clientCode: res.data.formData.clientCode,
-        }
+        };
 
-              
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = URL;
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = URL;
 
-      const encInput = document.createElement('input');
-      encInput.type = 'hidden';
-      encInput.name = 'encData';
-      encInput.value = sabpaisaPayload.encData;
+        const encInput = document.createElement("input");
+        encInput.type = "hidden";
+        encInput.name = "encData";
+        encInput.value = sabpaisaPayload.encData;
 
-      const codeInput = document.createElement('input');
-      codeInput.type = 'hidden';
-      codeInput.name = 'clientCode';
-      codeInput.value = sabpaisaPayload.clientCode; 
+        const codeInput = document.createElement("input");
+        codeInput.type = "hidden";
+        codeInput.name = "clientCode";
+        codeInput.value = sabpaisaPayload.clientCode;
 
-      form.appendChild(encInput);
-      form.appendChild(codeInput);
-      document.body.appendChild(form);
-      form.submit();
+        form.appendChild(encInput);
+        form.appendChild(codeInput);
+        document.body.appendChild(form);
+        form.submit();
 
         //  postSabpaisaEncData(URL, sabpaisaPayload).then((sabRes) => {
         //   console.log(sabRes.data);
-          
+
         // })
-      }
-      else {
+      } else {
         toast.error("Payment failed, please try again!");
         console.error("Payment failed", res.data);
       }
     });
-    //
   };
 
   const {
@@ -99,9 +93,9 @@ const PaymentInIndia = ({ paymentData }: any) => {
     onSubmit,
   });
 
-  useEffect(() => {
-    console.log(paymentData?.subscriptionType);
-  }, []);
+  // useEffect(() => {
+  //   // console.log(paymentData?.subscriptionType);
+  // }, []);
   return (
     <div className=" mx-auto">
       <div className=" ">
@@ -151,9 +145,12 @@ const PaymentInIndia = ({ paymentData }: any) => {
                 />
 
                 {errors?.amount &&
-                  typeof errors.amount === "string" && touched?.amount && (
-                  <p className="error text-sm text-red-400">{errors?.amount}</p>
-                )}
+                  typeof errors.amount === "string" &&
+                  touched?.amount && (
+                    <p className="error text-sm text-red-400">
+                      {errors?.amount}
+                    </p>
+                  )}
               </div>
             </fieldset>
 
@@ -262,7 +259,9 @@ const PaymentInIndia = ({ paymentData }: any) => {
               type="submit"
               disabled={!isValid || isSubmitting}
               // onClick={handleSubmit}
-              className={`secondary-btn-red2 ${!isValid || isSubmitting ? '!bg-gray-400': ''} flex gap-3 items-center justify-center`}
+              className={`secondary-btn-red2 ${
+                !isValid || isSubmitting ? "!bg-gray-400" : ""
+              } flex gap-3 items-center justify-center`}
             >
               {isSubmitting ? <i className="pi pi-spinner pi-spin"></i> : ""}
               Sign in
