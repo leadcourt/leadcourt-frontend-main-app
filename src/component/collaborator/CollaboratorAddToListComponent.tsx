@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { addProfilesToList, getAllList } from "../../utils/api/data";
 import { Dropdown } from "primereact/dropdown";
 import { toast } from "react-toastify";
 import { useRecoilValue } from "recoil";
