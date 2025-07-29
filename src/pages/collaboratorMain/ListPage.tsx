@@ -87,7 +87,7 @@ export default function Collab_ListPage() {
             key={index}
             onClick={() =>
               // navigate(`/list/${item.name.replace(/\s+/g, "-")}/details`)
-              navigate(`/list/${item?.name}/details`)
+              navigate(`/collaboration/${collabProject?._id}/list/${item?.name}/details`)
             }
             className="p-5 hover:p-[1.3rem] cursor-pointer transition-transform ease-in-out border bg-red-50 hover:bg-red-100 border-red-100 rounded-lg"
           >

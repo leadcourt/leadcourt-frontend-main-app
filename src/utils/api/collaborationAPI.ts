@@ -27,8 +27,8 @@ const getAllSentInvitations = async () => {
 
 // ============= Collaborations dashboard api================ 
 
-const getCollabCreditBalance = async (collabID: any) => {
-    return await axios.get(`${baseUrl}/${collabID}/credits/total`, )
+const getCollabCreditBalance = async () => {
+    return await axios.get(`${baseUrl}/credits/total`, )
 }
 
 const getAllDash = async () => {

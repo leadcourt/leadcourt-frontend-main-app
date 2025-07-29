@@ -4,11 +4,14 @@ import { userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { collaboration_createNewList_api } from "../../utils/api/collaborationData";
+import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
 export default function Collab_AddnewListPage() {
   const user: any = useRecoilValue(userState);
   const navigate = useNavigate();
   const [listName, setListName] = useState("");
+
+  const collab = useRecoilValue(collabProjectState)
 
   const handleSubmit = async () => {
     const payload = {
@@ -16,10 +19,11 @@ export default function Collab_AddnewListPage() {
       listName: listName,
     };
 
+    
     await collaboration_createNewList_api(payload)
       .then(() => {
         toast.success("List created successfully");
-        navigate("/list");
+        navigate(`/collaboration/${collab?._id}/list`);
       })
       .catch(( ) => {
         toast.error("Error occurred");

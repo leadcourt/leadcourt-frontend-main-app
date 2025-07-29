@@ -8,7 +8,7 @@ import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 // import { MultiSelect } from "primereact/multiselect";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { collabCreditState, collabProjectState } from "../../utils/atom/collabAuthAtom";
+import { collabCreditState } from "../../utils/atom/collabAuthAtom";
 import { userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
 import AddToListComponent from "../../component/AddToListComponent";
@@ -52,7 +52,7 @@ interface LoadDataOptions {
 // }
 
 export default function Collab_DataTablePage() {
-  const collabState = useRecoilValue(collabProjectState);
+  // const collabState = useRecoilValue(collabProjectState);
   const creditInfo = useSetRecoilState(collabCreditState)
   const creditInfoValue = useRecoilValue(collabCreditState)
   // const [creditInfo, setCreditInfo] = useRecoilState(collabCreditState)
@@ -329,7 +329,7 @@ export default function Collab_DataTablePage() {
   
   // Get credit balance..
   const getCredit = async () => {
-    await getCollabCreditBalance(collabState?._id).then((res)=>{
+    await getCollabCreditBalance( ).then((res)=>{
       creditInfo({id:user?.id ?? '', credits:res?.data?.credits, subscriptionType: res?.data?.subscriptionType})
     })
   }
