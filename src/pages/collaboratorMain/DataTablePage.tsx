@@ -11,7 +11,7 @@ import { useRecoilValue, useSetRecoilState } from "recoil";
 import { collabCreditState } from "../../utils/atom/collabAuthAtom";
 import { userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
-import AddToListComponent from "../../component/AddToListComponent";
+// import AddToListComponent from "../../component/AddToListComponent";
 import TextToCapitalize from "../../component/TextToCapital";
 import FilterComponent from "../../component/FilterComponent";
 import { Skeleton } from "primereact/skeleton";
@@ -21,6 +21,7 @@ import { Dropdown } from "primereact/dropdown";
 import { useNavigate } from "react-router-dom";
 import { getCollabCreditBalance } from "../../utils/api/collaborationAPI";
 import { collaboration_getAllData_api, collaboration_getLinkedInUrl_api, collaboration_showPhoneAndEmail_api } from "../../utils/api/collaborationData";
+import CollaboratorAddToListComponent from "../../component/collaborator/CollaboratorAddToListComponent";
 
 // import FilterComponent from "../../component/FilterComponent";
 
@@ -434,7 +435,7 @@ export default function Collab_DataTablePage() {
                   }}
                 >
                   {/* Add to list pop up section */}
-                  <AddToListComponent
+                  <CollaboratorAddToListComponent
                     onClose={() => setModalVisible(false)}
                     people={selectedProfile}
                   />
