@@ -5,7 +5,7 @@ import { useRecoilValue } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
 import SupportPage from "../../component/settings/SupportPage";
 import PaymentInIndia from "../../component/settings/PaymentInIndia";
-
+import { getLocation } from "../../utils/api/location";
 
 interface PaymentPlanType {
   userId: string | undefined;
@@ -15,29 +15,55 @@ interface PaymentPlanType {
 }
 
 interface PaymentInIndiaData {
-  location : string;
-  display : boolean;
+  location: string;
+  display: boolean;
   amount: number;
   subscriptionType: string;
 }
 
+interface CountryAmount {
+  starter: number;
+  pro: number;
+  business: number;
+  custom: number;
+  currency: string
+}
+
 const BuyCredit = () => {
-  const user = useRecoilValue(userState)
+  const user = useRecoilValue(userState);
   const [creditAmount, setCreditAmount] = useState<number>(10000);
   const [totalPrice, setTotalPrice] = useState<number>(100);
   const [visible, setVisible] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlanType>();
   const [options, setOptions] = useState<string>();
 
-  // const [location, setLocation] = useState<string>('') 
-  
-  const [indiaPayment, setIndiaPayment] = useState<PaymentInIndiaData>({
-    location : '',
-    display : false,
-    amount: 0,
-    subscriptionType: '',
-  })
+  const [location, setLocation] = useState<string>('');
 
+  const [indiaPayment, setIndiaPayment] = useState<PaymentInIndiaData>({
+    location: "",
+    display: false,
+    amount: 0,
+    subscriptionType: "",
+  });
+
+  
+  const sub_price = [
+    {
+      starter: 1720,
+      pro: 5161,
+      business: 8602,
+      custom: 0,
+      currency: '₹'
+    },
+    {
+      starter: 20,
+      pro: 60,
+      business: 100,
+      custom: 0,
+      currency: '$'
+    },
+  ];
+  const [paymentAmount, setPaymentAmount] = useState<CountryAmount>(sub_price[1]);
   // Calculate price based on credits (at $10 per 1000 credits)
   const calculatePrice = (credits: number): number => {
     return Math.round((credits / 1000) * 860);
@@ -50,30 +76,36 @@ const BuyCredit = () => {
   };
 
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
-    if ( true ) {
-    // if (location.toUpperCase() === 'IN') {
-
+    if (location?.toUpperCase() === "IN") {
       const setIndiaPayload: PaymentInIndiaData = {
-        location : 'IN',
+        location: "IN",
         display: true,
         amount: planType.amount,
         subscriptionType: planType.plan,
-      }
-      setIndiaPayment(setIndiaPayload)
-
+      };
+      setIndiaPayment(setIndiaPayload);
     } else {
       // For non-India payments, set the payment plan and show the dialog
-      console.log('payload in not india',location );
-      
+      console.log("payload in not india", location);
+
       setVisible(true);
       setPaymentPlan(planType);
     }
   };
 
-
-
   const displayDialog = (info: string) => {
     setOptions(info);
+  };
+
+  const checkLocation = async () => {
+    await getLocation().then((res) => {
+      console.log("location response", res);
+      setLocation(res?.data?.country);
+
+      if (res?.data?.country=='IN'){
+        setPaymentAmount(sub_price[0])
+      }
+    });
   };
 
   // Update price whenever credit amount changes
@@ -81,36 +113,39 @@ const BuyCredit = () => {
     setTotalPrice(calculatePrice(creditAmount));
   }, [creditAmount]);
 
+  useEffect(() => {
+    checkLocation();
+  });
   return (
     <div className="min-h-screen w-full p-5 ">
+      <Dialog
+        header="Support"
+        visible={options === "Support"}
+        style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
+        onHide={() => {
+          if (options !== "Support") return;
+          setOptions("");
+        }}
+      >
+        <SupportPage faq={false} />
+      </Dialog>
 
-        <Dialog
-          header="Support"
-          visible={options === "Support"}
-          style={{ width: "400px", padding:'1.5rem', backgroundColor: 'white' }}
-          onHide={() => {
-            if (options !== "Support") return;
-            setOptions('');
-            
-          }}
-        > 
-          <SupportPage faq={false} />
-        </Dialog>
-
-
-
-                <Dialog
-                  header="Payment"
-                  visible={indiaPayment.display && indiaPayment.location === 'IN'}
-                  style={{ width: "400px", padding:'1.5rem', backgroundColor: 'white' }}
-                  onHide={() => {
-                    if (!indiaPayment.display && indiaPayment.location === 'IN') return;
-                    setIndiaPayment({location: '', display: false, amount: 0, subscriptionType: ''});
-                    
-                  }}
-                > 
-                  <PaymentInIndia  paymentData={indiaPayment}/>
-                </Dialog>
+      <Dialog
+        header="Payment"
+        visible={indiaPayment.display && indiaPayment.location === "IN"}
+        style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
+        onHide={() => {
+          if (!indiaPayment.display && indiaPayment.location === "IN") return;
+          setIndiaPayment({
+            location: "",
+            display: false,
+            amount: 0,
+            subscriptionType: "",
+          });
+        }}
+      >
+        <PaymentInIndia paymentData={indiaPayment} />
+      </Dialog>
       <div className=" my-5">
         {/* Main Content */}
         <div className="">
@@ -126,18 +161,20 @@ const BuyCredit = () => {
 
             <div className="sub_bg_gradient flex justify-between items-center  text-white p-5 rounded-2xl  ">
               <div className="">
-
-              <h3 className="text-xl text-gray-100 font-bold">
-                Need more leads for your business?
-              </h3>
-              <p className="text-sm ">
-                Our enterprise plans offer custom solutions tailored to your
-                specific requirements..
-              </p>
+                <h3 className="text-xl text-gray-100 font-bold">
+                  Need more leads for your business?
+                </h3>
+                <p className="text-sm ">
+                  Our enterprise plans offer custom solutions tailored to your
+                  specific requirements..
+                </p>
               </div>
               <button
-              onClick={() => displayDialog("Support")}
-              className="cursor-pointer hover:px-4 hover:py-2 px-3 py-1 rounded-xl bg-white font-bold text-[#F35114]">Contact Us</button>
+                onClick={() => displayDialog("Support")}
+                className="cursor-pointer hover:px-4 hover:py-2 px-3 py-1 rounded-xl bg-white font-bold text-[#F35114]"
+              >
+                Contact Us
+              </button>
             </div>
           </div>
 
@@ -153,13 +190,12 @@ const BuyCredit = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-{/*                   $20 */}
-                  ₹10
+                  {/*                   $20 */}
+                  {paymentAmount.currency} {paymentAmount.starter}
                   <span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="mb-6 px-5 flex-grow">
-
-                <li className="flex items-center mb-3">
+                  <li className="flex items-center mb-3">
                     <svg
                       className="w-5 h-5 text-orange-500 mr-2"
                       fill="none"
@@ -216,7 +252,8 @@ const BuyCredit = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "starter".toUpperCase(),
-                      amount: 10,
+                  // {.currency} {paymentAmount.starter}
+                      amount: paymentAmount.starter,
                       credit: 3000,
                     })
                   }
@@ -236,8 +273,10 @@ const BuyCredit = () => {
                   <p className="text-gray-600 mb-4">Ideal for growing teams</p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5">
-{/*                   $60 */}
-                  ₹5161<span className="text-lg text-gray-500">/mo</span>
+                  {/*                   $60 */}
+                  {paymentAmount.currency} {paymentAmount.pro}
+
+                  <span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="p-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
@@ -314,7 +353,7 @@ const BuyCredit = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "pro".toUpperCase(),
-                      amount: 5161,
+                      amount: paymentAmount.pro,
                       credit: 10000,
                     })
                   }
@@ -333,8 +372,10 @@ const BuyCredit = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-{/*                   $100 */}
-                  ₹8602<span className="text-lg text-gray-500">/mo</span>
+                  {/*                   $100 */}
+                  {paymentAmount.currency} {paymentAmount.business}
+                
+                <span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="px-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
@@ -411,7 +452,7 @@ const BuyCredit = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "business".toUpperCase(),
-                      amount: 8602,
+                      amount: paymentAmount.business,
                       credit: 15000,
                     })
                   }
@@ -486,16 +527,17 @@ const BuyCredit = () => {
                   </div>
                 </div>
               </div>
-              <button 
-              onClick={() =>
-                handlePaymentPlan({
-                  userId: user?.id,
-                  plan: "custom".toUpperCase(),
-                  amount: calculatePrice(creditAmount),
-                  credit: creditAmount,
-                })
-              }
-              className="bg-orange-500 text-white font-medium py-3 px-6 rounded-md hover:bg-orange-400 transition-all w-full text-lg">
+              <button
+                onClick={() =>
+                  handlePaymentPlan({
+                    userId: user?.id,
+                    plan: "custom".toUpperCase(),
+                    amount: calculatePrice(creditAmount),
+                    credit: creditAmount,
+                  })
+                }
+                className="bg-orange-500 text-white font-medium py-3 px-6 rounded-md hover:bg-orange-400 transition-all w-full text-lg"
+              >
                 Buy Now
               </button>
             </div>
