@@ -58,7 +58,8 @@ export default function CreditBalance() {
     await getLocation().then((res) => {
       console.log("location response", res);
       setLocation(res?.data?.country);
- 
+      console.log(location);
+      
       if (res?.data?.country=='IN'){
         setPaymentAmount(sub_price[0])
       } else {
