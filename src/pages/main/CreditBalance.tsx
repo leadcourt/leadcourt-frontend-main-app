@@ -113,7 +113,7 @@ export default function CreditBalance() {
               </div>
               <div className="text-sm">
                 <p className=" text-gray-400">Price</p>
-                <p className=" text-gray-700">${items.price}</p>
+                <p className=" text-gray-700">₹{items.price}</p>
               </div>
               <div className="text-sm">
                 <p className=" text-gray-400">Status</p>
