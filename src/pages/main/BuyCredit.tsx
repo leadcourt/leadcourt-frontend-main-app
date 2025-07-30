@@ -112,12 +112,10 @@ const BuyCredit = () => {
 
   // Update price whenever credit amount changes
   useEffect(() => {
+    checkLocation();
     setTotalPrice(calculatePrice(creditAmount));
   }, [creditAmount]);
-
-  useEffect(() => {
-    checkLocation();
-  });
+ 
   return (
     <div className="min-h-screen w-full p-5 ">
       <Dialog
