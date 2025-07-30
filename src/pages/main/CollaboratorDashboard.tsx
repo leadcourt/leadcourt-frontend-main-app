@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
-  Users,
-  Clock,
   Activity,
   CheckCircle2,
   AlertCircle,
-  BarChart3,
   Eye,
   Search,
   Filter,
-  FolderOpen,
-  Plus,
   CheckCircle,
   XCircle,
   MoreVertical,
@@ -78,13 +73,11 @@ interface Project {
 const CollaboratorDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  const [loadingResponse, setLoadingResponse] = useState('')
+  const [loadingResponse, setLoadingResponse] = useState("");
   const collabState = useSetRecoilState(collabProjectState);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "projects" | "invites" | "team"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<"invites" | "team">("team");
   // const [timeFilter, setTimeFilter] = useState('7d');
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -296,145 +289,14 @@ const CollaboratorDashboard: React.FC = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  // Sample data
-  const recentProjects = [
-    {
-      id: 1,
-      name: "John Doe",
-      description: "john.doe@****",
-      lastActivity: "2 hours ago",
-      collaborators: ["John Doe", "Jane Smith", "Mike Johnson"],
-      status: "Active",
-      progress: 75,
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      description: "john.doe@****",
-      lastActivity: "1 day ago",
-      collaborators: ["Sarah Wilson", "Tom Brown"],
-      status: "In Review",
-      progress: 90,
-    },
-    {
-      id: 3,
-      name: "John Doe",
-      description: "john.doe@****",
-      lastActivity: "3 days ago",
-      collaborators: ["Alex Chen", "Lisa Garcia"],
-      status: "Planning",
-      progress: 30,
-    },
-  ];
-
-  const renderOverview = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Projects
-              </p>
-              <p className="text-2xl font-bold text-gray-900">2</p>
-            </div>
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <FolderOpen className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Pending Invitations
-              </p>
-              <p className="text-2xl font-bold text-gray-900">2</p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Collaborators
-              </p>
-              <p className="text-2xl font-bold text-gray-900">8</p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Projects */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Recently Interacted Projects
-          </h3>
-          <p className="text-sm text-gray-600">
-            Projects you've worked on recently
-          </p>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {recentProjects.map((project) => (
-              <div
-                key={project.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">
-                      {project.name}
-                    </h4>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                        project.status
-                      )}`}
-                    >
-                      {project.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {project.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-500">
-                        {project.lastActivity}
-                      </span>
-                      <span className="text-xs text-gray-400">•</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // const allProjects = [
-  //   ...recentProjects,
-
-  // ];
-
+ 
   const renderProjects = () => (
-    <div className="space-y-6">
+    allProjects.length ? 
+    <div className="space-y-6 max-w-6xl m-6 shadow rounded-xl p-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
+
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">My Projects</h1>
+      <div className="flex items-center justify-between ">
         <div className="flex items-center space-x-4">
           <div className="relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -451,10 +313,6 @@ const CollaboratorDashboard: React.FC = () => {
             <span>Filter</span>
           </button>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-          <Plus className="w-4 h-4" />
-          <span>New Project</span>
-        </button>
       </div>
 
       {/* Projects Grid */}
@@ -501,7 +359,8 @@ const CollaboratorDashboard: React.FC = () => {
           </div>
         ))}
       </div>
-    </div>
+    </div> 
+    : ''
   );
 
   const getInvitations = async () => {
@@ -515,67 +374,36 @@ const CollaboratorDashboard: React.FC = () => {
       }
     });
   };
-
-  // const invitations = [
-  //   {
-  //     id: 1,
-  //     projectName: 'E-commerce Platform',
-  //     invitedBy: 'John Doe',
-  //     email: 'john.doe@company.com',
-  //     status: 'Pending',
-  //     invitedDate: '2025-06-28',
-  //     role: 'Editor'
-  //   },
-  //   {
-  //     id: 2,
-  //     projectName: 'Mobile App Design',
-  //     invitedBy: 'Sarah Wilson',
-  //     email: 'sarah.wilson@company.com',
-  //     status: 'Accepted',
-  //     invitedDate: '2025-06-25',
-  //     role: 'Viewer'
-  //   },
-  //   {
-  //     id: 3,
-  //     projectName: 'Data Analytics Dashboard',
-  //     invitedBy: 'Alex Chen',
-  //     email: 'alex.chen@company.com',
-  //     status: 'Declined',
-  //     invitedDate: '2025-06-20',
-  //     role: 'Editor'
-  //   }
-  // ];
+ 
 
   const replyInvitation = async (collab: any, response: string) => {
     const payload = {
       _id: collab._id,
-      action: response
-    }
+      action: response,
+    };
 
-    setLoadingResponse(response)
-     
+    setLoadingResponse(response);
+
     await replyInvite(payload).then((res) => {
-    console.log('REponse to invitation: ', res)
-      
-    
-      if (res?.status === 200 && res?.data?.message === 'Invite declined') {
-        toast.success('Invitation Declined Successful')
+      console.log("REponse to invitation: ", res);
+
+      if (res?.status === 200 && res?.data?.message === "Invite declined") {
+        toast.success("Invitation Declined Successful");
       } else if (res?.status === 200) {
-        toast.success('Invitation Accepted Successful')
+        toast.success("Invitation Accepted Successful");
+      } else {
+        toast.info("Please try again!");
       }
-      else {
-        toast.info('Please try again!')
-      }
-    setLoadingResponse('')
+      setLoadingResponse("");
 
       getInvitations();
-    })
-  }
+    });
+  };
 
   const renderInvitations = () => (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex gap-5 flex-col md:flex-row items-center md:justify-between border">
+      <div className="flex gap-5 flex-col md:flex-row items-center md:justify-between">
         <div className="flex gap-5  flex-col md:flex-row items-center space-x-4">
           <div className="relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -592,10 +420,6 @@ const CollaboratorDashboard: React.FC = () => {
             <option>Declined</option>
           </select>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-          <Plus className="w-4 h-4" />
-          <span>New Task</span>
-        </button>
       </div>
 
       {/* Invitations Table */}
@@ -653,44 +477,56 @@ const CollaboratorDashboard: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {invitation.status === "pending" ? (
-                    <div className="flex items-center space-x-2">
-                      
-                      <button onClick={()=>replyInvitation(invitation, 'accepted')} className={`flex items-center gap-2 ${getStatusColor('Accepted')} hover:bg-green-200 hover:text-green-900 px-3 py-1 rounded-2xl cursor-pointer`}>
-                        {/* <MoreVertical className="w-4 h-4" /> */}
-                        {loadingResponse === 'accepted' ? 
-                        <i className="pi pi-spinner pi-spin"></i>
-                        :
-                        <>
-                         {getStatusIcon('Accepted')}
-                        </>
-                        }
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() =>
+                            replyInvitation(invitation, "accepted")
+                          }
+                          className={`flex items-center gap-2 ${getStatusColor(
+                            "Accepted"
+                          )} hover:bg-green-200 hover:text-green-900 px-3 py-1 rounded-2xl cursor-pointer`}
+                        >
+                          {/* <MoreVertical className="w-4 h-4" /> */}
+                          {loadingResponse === "accepted" ? (
+                            <i className="pi pi-spinner pi-spin"></i>
+                          ) : (
+                            <>{getStatusIcon("Accepted")}</>
+                          )}
 
-                        <p className=""> Accept</p>
-                      </button>
-                      <button onClick={()=>replyInvitation(invitation, 'declined')} className={`flex items-center gap-2 ${getStatusColor('Declined')} hover:bg-red-200 hover:text-red-900 px-3 py-1 rounded-2xl cursor-pointer`}>
-                        {/* <MoreVertical className="w-4 h-4" /> */}
-                         {loadingResponse === 'declined' ? 
-                        <i className="pi pi-spinner pi-spin"></i>
-                        :
-                        <>
-                         {getStatusIcon('Declined')}
-                        </>
-                        }
-                        <p className=""> Decline</p>
-                      </button>
+                          <p className=""> Accept</p>
+                        </button>
+                        <button
+                          onClick={() =>
+                            replyInvitation(invitation, "declined")
+                          }
+                          className={`flex items-center gap-2 ${getStatusColor(
+                            "Declined"
+                          )} hover:bg-red-200 hover:text-red-900 px-3 py-1 rounded-2xl cursor-pointer`}
+                        >
+                          {/* <MoreVertical className="w-4 h-4" /> */}
+                          {loadingResponse === "declined" ? (
+                            <i className="pi pi-spinner pi-spin"></i>
+                          ) : (
+                            <>{getStatusIcon("Declined")}</>
+                          )}
+                          <p className=""> Decline</p>
+                        </button>
                         {/* <p>Decline</p> */}
-                    </div>) : 
-                    (
-                      <div className="">
-                      <button onClick={()=>replyInvitation(invitation, 'declined')} className={`flex items-center gap-2  bg-red-200 text-red-900 px-3 py-1 rounded-2xl cursor-not-allowed`}>
-                        {/* <MoreVertical className="w-4 h-4" /> */}
-                        {getStatusIcon('Declined')}
-                        <p className=""> Declined</p>
-                      </button>
                       </div>
-                    )
-                      }
-
+                    ) : (
+                      <div className="">
+                        <button
+                          onClick={() =>
+                            replyInvitation(invitation, "declined")
+                          }
+                          className={`flex items-center gap-2  bg-red-200 text-red-900 px-3 py-1 rounded-2xl cursor-not-allowed`}
+                        >
+                          {/* <MoreVertical className="w-4 h-4" /> */}
+                          {getStatusIcon("Declined")}
+                          <p className=""> Declined</p>
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -698,64 +534,7 @@ const CollaboratorDashboard: React.FC = () => {
           </table>
         </div>
       </div>
-
-      {/* Add Collaborator Section */}
-      {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Manage Collaborators</h3>
-          
-          <div className="space-y-4">
-            <button 
-              onClick={() => setShowAddCollaborator(!showAddCollaborator)}
-              className="flex items-center space-x-2 text-orange-600 hover:text-orange-700"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Send an invite to a friend</span>
-            </button>
-  
-            {showAddCollaborator && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="email"
-                    placeholder="Enter email address"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    <option>Select Role</option>
-                    <option>Developer</option>
-                    <option>Designer</option>
-                    <option>Manager</option>
-                    <option>Analyst</option>
-                  </select>
-                  <button className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-                    <Send className="w-4 h-4" />
-                    <span>Send</span>
-                  </button>
-                </div>
-              </div>
-            )}
-  
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-900">Invited friends (2)</h4>
-              {collaborators.map((collaborator) => (
-                <div key={collaborator.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-purple-600">{collaborator.initials}</span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{collaborator.name}</div>
-                      <div className="text-sm text-gray-500">{collaborator.email}</div>
-                    </div>
-                  </div>
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div> */}
+ 
     </div>
   );
 
@@ -828,10 +607,8 @@ const CollaboratorDashboard: React.FC = () => {
           {/* Navigation Tabs */}
           <div className="flex space-x-8 mt-6">
             {[
-              { id: "overview", label: "Overview", icon: BarChart3 },
-              { id: "projects", label: "Projects", icon: FolderOpen },
-              { id: "invites", label: "Invitations", icon: CheckCircle2 },
               { id: "team", label: "Team", icon: Activity },
+              { id: "invites", label: "Invitations", icon: CheckCircle2 },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -854,15 +631,6 @@ const CollaboratorDashboard: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div className="space-y-6">{renderOverview()}</div>
-        )}
-
-        {/* Projects Tab */}
-        {activeTab === "projects" && (
-          <div className="space-y-6">{renderProjects()}</div>
-        )}
 
         {/* Invitations Tab */}
         {activeTab === "invites" && (
@@ -871,6 +639,11 @@ const CollaboratorDashboard: React.FC = () => {
 
         {/* Activity Tab */}
         {activeTab === "team" && (
+          <div className="">
+            <div className="space-y-6">{renderProjects()}</div>
+            <CollaboratorManager />
+          </div>
+
           // <div className="space-y-6">
           //   <div className="flex justify-between items-center">
           //     <div className="flex items-center gap-4">
@@ -919,7 +692,6 @@ const CollaboratorDashboard: React.FC = () => {
           //     </div>
           //   </div>
           // </div>
-          <CollaboratorManager />
         )}
       </div>
     </div>

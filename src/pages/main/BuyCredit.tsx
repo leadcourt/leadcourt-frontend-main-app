@@ -154,7 +154,7 @@ const BuyCredit = () => {
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
 {/*                   $20 */}
-                  ₹1720
+                  ₹10
                   <span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="mb-6 px-5 flex-grow">
@@ -216,7 +216,7 @@ const BuyCredit = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "starter".toUpperCase(),
-                      amount: 1720,
+                      amount: 10,
                       credit: 3000,
                     })
                   }
