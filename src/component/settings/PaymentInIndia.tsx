@@ -264,7 +264,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
               } flex gap-3 items-center justify-center`}
             >
               {isSubmitting ? <i className="pi pi-spinner pi-spin"></i> : ""}
-              Sign in
+              Proceed
             </button>
           </form>
         </div>
