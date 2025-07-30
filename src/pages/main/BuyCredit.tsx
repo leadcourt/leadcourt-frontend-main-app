@@ -104,6 +104,8 @@ const BuyCredit = () => {
 
       if (res?.data?.country=='IN'){
         setPaymentAmount(sub_price[0])
+      } else {
+        setPaymentAmount(sub_price[1])
       }
     });
   };

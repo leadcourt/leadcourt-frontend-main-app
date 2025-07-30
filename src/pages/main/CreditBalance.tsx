@@ -5,6 +5,7 @@ import { creditState, userState } from "../../utils/atom/authAtom";
 import { getAllTransactions, getCreditBalance } from "../../utils/api/creditApi";
 import { useEffect, useState } from "react";
 import TextToCapitalize from "../../component/TextToCapital";
+import { getLocation } from "../../utils/api/location";
 
 
 interface TransactionDataStructure{
@@ -22,6 +23,7 @@ export default function CreditBalance() {
     const [pageNumber, setPageNumber] = useState<number>(1)
     const [transactions, setTransactions] = useState<TransactionDataStructure[]>()
     
+  const [location, setLocation] = useState<string>('');
 
 
   
@@ -47,11 +49,31 @@ export default function CreditBalance() {
     })
   }
 
+  
+  const sub_price = ['₹', '$'];
+  const [paymentAmount, setPaymentAmount] = useState<string>(sub_price[1]);
+
+  
+  const checkLocation = async () => {
+    await getLocation().then((res) => {
+      console.log("location response", res);
+      setLocation(res?.data?.country);
+ 
+      if (res?.data?.country=='IN'){
+        setPaymentAmount(sub_price[0])
+      } else {
+        setPaymentAmount(sub_price[1])
+      }
+    });
+  };
+
   useEffect(()=>{
     getCredit()
     setPageNumber(1)
+    checkLocation();
   }, [])
 
+  
   return (
     <div className="p-5 my-3">
       <div className="mt-10 mb-5">
@@ -113,7 +135,7 @@ export default function CreditBalance() {
               </div>
               <div className="text-sm">
                 <p className=" text-gray-400">Price</p>
-                <p className=" text-gray-700">₹{items.price}</p>
+                <p className=" text-gray-700">{paymentAmount} {items.price}</p>
               </div>
               <div className="text-sm">
                 <p className=" text-gray-400">Status</p>
