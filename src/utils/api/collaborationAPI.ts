@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const baseUrl = import.meta.env.VITE_BE_URL
-const baseUrl = 'https://dev.kyoto-creative.online/api/collaboration'
+const baseUrl = import.meta.env.VITE_BE_URL + '/collaboration'
+// const baseUrl = 'https://dev.kyoto-creative.online/api/collaboration'
 
 
 const getAllInvitations = async ( ) => {

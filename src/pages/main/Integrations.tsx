@@ -33,12 +33,11 @@ const Integrations = () => {
       color: 'orange',
       connection: connections['Hubspot']?.connected || false,
       connectionLink: connectionHubspotCRM,
-
     },
     {
-      id: 'salesforce',
-      name: 'Salesforce',
-      description: 'Sync contact and activity data between App and Salesforce',
+      id: 'Zoho',
+      name: 'Zoho',
+      description: 'Sync contact and activity data between App and Zoho',
       icon: (
         <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
           <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -47,44 +46,44 @@ const Integrations = () => {
         </div>
       ),
       color: 'blue',
-      connection: connections['Salesforce']?.connected || false,
+      connection: connections['Zoho']?.connected || false,
       connectionLink: null,
-
     },
-    {
-      id: 'gong',
-      name: 'Gong',
-      description: 'Send call recordings from App to your Gong workspace',
-      icon: (
-        <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-        </div>
-      ),
-      color: 'purple',
-      connection: connections['Gong']?.connected || false,
-      connectionLink: null,
-
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Send call and message logs to your Slack workspace',
-      icon: (
-        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center relative">
-          <div className="absolute inset-1 bg-white rounded-sm"></div>
-          <div className="absolute inset-2 flex items-center justify-center">
-            <div className="w-1 h-1 bg-green-600 rounded-full"></div>
-          </div>
-        </div>
-      ),
-      color: 'green',
-      connection: connections['Slack']?.connected || false,
-      connectionLink: null,
-
-    }
   ];
+  
+  // {
+  //   id: 'gong',
+  //   name: 'Gong',
+  //   description: 'Send call recordings from App to your Gong workspace',
+  //   icon: (
+  //     <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+  //       <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+  //         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  //       </svg>
+  //     </div>
+  //   ),
+  //   color: 'purple',
+  //   connection: connections['Gong']?.connected || false,
+  //   connectionLink: null,
+
+  // },
+  // {
+  //   id: 'slack',
+  //   name: 'Slack',
+  //   description: 'Send call and message logs to your Slack workspace',
+  //   icon: (
+  //     <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center relative">
+  //       <div className="absolute inset-1 bg-white rounded-sm"></div>
+  //       <div className="absolute inset-2 flex items-center justify-center">
+  //         <div className="w-1 h-1 bg-green-600 rounded-full"></div>
+  //       </div>
+  //     </div>
+  //   ),
+  //   color: 'green',
+  //   connection: connections['Slack']?.connected || false,
+  //   connectionLink: null,
+
+  // }
 
   // const handleConnect = (integrationId: string) => {
   //   console.log(`Connecting to ${integrationId}`);

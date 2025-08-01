@@ -138,6 +138,7 @@ export default function Register() {
           <p className="text-gray-600">
             Please create an account to continue using our service
           </p>
+          <div className="text-xs text-gray-500 p-2 m-2 bg-red-50 rounded-lg">By signing up below, I agree to LeadCourt's <i className="underline text-800"><Link to={'https://www.leadcourt.com/termsandcondition.html'}>Terms and conditions</Link></i> and <i className="underline text-800"><Link to={'https://www.leadcourt.com/privacyandpolicy.html'}>Privacy Policy</Link></i> .</div>
         </div>
 
 

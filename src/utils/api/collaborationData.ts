@@ -1,10 +1,10 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// const baseUrl = import.meta.env.VITE_BE_URL;
+const baseUrl = import.meta.env.VITE_BE_URL + '/collaboration';
 
 // const collab_baseUrl = "http://localhost:3000/api/collaboration";
-const baseUrl = 'https://dev.kyoto-creative.online/api/collaboration'
+// const baseUrl = 'https://dev.kyoto-creative.online/api/collaboration'
 
 const collaboration_getAllData_api = async (payload: any) => {
   return await axios.post( `${baseUrl}/filter`, payload);
