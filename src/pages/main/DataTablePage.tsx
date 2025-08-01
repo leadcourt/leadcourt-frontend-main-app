@@ -362,7 +362,7 @@ export default function DataTablePage() {
     <div className="">
 
             <Dialog
-              header={`Insufficient Credits`}
+              header={`Insufficient Credit`}
               visible={visible}
               className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
               // style={{ maxWidth: "400px" }}
@@ -375,7 +375,7 @@ export default function DataTablePage() {
             > 
             
         <div
-          className=" w-fit m-auto">
+          className="pb-3 w-fit m-auto">
           <div className="flex flex-col gap-3 m-5 text-center"> 
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>

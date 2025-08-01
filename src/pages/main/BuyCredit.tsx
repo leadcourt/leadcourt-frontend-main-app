@@ -66,10 +66,9 @@ const BuyCredit = () => {
   const [paymentAmount, setPaymentAmount] = useState<CountryAmount>(sub_price[1]);
   // Calculate price based on credits (at $10 per 1000 credits)
   const calculatePrice = (credits: number): number => {
-    console.log('location', credits);
     
     if (location==="IN") {
-      return Math.round((credits / 1000) * 861);      
+      return Math.round((credits / 1000) * 860);      
     } else {
       return Math.round((credits / 1000) * 10);      
     } 
@@ -108,7 +107,7 @@ const BuyCredit = () => {
       console.log("location response", res);
       setLocation(res?.data?.country);
 
-      if (res?.data?.country=='IN'){
+      if (res?.data?.country==='IN'){
         setPaymentAmount(sub_price[0])
       } else {
         setPaymentAmount(sub_price[1])
@@ -528,7 +527,7 @@ const BuyCredit = () => {
                       Total Price:
                     </span>
                     <span className="text-3xl font-bold text-orange-500">
-                      ₹{totalPrice}
+                      {paymentAmount.currency}{totalPrice}
                     </span>
                   </div>
                 </div>

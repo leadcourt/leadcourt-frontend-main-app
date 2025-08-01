@@ -54,6 +54,7 @@ export default function Collab_ListDetailPage() {
   const [selectedProfile, setSelectedProfile] = useState([]);
   const [loadRow, setLoadRow] = useState<any>();
   const [visible, setVisible] = useState(false);
+  const [insufficientCredit, setInsufficientCredit] = useState<string>('')
   const [exportOptions, setExportOptions] = useState<string>('')
   const [profilesRevealed, setProfileRevealed] = useState<
     RevealedProfile | any
@@ -165,6 +166,12 @@ export default function Collab_ListDetailPage() {
     setLoadRow({ type: type, row_id: id });
     await collaboration_showPhoneAndEmail_api(type, [id], user)
       .then((res) => {
+        
+          if (res?.data?.error) {
+            setVisible(true);
+            setInsufficientCredit('Insufficient credit')
+          }
+
         let prevEntries: any = {};
 
         prevEntries = entries.map((entry: any) =>
@@ -431,6 +438,53 @@ export default function Collab_ListDetailPage() {
 
   return (
     <div>
+
+            <Dialog
+              header={`Insufficient Credit`}
+              visible={visible &&  insufficientCredit === 'Insufficient credit'}
+              className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
+              // style={{ maxWidth: "400px" }}
+              onHide={() => {
+                if (!visible) return;
+                setVisible(false);
+                setInsufficientCredit('')
+              }}
+              draggable={false}
+              resizable={false}
+            >
+              <div className="pb-3 w-fit m-auto">
+                <div className="flex flex-col gap-3 m-5 text-center">
+                  <p className="flex">
+                    <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
+                    <span className=" text-sm">
+                      You have insufficient credits to view this profile(s).
+                    </span>
+                  </p>
+                </div>
+      
+                <div className="mt-6 flex">
+                  <div className=" cursor-pointer w-fit m-auto">
+                    <button
+                      onClick={() => navigate("/subscription")}
+                      className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
+                    >
+                      Top Up
+                    </button>
+                  </div>
+      
+                  <div className=" cursor-pointer w-fit m-auto">
+                    <button
+                      onClick={() => navigate("/subscription")}
+                      className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
+                    >
+                      Subscribe Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Dialog>
+      
+
       <Dialog
         header={`Export to ${TextToCapitalize(exportOptions)}`}
         visible={visible&&exportOptions.length>0}
