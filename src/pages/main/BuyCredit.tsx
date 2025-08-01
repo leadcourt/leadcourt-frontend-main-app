@@ -115,9 +115,14 @@ const BuyCredit = () => {
     });
   };
 
+  useEffect(()=>{
+    checkLocation();
+
+  }, []
+  )
+
   // Update price whenever credit amount changes
   useEffect(() => {
-    checkLocation();
     setTotalPrice(calculatePrice(creditAmount));
   }, [creditAmount]);
  

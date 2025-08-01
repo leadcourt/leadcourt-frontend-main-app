@@ -3,17 +3,19 @@ import React, { useState } from 'react';
 interface PreferenceOptionProps {
   label: string;
   checked: boolean;
+  disabled: boolean;
   onChange: (checked: boolean) => void;
 }
 
-const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, onChange }) => {
+const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, disabled, onChange }) => {
   return (
     <label className="flex items-center py-4 cursor-pointer">
       <div className="flex items-center justify-center mr-4">
         <input
           type="checkbox"
-          className="hidden"
+          className={`hidden `} 
           checked={checked}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
         <div className={`w-5 h-5 rounded border flex items-center justify-center ${checked ? 'bg-[#F35114] border-[#F35114]' : 'border-gray-300'}`}>
@@ -34,7 +36,7 @@ const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, onC
           )}
         </div>
       </div>
-      <span className="text-gray-800">{label}</span>
+      <span className={`${disabled ? 'cursor-not-allowed text-gray-300': 'text-gray-800'} `}>{label}</span>
     </label>
   );
 };
@@ -42,10 +44,10 @@ const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, onC
 const MarketingPreferencesPage: React.FC = () => {
   // State for preferences
   const [preferences, setPreferences] = useState({
-    promotionalEmails: false,
-    monthlyNewsletter: true,
+    promotionalEmails: true,
+    monthlyNewsletter: false,
     feedbackCollection: false,
-    discountsOffers: true,
+    discountsOffers: false,
   });
 
   const handlePreferenceChange = (preference: keyof typeof preferences, value: boolean) => {
@@ -63,6 +65,7 @@ const MarketingPreferencesPage: React.FC = () => {
           <PreferenceOption
             label="Promotional emails"
             checked={preferences.promotionalEmails}
+              disabled={false}
             onChange={(checked) => handlePreferenceChange('promotionalEmails', checked)}
           />
           
@@ -70,6 +73,7 @@ const MarketingPreferencesPage: React.FC = () => {
             <PreferenceOption
               label="Monthly newsletter"
               checked={preferences.monthlyNewsletter}
+              disabled={true}
               onChange={(checked) => handlePreferenceChange('monthlyNewsletter', checked)}
             />
           </div>
@@ -78,6 +82,7 @@ const MarketingPreferencesPage: React.FC = () => {
             <PreferenceOption
               label="Feedback collection"
               checked={preferences.feedbackCollection}
+              disabled={true}
               onChange={(checked) => handlePreferenceChange('feedbackCollection', checked)}
             />
           </div>
@@ -86,6 +91,7 @@ const MarketingPreferencesPage: React.FC = () => {
             <PreferenceOption
               label="Discounts & offers"
               checked={preferences.discountsOffers}
+              disabled={true}
               onChange={(checked) => handlePreferenceChange('discountsOffers', checked)}
             />
           </div>

@@ -147,8 +147,8 @@ const SettingsPage: React.FC = () => {
 
         <div className="border-t border-gray-100">
           <SettingsOption
-            icon={"pi pi-percentage text-yellow-500 font-bold "}
-            title="Discounts"
+            icon={"pi pi-percentage text-gray-400 font-bold "}
+            title="Referral Program"
           />
         </div>
       </div>

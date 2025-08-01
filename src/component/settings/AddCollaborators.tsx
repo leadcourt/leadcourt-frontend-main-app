@@ -18,15 +18,13 @@ export default function AddCollaborators( ) {
         
         
         <div className="">
-          <button className="flex items-center gap-3 w-full hover:bg-gray-50 rounded-lg p-2 transition-colors">
+          <button onClick={()=>navigate('/collaborators')} className="flex items-center gap-3 w-full hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer">
             <div className="bg-gray-100 rounded-lg p-2">
               <Plus size={20} className="text-[#F35114]" />
             </div>
             <span className="text-[#F35114] font-medium">Send an invite to a friend</span>
           </button>
 
-          <div className="my-4 text-sm bg-gray-200 w-fit py-1 px-3 cursor-pointer" onClick={()=>navigate('/collaborators')}>Manage Collaborators</div>
-           
         </div>
       </div>
     </div>

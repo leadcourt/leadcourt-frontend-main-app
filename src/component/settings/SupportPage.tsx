@@ -1,6 +1,6 @@
 import React from "react";
 import { ChevronRight, FileText, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface SupportOptionProps {
   icon: React.ReactNode;
@@ -39,11 +39,14 @@ const SupportPage:any = ({faq}:any) => {
       <div className=" ">
         <div>
           {faq && 
+            <Link to={'https://www.leadcourt.com/#FAQ'}>
+
             <SupportOption
-              icon={<FileText size={20} />}
+              icon={<i className="pi pi-question"></i>}
               title="FAQ"
               description="182 Park Row Street, Suite 8"
             />
+            </Link>
           }
 
           <div className="border-t border-gray-100">
@@ -52,6 +55,26 @@ const SupportPage:any = ({faq}:any) => {
                 icon={<Mail size={20} />}
                 title="EMAIL"
                 description="help@leadcourt.com"
+              />
+            </Link>
+          </div>
+
+          <div className="border-t border-gray-100">
+            <Link to={"https://www.leadcourt.com/termsandcondition.html"}>
+              <SupportOption
+                icon={<FileText size={20} />}
+                title="Terms and Condition"
+                description=""
+              />
+            </Link>
+          </div>
+
+          <div className="border-t border-gray-100">
+            <Link to={"https://www.leadcourt.com/privacyandpolicy.html"}>
+              <SupportOption
+                icon={<i className="pi pi-shield"></i>}
+                title="Privacy Policy"
+                description=""
               />
             </Link>
           </div>
