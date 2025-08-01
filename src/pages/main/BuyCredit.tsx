@@ -66,7 +66,13 @@ const BuyCredit = () => {
   const [paymentAmount, setPaymentAmount] = useState<CountryAmount>(sub_price[1]);
   // Calculate price based on credits (at $10 per 1000 credits)
   const calculatePrice = (credits: number): number => {
-    return Math.round((credits / 1000) * 860);
+    console.log('location', credits);
+    
+    if (location==="IN") {
+      return Math.round((credits / 1000) * 861);      
+    } else {
+      return Math.round((credits / 1000) * 10);      
+    } 
   };
 
   // Update price when credit amount changes
