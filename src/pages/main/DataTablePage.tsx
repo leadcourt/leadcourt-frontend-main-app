@@ -206,7 +206,7 @@ export default function DataTablePage() {
 
       await showPhoneAndEmail(type, [id], user)
         .then((res) => {
-          console.log(',,,res in res', )
+          console.log(',,,res in res', res)
           
           if (res?.data?.error) {
             setVisible(true);
@@ -387,16 +387,7 @@ export default function DataTablePage() {
             </p>
           </div>
 
-          <div className="mt-6 flex">
-            <div className=" cursor-pointer w-fit m-auto">
-              <button 
-              onClick={()=>navigate('/subscription')}
-                className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                Top Up
-              </button>
-            </div>
-
+          <div className="mt-6 flex items-center">
             <div className=" cursor-pointer w-fit m-auto">
               <button
               onClick={()=>navigate('/subscription')}

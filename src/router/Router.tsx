@@ -26,6 +26,7 @@ import Collab_ListPage from '../pages/collaboratorMain/ListPage';
 import Collab_ListDetailPage from '../pages/collaboratorMain/ListDetailPage';
 import Collab_Integrations from '../pages/collaboratorMain/Integrations';
 import Collab_IntegrationCallback from '../pages/collaboratorMain/IntegrationCallback';
+import VerifyEmail from '../pages/auth/VerifyEmail';
 // import LeadCourtCredits2 from '../pages/main/BuyCredit2';
 
 // Create the router configuration
@@ -63,6 +64,11 @@ const router = createBrowserRouter([
         path: 'auth/reset-password',
         element: <ResetPassword />
       }, 
+      {
+        path: 'auth/verify',
+        element: <VerifyEmail />
+      }, 
+      
     ]
   },
   {

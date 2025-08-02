@@ -210,8 +210,6 @@ export default function Collab_DataTablePage() {
             ? { ...entry, ...res?.data.results[0] } // Update the Email field
             : entry
         );
-
-        // creditInfo({id:user?._id ?? '', credits:res?.data?.remainingCredits || 0, subscriptionType: creditInfoValue?.subscriptionType || 'FREE'})
         getCredit();
         setEntries(prevEntries);
       })
