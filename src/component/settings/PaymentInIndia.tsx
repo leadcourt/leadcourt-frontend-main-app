@@ -6,8 +6,7 @@ import { makeSabpaisaPayment } from "../../utils/api/payment";
 import { toast } from "react-toastify";
 
 interface userData {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   mobile: string;
   subscriptionType: string;
@@ -25,8 +24,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
   const user = useRecoilValue(userState);
 
   const initialValues = {
-    firstName: user?.name.split(" ")[0] || "",
-    lastName: user?.name.split(" ")[1] || "",
+    fullName: user?.name || "",
     email: user?.email || "",
     mobile: "",
     subscriptionType: paymentData?.subscriptionType,
@@ -157,7 +155,30 @@ const PaymentInIndia = ({ paymentData }: any) => {
             <fieldset className="border border-gray-200 rounded-lg p-2 mb-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               <legend className="text-gray-600 text-xs">Personal Info</legend>
 
-              <div className="">
+              <div className="col-span-2">
+                <label
+                  htmlFor="subscriptionType"
+                  className="text-xs text-gray-900"
+                >
+                  Full Name <i className="text-red-400">*</i>
+                </label>
+
+                <input
+                  name="fullName"
+                  value={values.fullName}
+                  onBlur={handleBlur}
+                  type="text"
+                  disabled
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
+                />
+
+                {errors.fullName && touched.fullName && (
+                  <p className="error text-sm text-red-400">
+                    {errors.fullName}
+                  </p>
+                )}
+              </div>
+              {/* <div className="">
                 <label
                   htmlFor="subscriptionType"
                   className="text-xs text-gray-900"
@@ -205,7 +226,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
                     {errors.lastName}
                   </p>
                 )}
-              </div>
+              </div> */}
 
               <div className="">
                 <label

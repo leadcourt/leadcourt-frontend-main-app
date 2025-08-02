@@ -8,8 +8,6 @@ import {
   Filter,
   CheckCircle,
   XCircle,
-  MoreVertical,
-  Edit,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CollaboratorManager from "./CollaboratorManager";
@@ -328,9 +326,9 @@ const CollaboratorDashboard: React.FC = () => {
                   {project?.ownerName}
                 </h3>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded">
+              {/* <button className="p-1 hover:bg-gray-100 rounded">
                 <MoreVertical className="w-4 h-4 text-gray-400" />
-              </button>
+              </button> */}
             </div>
 
             <div className="flex items-center justify-between">
@@ -338,17 +336,18 @@ const CollaboratorDashboard: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => navigateToProject(project)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-2 py-1 hover:bg-gray-100 bg-gray-200 flex items-center gap-2 rounded-2xl "
                   >
-                    <Eye className="w-4 h-4 text-gray-400" />
+                    <Eye className="w-4 h-4 text-gray-700" />
+                    <span className="text-gray-700 text-sm">Open</span>
                   </button>
-                  <button className="p-1 hover:bg-gray-100 rounded">
+                  {/* <button className="p-1 hover:bg-gray-100 rounded">
                     <Edit className="w-4 h-4 text-gray-400" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
               <span
-                className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                className={`px-2 py-1 mt-4 text-xs font-medium rounded-full ${getStatusColor(
                   "Active"
                 )}`}
               >

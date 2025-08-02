@@ -8,7 +8,7 @@ import * as yup from "yup";
 const addCollaborationValidation = yup.object().shape({
   email: yup.string().email("Please enter a valid email").required("Required"),
   role: yup.string(),
-  message: yup.string()
+  // message: yup.string()
 });
 
 export {

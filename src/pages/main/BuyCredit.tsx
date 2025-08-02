@@ -81,6 +81,7 @@ const BuyCredit = () => {
   };
 
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
+    // if (true) {
     if (location?.toUpperCase() === "IN") {
       const setIndiaPayload: PaymentInIndiaData = {
         location: "IN",

@@ -29,7 +29,7 @@ import { toast } from "react-toastify";
 interface AddCollaboratorData {
   email: string;
   role: string;
-  message: string;
+  // message: string;
 }
 
 interface Collaborator {
@@ -45,7 +45,7 @@ interface Collaborator {
 
 const CollaboratorManager: React.FC = () => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
-
+  const [loading, setLoading] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>(
@@ -148,11 +148,14 @@ const CollaboratorManager: React.FC = () => {
   };
 
   const onSubmit = async (values: AddCollaboratorData) => {
+    setLoading(true)
+    console.log('values', values);
+    
     try {
       const payload = {
         email: values.email,
         role_permission: values.role, // for defaulting
-        message: values.message,
+        // message: values.message,
       };
 
       console.log("payload", payload);
@@ -174,6 +177,13 @@ const CollaboratorManager: React.FC = () => {
           res?.data?.message === "User is already a collaborator"
         ) {
           toast.info("User is already a collaborator.");
+        } else if (
+          res?.status == 200 &&
+          res?.data?.message === "Invite re-sent successfully"
+        ) {
+          toast.info(
+            "Invite re-sent successfully."
+          );
         } else if (res?.status == 400) {
           toast.error(
             "Invitation failed! User not found. Please check the email address."
@@ -190,6 +200,9 @@ const CollaboratorManager: React.FC = () => {
       // setShowInviteModal(false);
 
       // const res: any = await inviteUser(values.email, values.password)
+
+    setLoading(false)
+
     } catch (err) {
       toast.error("Error Occurred, try again!");
     }
@@ -198,7 +211,7 @@ const CollaboratorManager: React.FC = () => {
   const initialValues: AddCollaboratorData = {
     email: "",
     role: "",
-    message: "",
+    // message: "",
   };
 
   const {
@@ -246,7 +259,7 @@ const CollaboratorManager: React.FC = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 placeholder="Enter email address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
 
               {errors.email && touched.email && (
@@ -263,15 +276,14 @@ const CollaboratorManager: React.FC = () => {
                 value={values.role}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               >
-                <option value="viewer">Viewer - Can view content</option>
-                <option value="editor">Editor - Can edit content</option>
-                <option value="admin">Admin - Full access</option>
+                <option value="viewer" disabled>Viewer - Can view content</option>
+                <option value="editor" selected>Editor - Can edit content</option>
               </select>
             </div>
 
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Personal Message (Optional)
               </label>
@@ -282,9 +294,9 @@ const CollaboratorManager: React.FC = () => {
                 onBlur={handleBlur}
                 placeholder="Add a personal message to the invitation"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="flex gap-3 mt-6">
@@ -300,7 +312,12 @@ const CollaboratorManager: React.FC = () => {
               disabled={!isValid || isSubmitting}
               className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
+              {
+                loading ? 
+                <i className="pi pi-spinner pi-spin"></i>
+                :
               <Mail className="w-4 h-4" />
+              }
               Send Invite
             </button>
           </div>
@@ -310,7 +327,7 @@ const CollaboratorManager: React.FC = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex justify-between items-start">
+          <div className="flex flex-wrap justify-between items-start">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 Team Collaborators
@@ -446,9 +463,9 @@ const CollaboratorManager: React.FC = () => {
                           className="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-orange-500"
                           autoFocus
                         >
-                          <option value="admin">Admin</option>
-                          <option value="editor">Editor</option>
-                          <option value="viewer">Viewer</option>
+                          <option disabled value="admin">Admin</option>
+                          <option disabled value="editor">Editor</option>
+                          <option disabled value="viewer">Viewer</option>
                         </select>
                       ) : (
                         <span
@@ -483,9 +500,9 @@ const CollaboratorManager: React.FC = () => {
                           collaborator.status.slice(1)}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
+                    {/* <td className="py-4 px-4 text-sm text-gray-500">
                       {collaborator.lastActive || "Never"}
-                    </td>
+                    </td> */}
                     <td className="py-4 px-4">
                       {collaborator.role !== "owner" && (
                         <div className="flex items-center gap-2">

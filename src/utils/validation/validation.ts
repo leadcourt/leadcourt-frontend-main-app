@@ -68,8 +68,7 @@ const resetPasswordValidation = yup.object().shape({
 
 const paymentInIndiaValidation = yup.object().shape({
   
-  firstName: yup.string().required("First name is required"),
-  lastName: yup.string().required("Last name is required"),
+  fullName: yup.string().required("First name is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
   mobile: yup.string().required("Mobile number is required"),
   subscriptionType: yup.string().required("Subscription type is required"),

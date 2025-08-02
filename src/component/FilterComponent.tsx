@@ -268,8 +268,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
             style={{
               minWidth: "100%",
             }}
-            emptyMessage={loadingData === "Country" ? 'Data Loading...': 'Search for more..'}
-            emptyFilterMessage={loadingData === "Country" ? 'Data Loading...': 'No result'}
+            emptyMessage={loadingData === "Country"  ? 'Data Loading...' : 'Search for more...'}
+            emptyFilterMessage={loadingData === "Country" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             filterPlaceholder="Search.."
             placeholder={`Select ${"Country"}`}
             display="chip"
@@ -308,8 +308,9 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
             style={{
               maxWidth: "100%",
             }} 
-            emptyMessage={loadingData === "State" ? 'Data Loading...': 'Search for more..'}
-            emptyFilterMessage={loadingData === "State" ? 'Data Loading...': 'No result'}
+            // emptyMessage={loadingData === "State"  ? 'Data Loading...' : 'Search for more...'}
+            emptyMessage={loadingData === "State"  ? 'Data Loading...' : 'Search for more...'}
+            emptyFilterMessage={loadingData === "State" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             filterPlaceholder="Search.."
             placeholder={`Select ${"State"}`}
             display="chip"
@@ -347,8 +348,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
               maxWidth: "100%",
             }}
             
-            emptyMessage={loadingData === "City" ? 'Data Loading...': 'Search for more..'}
-            emptyFilterMessage={loadingData === "City" ? 'Data Loading...': 'No result'}
+            emptyMessage={loadingData === "City"  ? 'Data Loading...' : 'Search for more...'}
+            emptyFilterMessage={loadingData === "City" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             filterPlaceholder="Search.."
             placeholder={`Select ${"City"}`}
             display="chip"
@@ -438,8 +439,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
     style={{
       maxWidth: "100%",
     }}
-    emptyMessage={loadingData === "Organization" ? 'Data Loading...': 'Search for more..'}
-    emptyFilterMessage={loadingData === "Organization" ? 'Data Loading...': 'No result'}
+    emptyMessage={loadingData === "Organization"  ? 'Data Loading...' : 'Search for more...'}
+    emptyFilterMessage={loadingData === "Organization" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
     display="chip"
     filterTemplate={getFilterTemplate('Organization')}
     selectedItemTemplate={(e) => selectedItemTemplate(e, "Organization")}
@@ -479,8 +480,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
               maxWidth: "100%",
             }}
             disabled={creditInfo?.subscriptionType === 'FREE' && true}
-            emptyMessage={loadingData === "orgSize" ? 'Data Loading...': 'Search for more..'}
-            emptyFilterMessage={loadingData === "orgSize" ? 'Data Loading...': 'No result'}
+            emptyMessage={loadingData === "orgSize"  ? 'Data Loading...' : 'Search for more...'}
+            emptyFilterMessage={loadingData === "orgSize" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             display="chip"
             filterTemplate={getFilterTemplate('Organization Size')}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "orgSize")}
@@ -520,8 +521,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
               maxWidth: "100%",
             }}
             disabled={creditInfo?.subscriptionType === 'FREE' && true}
-            emptyMessage={loadingData === "orgIndustry" ? 'Data Loading...': 'Search for more..'}
-            emptyFilterMessage={loadingData === "orgIndustry" ? 'Data Loading...': 'No result'}
+            emptyMessage={loadingData === "orgIndustry"  ? 'Data Loading...' : 'Search for more...'}
+            emptyFilterMessage={loadingData === "orgIndustry" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             display="chip"
             filterTemplate={getFilterTemplate('Organization Industry')}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "orgIndustry")}

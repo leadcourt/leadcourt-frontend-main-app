@@ -206,7 +206,8 @@ export default function DataTablePage() {
 
       await showPhoneAndEmail(type, [id], user)
         .then((res) => {
-  
+          console.log(',,,res in res', )
+          
           if (res?.data?.error) {
             setVisible(true);
           }
@@ -222,7 +223,8 @@ export default function DataTablePage() {
   
           setEntries(prevEntries);
         })
-        .catch(( ) => {
+        .catch(( err ) => {
+          console.log('res in res,,,', err)
         }); 
 
     setLoadRow({});
