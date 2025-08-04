@@ -31,13 +31,20 @@ interface CountryAmount {
 
 const BuyCredit = () => {
   const user = useRecoilValue(userState);
+  const [location, setLocation] = useState<string>('');
+  const calculatePrice = (credits: number): number => {
+    
+    if (location==="IN") {
+      return Math.round((credits / 1000) * 860);      
+    } else {
+      return Math.round((credits / 1000) * 10);      
+    } 
+  };
   const [creditAmount, setCreditAmount] = useState<number>(10000);
-  const [totalPrice, setTotalPrice] = useState<number>(100);
+  const [totalPrice, setTotalPrice] = useState<number>(() => calculatePrice(10000));
   const [visible, setVisible] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlanType>();
   const [options, setOptions] = useState<string>();
-
-  const [location, setLocation] = useState<string>('');
 
   const [indiaPayment, setIndiaPayment] = useState<PaymentInIndiaData>({
     location: "",
@@ -65,14 +72,7 @@ const BuyCredit = () => {
   ];
   const [paymentAmount, setPaymentAmount] = useState<CountryAmount>(sub_price[1]);
   // Calculate price based on credits (at $10 per 1000 credits)
-  const calculatePrice = (credits: number): number => {
-    
-    if (location==="IN") {
-      return Math.round((credits / 1000) * 860);      
-    } else {
-      return Math.round((credits / 1000) * 10);      
-    } 
-  };
+  
 
   // Update price when credit amount changes
   const handleCreditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +105,6 @@ const BuyCredit = () => {
 
   const checkLocation = async () => {
     await getLocation().then((res) => {
-      console.log("location response", res);
       setLocation(res?.data?.country);
 
       if (res?.data?.country==='IN'){
@@ -124,8 +123,8 @@ const BuyCredit = () => {
 
   // Update price whenever credit amount changes
   useEffect(() => {
-    setTotalPrice(calculatePrice(creditAmount));
-  }, [creditAmount]);
+  setTotalPrice(calculatePrice(creditAmount));
+}, [creditAmount, location]);
  
   return (
     <div className="min-h-screen w-full p-5 ">

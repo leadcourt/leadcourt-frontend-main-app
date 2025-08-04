@@ -581,7 +581,7 @@ export default function ListDetailPage() {
             <span className="flex items-center gap-1">
               <i className="pi pi-wallet"></i>
               <span>
-                {(entries?.length - profilesRevealed?.phoneLength) * 2}
+                {(entries?.length - profilesRevealed?.phoneLength) * 5}
               </span>
             </span>
             Show all phone
