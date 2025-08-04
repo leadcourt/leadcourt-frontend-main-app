@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Dispatch, SetStateAction } from 'react';
 
 interface PreferenceOptionProps {
   label: string;
@@ -41,7 +41,12 @@ const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, dis
   );
 };
 
-const MarketingPreferencesPage: React.FC = ({changeVisibility}:any) => {
+
+type MarketingPreferencesPageProps = {
+  changeVisibility: Dispatch<SetStateAction<boolean>>;
+};
+
+const MarketingPreferencesPage: React.FC<MarketingPreferencesPageProps> = ({changeVisibility}:any) => {
   // State for preferences
   const [preferences, setPreferences] = useState({
     promotionalEmails: true,

@@ -1,17 +1,17 @@
 import { User } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { verificationValidation } from "../../utils/validation/validation";
-import { useFormik } from "formik";
+// import { verificationValidation } from "../../utils/validation/validation";
+// import { useFormik } from "formik";
 import logo from "../../assets/logo/logoDark.png";
-import { userResetPassword } from "../../utils/api/userFirebase";
+// import { userResetPassword } from "../../utils/api/userFirebase";
 import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
-import { toast } from "react-toastify";
+// import { toast } from "react-toastify";
 import authBG from '../../assets/background/bg_gradient.jpg'
 
-interface FormData {
-  otp: number;
-}
+// interface FormData {
+//   otp: number;
+// }
 export default function VerifyEmail() {
   // const [email, setEmail] = useState('markclarke@gmail.com');
   const [modalVisible, setModalVisible] = useState(false);

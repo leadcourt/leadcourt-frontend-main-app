@@ -5,11 +5,11 @@ import {
   refreshTokenState,
   userState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
-import VerifyEmail from "../../pages/auth/VerifyEmail";
+// import VerifyEmail from "../../pages/auth/VerifyEmail";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
@@ -33,12 +33,7 @@ export default function UserLayout() {
   };
 
 
-  
-  useEffect(()=>{
-    console.log('UserLayout')
-    console.log(user)
-    console.log(auth)
-  }, [])
+   
   
   return (
     <div>
