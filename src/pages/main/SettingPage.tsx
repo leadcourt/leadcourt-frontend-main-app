@@ -54,7 +54,7 @@ const SettingsPage: React.FC = () => {
             setVisible(false);
           }}
         > 
-       <MarketingPreferencesPage />
+       <MarketingPreferencesPage changeVisibility={setVisible} />
         </Dialog>
       ) : options === "Support" ? (
 

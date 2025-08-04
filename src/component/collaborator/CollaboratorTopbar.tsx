@@ -57,7 +57,7 @@ export default function CollaboratorTopbar() {
 
         <div className="hidden lg:flex justify-end items-center gap-5 ">
           <div className="relative">  
-            <div onClick={()=>navigate('/')} className="secondary-btn-red button_hover w-full lg:min-w-fit flex justify-center items-center gap-2"
+            <div onClick={()=>{navigate('/'); resetCollabState();}} className="secondary-btn-red button_hover w-full lg:min-w-fit flex justify-center items-center gap-2"
             >
               {/* <i className="pi pi-wallet"></i>
               <p className=" text-sm font-bold">{credit?.credits}</p> */}

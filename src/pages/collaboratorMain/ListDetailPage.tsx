@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  exportList,
-} from "../../utils/api/data";
+import { exportList } from "../../utils/api/data";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { creditState, userState } from "../../utils/atom/authAtom";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
 import TextToCapitalize from "../../component/TextToCapital";
 import { toast } from "react-toastify";
@@ -14,7 +11,12 @@ import { Dialog } from "primereact/dialog";
 import { Skeleton } from "primereact/skeleton";
 import hubspotLogo from "../../assets/integrations/hubspot/HubSpot.png";
 import { exportToHubspotApi } from "../../utils/api/crmIntegrations";
-import { collaboration_getLinkedInUrl_api, collaboration_getSingleListDetail_api, collaboration_showPhoneAndEmail_api } from "../../utils/api/collaborationData";
+import {
+  collaboration_getLinkedInUrl_api,
+  collaboration_getSingleListDetail_api,
+  collaboration_showPhoneAndEmail_api,
+} from "../../utils/api/collaborationData";
+import { collabCreditState, collabProjectState } from "../../utils/atom/collabAuthAtom";
 
 interface Person {
   City: string;
@@ -42,9 +44,10 @@ interface ListDetailPayload {
 export default function Collab_ListDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
-  const user = useRecoilValue(userState);
-  const creditInfo = useSetRecoilState(creditState);
-  const creditInfoValue = useRecoilValue(creditState);
+  const user = useRecoilValue(collabProjectState);
+  
+  const creditInfo = useSetRecoilState(collabCreditState);
+  const creditInfoValue = useRecoilValue(collabCreditState);
 
   const [pageNumber, setPageNumber] = useState<number>(1);
 
@@ -54,8 +57,8 @@ export default function Collab_ListDetailPage() {
   const [selectedProfile, setSelectedProfile] = useState([]);
   const [loadRow, setLoadRow] = useState<any>();
   const [visible, setVisible] = useState(false);
-  const [insufficientCredit, setInsufficientCredit] = useState<string>('')
-  const [exportOptions, setExportOptions] = useState<string>('')
+  const [insufficientCredit, setInsufficientCredit] = useState<string>("");
+  const [exportOptions, setExportOptions] = useState<string>("");
   const [profilesRevealed, setProfileRevealed] = useState<
     RevealedProfile | any
   >();
@@ -79,23 +82,22 @@ export default function Collab_ListDetailPage() {
     { field: "Country", header: "Country" },
   ];
 
-
-  const loadingColumns = [ 
+  const loadingColumns = [
     {
-        row_id: '',
-        Name: '',
-        Designation: '',
-        Email: '',
-        Phone: '',
-        LinkedIn: '',
-        Organization: '',
-        City: '',
-        State: '',
-        Country: '',
-        "Organization Size": '',
-        "Organization Industry": '',
-    }
-  ]
+      row_id: "",
+      Name: "",
+      Designation: "",
+      Email: "",
+      Phone: "",
+      LinkedIn: "",
+      Organization: "",
+      City: "",
+      State: "",
+      Country: "",
+      "Organization Size": "",
+      "Organization Industry": "",
+    },
+  ];
 
   const fields = columns.map((item) => {
     return item.field;
@@ -128,22 +130,22 @@ export default function Collab_ListDetailPage() {
             });
 
             creditInfo({
-              id: user?.id ?? "",
+              id: user?._id ?? "",
               credits: res?.data?.remainingCredits,
-              subscriptionType: creditInfoValue?.subscriptionType|| "FREE",
-                          });
-
-            setEntries(updatedEntries);
-            checkPhone(updatedEntries)
-
-
-            const updatedSelectedEntries: any = selectedProfile.map((entry: any) => {
-              const match: any = resMap.get(entry.row_id);
-              return match ? { ...entry, ...match } : entry;
+              subscriptionType: creditInfoValue?.subscriptionType || "FREE",
             });
 
-      checkSelectedPhone(updatedSelectedEntries)
+            setEntries(updatedEntries);
+            checkPhone(updatedEntries);
 
+            const updatedSelectedEntries: any = selectedProfile.map(
+              (entry: any) => {
+                const match: any = resMap.get(entry.row_id);
+                return match ? { ...entry, ...match } : entry;
+              }
+            );
+
+            checkSelectedPhone(updatedSelectedEntries);
           })
           .catch(() => {});
       }
@@ -166,11 +168,10 @@ export default function Collab_ListDetailPage() {
     setLoadRow({ type: type, row_id: id });
     await collaboration_showPhoneAndEmail_api(type, [id], user)
       .then((res) => {
-        
-          if (res?.data?.error) {
-            setVisible(true);
-            setInsufficientCredit('Insufficient credit')
-          }
+        if (res?.data?.error) {
+          setVisible(true);
+          setInsufficientCredit("Insufficient credit");
+        }
 
         let prevEntries: any = {};
 
@@ -181,7 +182,11 @@ export default function Collab_ListDetailPage() {
         );
 
         checkPhone(prevEntries);
-        creditInfo({ id: user?.id ?? "", credits: res?.data?.remainingCredits, subscriptionType: creditInfoValue?.subscriptionType||"FREE" });
+        creditInfo({
+          id: user?._id ?? "",
+          credits: res?.data?.remainingCredits,
+          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+        });
         setEntries(prevEntries);
       })
       .catch(() => {
@@ -192,20 +197,21 @@ export default function Collab_ListDetailPage() {
     // loadData(pageNumber);
   };
 
-
-    const openLinkedInPopup = async (id: any) => {
-      setLoadRow({ type: "linkedIn", row_id: id });
-      const payload = {
-        row_id: id
-      }
-  
-      await collaboration_getLinkedInUrl_api(payload).then((res: any)=>{
-  
-        window.open(`https://${res?.data?.linkedin_url}`, 'popupWindow', 'width=600,height=600');
-        setLoadRow({});
-      })
+  const openLinkedInPopup = async (id: any) => {
+    setLoadRow({ type: "linkedIn", row_id: id });
+    const payload = {
+      row_id: id,
     };
-  
+
+    await collaboration_getLinkedInUrl_api(payload).then((res: any) => {
+      window.open(
+        `https://${res?.data?.linkedin_url}`,
+        "popupWindow",
+        "width=600,height=600"
+      );
+      setLoadRow({});
+    });
+  };
 
   const showPhone = (rowData: any) => {
     return (
@@ -254,7 +260,7 @@ export default function Collab_ListDetailPage() {
   };
 
   const showOrgIndustry = (rowData: any) => {
-    return ( 
+    return (
       <div className="">{TextToCapitalize(rowData?.["Org Industry"])}</div>
     );
   };
@@ -263,20 +269,23 @@ export default function Collab_ListDetailPage() {
     return <div className="">{TextToCapitalize(rowData.Name)}</div>;
   };
 
- 
-  const showLinkedIn = (rowData: any ) => {
-    return <div className="">
-      <i onClick={()=>openLinkedInPopup(rowData.row_id)} className={`
+  const showLinkedIn = (rowData: any) => {
+    return (
+      <div className="">
+        <i
+          onClick={() => openLinkedInPopup(rowData.row_id)}
+          className={`
       
-            ${loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id ? (
-              "pi pi-spinner"
-            ) : (
-              'pi pi-address-book'
-            )}
-         font-bold text-2xl cursor-pointer rounded-lg button_hover  p-2 `}></i>
-    </div>;
+            ${
+              loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id
+                ? "pi pi-spinner"
+                : "pi pi-address-book"
+            }
+         font-bold text-2xl cursor-pointer rounded-lg button_hover  p-2 `}
+        ></i>
+      </div>
+    );
   };
-
 
   const showDesignation = (rowData: any) => {
     return <div className="">{TextToCapitalize(rowData.Designation)}</div>;
@@ -301,33 +310,36 @@ export default function Collab_ListDetailPage() {
   const exportCurrentList = async () => {
     setExportLoading(true);
 
-    const payload:any = {
+    const payload: any = {
       listName: params?.listName,
     };
 
-    
-    if (exportOptions.toLowerCase() === 'hubspot') {
-      await exportToHubspotApi(payload).then((res) => {
-        console.log('response from hubspot export', res);
-        // data : 
-        //   portalId: 242990985
-        //   success: true
-        if (res?.data?.success) {
-          toast.success("Exported to Hubspot successfully");
-          window.open(`https://app-na2.hubspot.com/import/${res?.data?.portalId}`, '_blank', 'noopener,noreferrer')
-        }
-
-      }).catch(() => {})
-      
-    } else if (exportOptions.toLowerCase() === 'email') {
-        payload["email"] = user?.email;
-        await exportList(payload)
-          .then(() => {
-            toast.success("You will receive a mail shortly");
-          })
-          .catch(() => {
-            toast.error("Unable to send mail, try again!");
-          });
+    if (exportOptions.toLowerCase() === "hubspot") {
+      await exportToHubspotApi(payload)
+        .then((res) => {
+          console.log("response from hubspot export", res);
+          // data :
+          //   portalId: 242990985
+          //   success: true
+          if (res?.data?.success) {
+            toast.success("Exported to Hubspot successfully");
+            window.open(
+              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
+              "_blank",
+              "noopener,noreferrer"
+            );
+          }
+        })
+        .catch(() => {});
+    } else if (exportOptions.toLowerCase() === "email") {
+      payload["email"] = user?.collaboratorEmail;
+      await exportList(payload)
+        .then(() => {
+          toast.success("You will receive a mail shortly");
+        })
+        .catch(() => {
+          toast.error("Unable to send mail, try again!");
+        });
     }
     setVisible(false);
     setExportLoading(false);
@@ -359,9 +371,9 @@ export default function Collab_ListDetailPage() {
     setLoading(false);
   };
 
-  const openDialog = (option:string) => {
+  const openDialog = (option: string) => {
     setVisible(true);
-    setExportOptions(option)
+    setExportOptions(option);
   };
 
   // Update the revealed profiles
@@ -419,12 +431,9 @@ export default function Collab_ListDetailPage() {
     }
   };
 
-
-    const skeletonLoad = () => {
-      return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>
-    };
-   
-
+  const skeletonLoad = () => {
+    return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>;
+  };
 
   useEffect(() => {
     // checkPhone(entries);
@@ -438,56 +447,46 @@ export default function Collab_ListDetailPage() {
 
   return (
     <div>
+      <Dialog
+        header={`Insufficient Credit`}
+        visible={visible && insufficientCredit === "Insufficient credit"}
+        className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
+        // style={{ maxWidth: "400px" }}
+        onHide={() => {
+          if (!visible) return;
+          setVisible(false);
+          setInsufficientCredit("");
+        }}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="pb-3 w-fit m-auto">
+          <div className="flex flex-col gap-3 m-5 text-center">
+            <p className="flex">
+              <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
+              <span className=" text-sm">
+                You have insufficient credits to view this profile(s).
+              </span>
+            </p>
+          </div>
 
-            <Dialog
-              header={`Insufficient Credit`}
-              visible={visible &&  insufficientCredit === 'Insufficient credit'}
-              className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-              // style={{ maxWidth: "400px" }}
-              onHide={() => {
-                if (!visible) return;
-                setVisible(false);
-                setInsufficientCredit('')
-              }}
-              draggable={false}
-              resizable={false}
-            >
-              <div className="pb-3 w-fit m-auto">
-                <div className="flex flex-col gap-3 m-5 text-center">
-                  <p className="flex">
-                    <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-                    <span className=" text-sm">
-                      You have insufficient credits to view this profile(s).
-                    </span>
-                  </p>
-                </div>
-      
-                <div className="mt-6 flex">
-                  <div className=" cursor-pointer w-fit m-auto">
-                    <button
-                      onClick={() => navigate("/subscription")}
-                      className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
-                    >
-                      Top Up
-                    </button>
-                  </div>
-      
-                  <div className=" cursor-pointer w-fit m-auto">
-                    <button
-                      onClick={() => navigate("/subscription")}
-                      className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
-                    >
-                      Subscribe Now
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Dialog>
-      
+          <div className="mt-6 flex items-center pb-2"> 
+
+            <div className=" cursor-pointer w-fit m-auto">
+              <button
+                onClick={() => navigate("/subscription")}
+                className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
+              >
+                Subscribe Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog
         header={`Export to ${TextToCapitalize(exportOptions)}`}
-        visible={visible&&exportOptions.length>0}
+        visible={visible && exportOptions.length > 0}
         className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
         // style={{ maxWidth: "400px" }}
         onHide={() => {
@@ -497,14 +496,13 @@ export default function Collab_ListDetailPage() {
         draggable={false}
         resizable={false}
       >
-        <div
-          className=" w-fit m-auto">
-          <div className="flex flex-col gap-3 m-5 text-center"> 
+        <div className=" w-fit m-auto">
+          <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
               <span className=" text-sm">
-                Note: Only the rows with revealed email or phone number
-                will be included in your export.
+                Note: Only the rows with revealed email or phone number will be
+                included in your export.
               </span>
             </p>
           </div>
@@ -514,7 +512,7 @@ export default function Collab_ListDetailPage() {
               <button
                 onClick={() => {
                   setVisible(false);
-                  setExportOptions('');
+                  setExportOptions("");
                 }}
                 className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
               >
@@ -544,26 +542,28 @@ export default function Collab_ListDetailPage() {
             <span className="text-sm text-gray-500 ">
               {params?.listName?.replace(/-/g, " ")}
             </span>
-          </p> 
+          </p>
 
-
-              <div className=" flex items-center gap-5">
-                
-          <button
-            onClick={()=>openDialog('hubspot')}
-            className="transition_hover group text-xs flex items-center gap-2 cursor-pointer border hover:bg-[#F35114] border-[#F35114] font-bold hover:text-white text-[#F35114] px-2 py-1 rounded-lg"
+          <div className=" flex items-center gap-5">
+            <button
+              onClick={() => openDialog("hubspot")}
+              className="transition_hover group text-xs flex items-center gap-2 cursor-pointer border hover:bg-[#F35114] border-[#F35114] font-bold hover:text-white text-[#F35114] px-2 py-1 rounded-lg"
             >
-              <img src={hubspotLogo} className="w-5 transition_hover group-hover:p-1 bg-white rounded " alt="" />
-            <span>Hubspot</span>
-          </button>
+              <img
+                src={hubspotLogo}
+                className="w-5 transition_hover group-hover:p-1 bg-white rounded "
+                alt=""
+              />
+              <span>Hubspot</span>
+            </button>
 
-          <button
-            onClick={()=>openDialog('email')}
-            className="text-xs button_hover font-bold px-6 py-2 rounded-lg"
+            <button
+              onClick={() => openDialog("email")}
+              className="text-xs button_hover font-bold px-6 py-2 rounded-lg"
             >
-            Export
-          </button>
-            </div>
+              Export
+            </button>
+          </div>
         </div>
 
         <div className="my-10 flex flex-wrap justify-center gap-5 text-gray-600">
@@ -649,95 +649,25 @@ export default function Collab_ListDetailPage() {
           </button>
         </div>
 
-{loading ? 
-
-
-              <DataTable
-                value={Array(10).fill(loadingColumns)}
-                // filters={filters}
-                globalFilterFields={fields}
-                tableStyle={{ minWidth: "100%" }}
-                dataKey="row_id"
-                // paginator
-                className="text-sm rounded-lg overflow-hidden"
-                rows={50}
-                selectionMode={rowClick ? null : "checkbox"}
-                onSelectionChange={(e: any) => setSelectedProfile(e.value)}
-                selection={selectedProfile}
-                paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
-              >
-                <Column
-                  selectionMode="multiple"
-                  headerClassName={"bg-[#F35114] p-3 "}
-                  className="bg-[#f34f146c] text-center"
-                  headerStyle={{ width: "3rem" }}
-                ></Column>
-
-
-                {columns.map((col) => (
-                  <Column
-                    key={col.field}
-                    field={col.field}
-                    className={`text-sm py-3 border-b border-gray-100 p-5 ${
-                      col.header === "User"
-                        ? "font-bold text-gray-700"
-                        : "text-gray-500"
-                    }  `}
-                    // body={col.field}
-                    body={
-                      col.field === "Phone"
-                        ? skeletonLoad
-                        : col.field === "Email"
-                        ? skeletonLoad
-                        : col.field === "Name"
-                        ? skeletonLoad
-                        : col.field === "Designation"
-                        ? skeletonLoad
-                        : col.field === "City"
-                        ? skeletonLoad
-                        : col.field === "State"
-                        ? skeletonLoad
-                        : col.field === "Country"
-                        ? skeletonLoad
-                        : col.field === ""
-                        ? skeletonLoad
-                        : col.field === "Organization"
-                        ? skeletonLoad
-                        : col.field === "Org Industry"
-                        ? skeletonLoad
-                        : col.field === "Org Size"
-                        ? skeletonLoad
-
-                        : null
-
-                    }
-                    // body={col.field === "Phone" ? showPhone : ''}
-                    header={col.header}
-                    headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
-                  />
-                ))
-                }
-              </DataTable>:
-        <div className=" max-w-full my-10 ">
+        {loading ? (
           <DataTable
-            value={entries}
+            value={Array(10).fill(loadingColumns)}
+            // filters={filters}
             globalFilterFields={fields}
             tableStyle={{ minWidth: "100%" }}
             dataKey="row_id"
             // paginator
-                className="text-sm rounded-lg overflow-hidden"
+            className="text-sm rounded-lg overflow-hidden"
             rows={50}
             selectionMode={rowClick ? null : "checkbox"}
-            onSelectionChange={(e: any) => changeRowClick(e)}
+            onSelectionChange={(e: any) => setSelectedProfile(e.value)}
             selection={selectedProfile}
             paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
           >
             <Column
               selectionMode="multiple"
-
               headerClassName={"bg-[#F35114] p-3 "}
               className="bg-[#f34f146c] text-center"
-
               headerStyle={{ width: "3rem" }}
             ></Column>
 
@@ -753,41 +683,103 @@ export default function Collab_ListDetailPage() {
                 // body={col.field}
                 body={
                   col.field === "Phone"
-                    ? showPhone
+                    ? skeletonLoad
                     : col.field === "Email"
-                    ? showEmail
+                    ? skeletonLoad
                     : col.field === "Name"
-                    ? showName
-                    : col.field === ""
-                    ? showLinkedIn
+                    ? skeletonLoad
                     : col.field === "Designation"
-                    ? showDesignation
+                    ? skeletonLoad
                     : col.field === "City"
-                    ? showCity
+                    ? skeletonLoad
                     : col.field === "State"
-                    ? showState
+                    ? skeletonLoad
                     : col.field === "Country"
-                    ? showCountry
+                    ? skeletonLoad
+                    : col.field === ""
+                    ? skeletonLoad
                     : col.field === "Organization"
-                    ? showOrganization
+                    ? skeletonLoad
                     : col.field === "Org Industry"
-                    ? showOrgIndustry
+                    ? skeletonLoad
+                    : col.field === "Org Size"
+                    ? skeletonLoad
                     : null
                 }
                 // body={col.field === "Phone" ? showPhone : ''}
                 header={col.header}
                 headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
-
               />
             ))}
-            {/* <Column
+          </DataTable>
+        ) : (
+          <div className=" max-w-full my-10 ">
+            <DataTable
+              value={entries}
+              globalFilterFields={fields}
+              tableStyle={{ minWidth: "100%" }}
+              dataKey="row_id"
+              // paginator
+              className="text-sm rounded-lg overflow-hidden"
+              rows={50}
+              selectionMode={rowClick ? null : "checkbox"}
+              onSelectionChange={(e: any) => changeRowClick(e)}
+              selection={selectedProfile}
+              paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
+            >
+              <Column
+                selectionMode="multiple"
+                headerClassName={"bg-[#F35114] p-3 "}
+                className="bg-[#f34f146c] text-center"
+                headerStyle={{ width: "3rem" }}
+              ></Column>
+
+              {columns.map((col) => (
+                <Column
+                  key={col.field}
+                  field={col.field}
+                  className={`text-sm py-3 border-b border-gray-100 p-5 ${
+                    col.header === "User"
+                      ? "font-bold text-gray-700"
+                      : "text-gray-500"
+                  }  `}
+                  // body={col.field}
+                  body={
+                    col.field === "Phone"
+                      ? showPhone
+                      : col.field === "Email"
+                      ? showEmail
+                      : col.field === "Name"
+                      ? showName
+                      : col.field === ""
+                      ? showLinkedIn
+                      : col.field === "Designation"
+                      ? showDesignation
+                      : col.field === "City"
+                      ? showCity
+                      : col.field === "State"
+                      ? showState
+                      : col.field === "Country"
+                      ? showCountry
+                      : col.field === "Organization"
+                      ? showOrganization
+                      : col.field === "Org Industry"
+                      ? showOrgIndustry
+                      : null
+                  }
+                  // body={col.field === "Phone" ? showPhone : ''}
+                  header={col.header}
+                  headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
+                />
+              ))}
+              {/* <Column
                     body={actionBodyTemplate}
                     className="border-b"
                     header="Actions"
                   /> */}
-          </DataTable>
-        </div>
-}
+            </DataTable>
+          </div>
+        )}
 
         {/* pagination */}
         <div className="p-10 flex items-center m-auto">

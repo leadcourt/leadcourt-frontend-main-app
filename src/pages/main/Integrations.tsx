@@ -9,7 +9,7 @@ interface IntegrationDataStructure {
   name: string;
   description: string;
   icon: React.ReactNode;
-  color: string;
+  color: boolean;
   connection: boolean | 'checking';
   connectionLink: string | null;
 }
@@ -30,7 +30,7 @@ const Integrations = () => {
           <img src={hubspotLogo} className='w-full h-full bg-white rounded p-1' alt="" />
         </div>
       ),
-      color: 'orange',
+      color: true,
       connection: connections['Hubspot']?.connected || false,
       connectionLink: connectionHubspotCRM,
     },
@@ -45,7 +45,7 @@ const Integrations = () => {
           </svg>
         </div>
       ),
-      color: 'blue',
+      color: false,
       connection: connections['Zoho']?.connected || false,
       connectionLink: null,
     },
@@ -164,6 +164,8 @@ const Integrations = () => {
                       <i className='pi pi-spinner pi-spin'></i>
                     </div>
                     ) :
+
+                    integration.color ?
                     (
                     <Link
                     target="_blank"
@@ -172,7 +174,9 @@ const Integrations = () => {
                     >
                       Connect
                     </Link>
-                    )}
+                    ) : <div 
+                      className=" px-6 py-2 bg-gray-300 text-gray-500 cursor-not-allowed text-sm font-medium rounded-lg transition-colors duration-150 "
+                    >Connect</div> }
                   </div>
                 </div>
               </div>

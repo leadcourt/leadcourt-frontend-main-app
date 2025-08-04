@@ -183,6 +183,7 @@ export default function ListDetailPage() {
         );
 
         checkPhone(prevEntries);
+ 
         creditInfo({
           id: user?.id ?? "",
           credits: res?.data?.remainingCredits,
@@ -471,15 +472,7 @@ export default function ListDetailPage() {
             </p>
           </div>
 
-          <div className="mt-6 flex">
-            <div className=" cursor-pointer w-fit m-auto">
-              <button
-                onClick={() => navigate("/subscription")}
-                className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                Top Up
-              </button>
-            </div>
+          <div className="mt-6 flex items-center pb-2"> 
 
             <div className=" cursor-pointer w-fit m-auto">
               <button

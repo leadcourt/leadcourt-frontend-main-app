@@ -1,6 +1,7 @@
 import {
   confirmPasswordReset,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile,
@@ -33,7 +34,12 @@ const userSignUp = async (
         .catch(() => {
           toast.error("Error on sign up.");
         });
+      
+      sendEmailVerification(res.user);
       return "success";
+
+
+
     })
     .catch((error) => {
       const errorCode = error.code;
@@ -64,6 +70,7 @@ const userLogin = async (
     );
 
     const user = response.user;
+    const userVerified = response.user.emailVerified;
     const accessToken = await user.getIdToken();
     // const refreshToken = user.refreshToken;
     // const encData = import.meta.env.VITE_EN_KEY
@@ -78,7 +85,7 @@ const userLogin = async (
     //     return accessToken});
 
     // const en_access = CryptoJS.AES.encrypt(accessToken, encData).toString();
-    // console.log(en_access);
+    console.log('userVerified', userVerified );
 
     data = {
       // access: en_access,
@@ -88,6 +95,7 @@ const userLogin = async (
         id: user.uid,
         email: user.email,
         name: user.displayName,
+        verify: userVerified,
       },
     };
 
@@ -138,6 +146,7 @@ const userGoogleSignIn = async () => {
           id: user.uid,
           email: user.email,
           name: user.displayName,
+          verify: true
         },
       };
     }

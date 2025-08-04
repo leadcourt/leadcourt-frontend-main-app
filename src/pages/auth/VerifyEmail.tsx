@@ -1,62 +1,98 @@
-import { Mail, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { forgotPasswordValidation } from "../../utils/validation/validation";
+import { User } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { verificationValidation } from "../../utils/validation/validation";
 import { useFormik } from "formik";
-import logo from "../../assets/logo/logo.png";
+import logo from "../../assets/logo/logoDark.png";
 import { userResetPassword } from "../../utils/api/userFirebase";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { toast } from "react-toastify";
+import authBG from '../../assets/background/bg_gradient.jpg'
 
 interface FormData {
-  email: string;
+  otp: number;
 }
 export default function VerifyEmail() {
   // const [email, setEmail] = useState('markclarke@gmail.com');
   const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
+  const [params] = useSearchParams();
+  const mode = params?.get('mode');
+  const oobCode = params?.get('oobCode');
 
-  const onSubmit = async (values: FormData) => {
-    setLoading(true);
-    await userResetPassword(values)
-      .then((res) => {
-        if (res.message == 'success') {
-          values.email = ''
-          setModalVisible(true);
-          return
-        } else if (res.message == 'failed') {
-          toast.error('Error occured')
-        }
-      })
 
-    setLoading(false);
-  };
+// // Get the action to complete.
+//   const mode = getParameterByName('mode');
+//   // Get the one-time code from the query parameter.
+//   const actionCode = getParameterByName('oobCode');
+//   // (Optional) Get the continue URL from the query parameter if available.
+//   const continueUrl = getParameterByName('continueUrl');
+//   // (Optional) Get the language code if available.
+  
 
-  const initialValues: FormData = {
-    email: "",
-  };
 
-  const {
-    values,
-    errors,
-    isValid,
-    isValidating,
-    isSubmitting,
-    touched,
-    handleBlur,
-    handleChange,
-    handleSubmit,
-  } = useFormik({
-    validateOnMount: true,
-    initialValues: initialValues,
-    validationSchema: forgotPasswordValidation,
-    onSubmit,
-  });
+  // const onSubmit = async (values: FormData) => {
+  //   setLoading(true);
+  //   await userResetPassword(values)
+  //     .then((res) => {
+  //       if (res.message == 'success') {
+  //         setModalVisible(true);
+  //         return
+  //       } else if (res.message == 'failed') {
+  //         toast.error('Error occured')
+  //       }
+  //     })
+
+  //   setLoading(false);
+  // };
+
+  // const initialValues: FormData = {
+  //   otp: 0,
+  // };
+
+  // const {
+  //   values,
+  //   errors,
+  //   isValid,
+  //   isValidating,
+  //   isSubmitting,
+  //   touched,
+  //   handleBlur,
+  //   handleChange,
+  //   handleSubmit,
+  // } = useFormik({
+  //   validateOnMount: true,
+  //   initialValues: initialValues,
+  //   validationSchema: verificationValidation,
+  //   onSubmit,
+  // });
+
+  useEffect(()=>{
+    console.log('mode', mode);
+    console.log('oobCode', oobCode);
+  console.log('show verity');
+     
+  }, [])
 
   return (
+
+    
+        <div className="flex min-h-full w-full overflow-hidden">
+          {/* Left side - Orange gradient background */}
+          <div className="relative hidden md:block md:w-[40%] ">
+            <div className="fixed top-0 h-[100vh] w-[40%] rounded-r-[30px] overflow-hidden">
+
+          <div className="absolute w-full h-full flex items-end justify-center m-auto ">
+            <img src={logo} alt="" className="h-30 opacity-[90%] mb-10" />
+          </div>
+                <img src={authBG} className="h-full w-full" alt="" />
+            </div>
+          </div>
+          
+
     <div className="w-full min-h-[100vh] md:w-[60%] flex items-center justify-center px-6 py-8">
       {/* Right side - Form container */}
 
@@ -84,12 +120,10 @@ export default function VerifyEmail() {
 
           <div className=" text-center flex flex-col gap-3 mx-5">
             <h4 className=" font-bold text-gray-700">
-              Change Password Request Successful!
+              Account Verification Successful!
             </h4>
             <p className="text-gray-500">
-              We have just sent an email to{" "}
-              <span className="font-bold text-gray-600">{values.email}</span>,
-              check email to proceed.
+              You can click here to continue.
             </p>
 
 
@@ -105,41 +139,41 @@ export default function VerifyEmail() {
           <img src={logo} alt="" className="h-20" />
         </div>
 
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Forgot password?
+            Verify your account
           </h1>
           <p className="text-gray-600">
-            Please enter your email address to continue
+            An email has been sent to you, Please proceed to your email to verify your account. 
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {/* <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label className="block text-xs font-medium text-gray-700 uppercase mb-2">
-              Email Address
+              OTP code
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Mail size={20} className="text-red-500" />
+                <i className="pi pi-lock text-red-500"></i>
               </div>
               <input
-                name="email"
-                type="email"
-                value={values.email}
+                name="otp"
+                type="text"
+                value={values.otp !== 0 ? values.otp : ''}
+                
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className="pl-12 w-full py-3 bg-gray-100 rounded-md focus:ring-2 focus:ring-purple-100 focus:outline-none"
-                placeholder="Enter your email"
+                placeholder="Enter your otp"
                 required
               />
             </div>
-            {errors.email && touched.email && (
-              <p className="error text-sm text-red-400">{errors.email}</p>
+            {errors.otp && touched.otp && (
+              <p className="error text-sm text-red-400">{errors.otp}</p>
             )}
           </div>
 
-          {/* Continue Button */}
 
           {loading ? (
             <button
@@ -158,20 +192,26 @@ export default function VerifyEmail() {
               Continue
             </button>
           )}
-        </form>
+        </form> */}
 
         {/* Forgot password Link */}
         <div className="text-center mt-3">
-          <p className="text-gray-600">
             <Link
               to="/auth/user-login"
-              className="text-orange-500 hover:text-orange-600 text-sm"
+              className="secondary-btn-red2 hover:text-orange-600 text-sm"
             >
-              Proceed to login Here..
+              Click here to resend otp...
             </Link>
-          </p>
         </div>
+        {/* <div className="text-xs text-center mt-10 text-red-600">
+          Log out
+        </div> */}
       </div>
     </div>
+
+
+        </div>
+
+
   );
 }

@@ -389,7 +389,7 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
             }}
             
             emptyMessage={loadingData === "Designation" ? 'Data Loading': 'Search for more..'}
-            emptyFilterMessage={loadingData === "Designation" ? 'Data Loading': 'No result'}
+            emptyFilterMessage={loadingData === "Designation" ? <div className="text-xs text-center p-2 flex items-center gap-2 justify-center"><i className="pi pi-spin pi-refresh"></i> Data Loading...</div> : <div className="text-xs text-center p-2 flex justify-center items-center gap-2 ">No result</div>}
             resetFilterOnHide={false}
             ref={multiSelectRef}
             onSelectAll={handleSelectAll}

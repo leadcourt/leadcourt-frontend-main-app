@@ -41,7 +41,7 @@ const PreferenceOption: React.FC<PreferenceOptionProps> = ({ label, checked, dis
   );
 };
 
-const MarketingPreferencesPage: React.FC = () => {
+const MarketingPreferencesPage: React.FC = ({changeVisibility}:any) => {
   // State for preferences
   const [preferences, setPreferences] = useState({
     promotionalEmails: true,
@@ -97,8 +97,8 @@ const MarketingPreferencesPage: React.FC = () => {
           </div>
         </div>
         
-        <div className="mt-6">
-          <button className="w-full bg-[#F35114] hover:bg-indigo-800 text-white py-3 px-4 rounded-md">
+        <div onClick={()=>changeVisibility(false)} className="mt-6">
+          <button  className="w-full bg-[#F35114] hover:bg-indigo-800 text-white py-3 px-4 rounded-md">
             Update preferences
           </button>
         </div>

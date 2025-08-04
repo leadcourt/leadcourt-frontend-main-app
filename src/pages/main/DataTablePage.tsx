@@ -16,9 +16,9 @@ import TextToCapitalize from "../../component/TextToCapital";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
 import FilterComponent from "../../component/FilterComponent";
 import { Skeleton } from "primereact/skeleton";
-import noDataImg from '../../assets/icons/nodataImage.jpg'
+import noDataImg from "../../assets/icons/nodataImage.jpg";
 import { getCreditBalance } from "../../utils/api/creditApi";
-import {debounce} from 'lodash';
+import { debounce } from "lodash";
 import { Dropdown } from "primereact/dropdown";
 import { useNavigate } from "react-router-dom";
 
@@ -41,8 +41,8 @@ interface LoadDataOptions {
   filter?: any;
 }
 export default function DataTablePage() {
-  const creditInfo = useSetRecoilState(creditState)
-  const creditInfoValue = useRecoilValue(creditState)
+  const creditInfo = useSetRecoilState(creditState);
+  const creditInfoValue = useRecoilValue(creditState);
   // const [creditInfo, setCreditInfo] = useRecoilState(creditState)
 
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -58,26 +58,26 @@ export default function DataTablePage() {
   const [totalDataCount, setTotalDataCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedRowLimit, setSelectedRowLimit] = useState<number>(25)
+  const [selectedRowLimit, setSelectedRowLimit] = useState<number>(25);
   const [loadRow, setLoadRow] = useState<any>({});
   const [visible, setVisible] = useState<boolean>(false);
 
-  const navigate = useNavigate()
-  
-  const r_Limit: number[] = [25, 50, 100]
+  const navigate = useNavigate();
 
-  const changeRowLimit = (value:any) => {
-    console.log('value', value);
-    console.log('typeof(value)', typeof(value));
-    setSelectedRowLimit(value)
-    loadData(pageNumber, {rowLimit:value})
-  }
+  const r_Limit: number[] = [25, 50, 100];
+
+  const changeRowLimit = (value: any) => {
+    console.log("value", value);
+    console.log("typeof(value)", typeof value);
+    setSelectedRowLimit(value);
+    loadData(pageNumber, { rowLimit: value });
+  };
   const addToList = () => {
     if (selectedProfile.length !== 0) {
       setModalVisible(true);
     } else {
       toast.error("Select atleast one person");
-    }  
+    }
   };
 
   const onGlobalFilterChange = (e: any) => {
@@ -90,22 +90,22 @@ export default function DataTablePage() {
     setGlobalFilterValue(value);
   };
 
-  const loadingColumns = [ 
+  const loadingColumns = [
     {
-        row_id: '',
-        Name: '',
-        Designation: '',
-        Email: '',
-        LinkedIn:   '',
-        Phone: '',
-        Organization: '',
-        City: '',
-        State: '',
-        Country: '',
-        'Organization Size': '',
-        'Organization Industry': '',
-    }
-  ]
+      row_id: "",
+      Name: "",
+      Designation: "",
+      Email: "",
+      LinkedIn: "",
+      Phone: "",
+      Organization: "",
+      City: "",
+      State: "",
+      Country: "",
+      "Organization Size": "",
+      "Organization Industry": "",
+    },
+  ];
 
   const columns = [
     { field: "Name", header: "Name" },
@@ -135,7 +135,7 @@ export default function DataTablePage() {
         setTotalDataCount(res?.data?.count);
         setEntries(data);
       } catch (error) {
-        console.error('Fetch failed', error);
+        console.error("Fetch failed", error);
       } finally {
         setLoading(false);
       }
@@ -150,11 +150,10 @@ export default function DataTablePage() {
   //     userId: user?.id,
   //   };
   //   console.log(' in the load data');
-    
 
   //   debounce( async ()=> {
   //     console.log('In debouncer');
-      
+
   //   await getAllData(payload)
   //     .then((res) => {
   //       const data = res?.data?.cleaned?.sort((a: Person, b: Person): number =>
@@ -168,83 +167,91 @@ export default function DataTablePage() {
   //     .catch(() => {
   //       setLoading(false);
   //     })}, 2000);
-      
+
   //   setLoading(false);
 
   // }).current;
 
-  const loadData = useCallback((pageNo: number, {rowLimit, filter}: LoadDataOptions = {}) => {
-    setLoading(true);
-    const payload = {
-      filters: filter ?? selectedFilters,
-      page: pageNo,
-      // userId: user?.id,
-      limit: rowLimit ?? selectedRowLimit,
-    };
-    debouncedFetchData(payload);
-  }, [selectedFilters, user?.id, selectedRowLimit]);
+  const loadData = useCallback(
+    (pageNo: number, { rowLimit, filter }: LoadDataOptions = {}) => {
+      setLoading(true);
+      const payload = {
+        filters: filter ?? selectedFilters,
+        page: pageNo,
+        // userId: user?.id,
+        limit: rowLimit ?? selectedRowLimit,
+      };
+      debouncedFetchData(payload);
+    },
+    [selectedFilters, user?.id, selectedRowLimit]
+  );
 
   const handleChangePageNumber = (e: any) => {
     e.preventDefault();
-    const num: number = parseInt(e.target.value)
+    const num: number = parseInt(e.target.value);
     setPageNumber(num);
-    loadData(num, {filter:selectedFilters});
+    loadData(num, { filter: selectedFilters });
   };
 
   const handleChangePageNumber2 = (chk: string) => {
     if (chk === "increase") {
       setPageNumber(pageNumber + 1);
-      loadData(pageNumber + 1, {filter:selectedFilters});
+      loadData(pageNumber + 1, { filter: selectedFilters });
     } else if (chk === "decrease") {
       setPageNumber(pageNumber - 1);
-      loadData(pageNumber - 1, {filter:selectedFilters});
+      loadData(pageNumber - 1, { filter: selectedFilters });
     }
   };
 
   const handleShowPhoneOrEmail = async (type: string, id: any) => {
     setLoadRow({ type: type, row_id: id });
 
-      await showPhoneAndEmail(type, [id], user)
-        .then((res) => {
-          console.log(',,,res in res', res)
-          
-          if (res?.data?.error) {
-            setVisible(true);
-          }
-          let prevEntries: any = {};
-          
-          prevEntries = entries.map((entry: any) =>
-            entry.row_id === id
-              ? { ...entry, ...res?.data.results[0] } // Update the Email field
-              : entry
-          );
-  
-          creditInfo({id:user?.id ?? '', credits:res?.data?.remainingCredits || 0, subscriptionType: creditInfoValue?.subscriptionType || 'FREE'})
-  
-          setEntries(prevEntries);
-        })
-        .catch(( err ) => {
-          console.log('res in res,,,', err)
-        }); 
+    await showPhoneAndEmail(type, [id], user)
+      .then((res) => {
+        console.log(",,,res in res", res);
+
+        if (res?.data?.error) {
+          setVisible(true);
+        }
+        let prevEntries: any = {};
+
+        prevEntries = entries.map((entry: any) =>
+          entry.row_id === id
+            ? { ...entry, ...res?.data.results[0] } // Update the Email field
+            : entry
+        );
+
+        creditInfo({
+          id: user?.id ?? "",
+          credits: res?.data?.remainingCredits || 0,
+          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+        });
+ 
+
+        setEntries(prevEntries);
+      })
+      .catch((err) => {
+        console.log("res in res,,,", err);
+      });
 
     setLoadRow({});
   };
 
-
   const openLinkedInPopup = async (id: any) => {
     setLoadRow({ type: "linkedIn", row_id: id });
     const payload = {
-      row_id: id
-    }
+      row_id: id,
+    };
 
-    await getLinkedInUrl(payload).then((res: any)=>{
-
-      window.open(`https://${res?.data?.linkedin_url}`, 'popupWindow', 'width=600,height=600');
+    await getLinkedInUrl(payload).then((res: any) => {
+      window.open(
+        `https://${res?.data?.linkedin_url}`,
+        "popupWindow",
+        "width=600,height=600"
+      );
       setLoadRow({});
-    })
+    });
   };
-
-
 
   const showPhone = (rowData: any) => {
     return (
@@ -290,17 +297,22 @@ export default function DataTablePage() {
     );
   };
 
-  const showLinkedIn = (rowData: any ) => {
-    return <div className="">
-      <i onClick={()=>openLinkedInPopup(rowData.row_id)} className={`
+  const showLinkedIn = (rowData: any) => {
+    return (
+      <div className="">
+        <i
+          onClick={() => openLinkedInPopup(rowData.row_id)}
+          className={`
       
-            ${loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id ? (
-              "pi pi-spinner"
-            ) : (
-              'pi pi-address-book'
-            )}
-          button_hover font-bold text-2xl cursor-pointer rounded-lg p-2 `}></i>
-    </div>;
+            ${
+              loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id
+                ? "pi pi-spinner"
+                : "pi pi-address-book"
+            }
+          button_hover font-bold text-2xl cursor-pointer rounded-lg p-2 `}
+        ></i>
+      </div>
+    );
   };
 
   const showName = (rowData: any) => {
@@ -328,57 +340,61 @@ export default function DataTablePage() {
   };
 
   const showOrgIndustry = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData?.['Organization Industry'])}</div>;
+    return (
+      <div className="">
+        {TextToCapitalize(rowData?.["Organization Industry"])}
+      </div>
+    );
   };
- 
 
   const skeletonLoad = () => {
-    return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>
+    return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>;
   };
- 
-  const emptyMessageTemplate = () =>{
-    return <div className="text-2xl sticky max-w-full w-1/2 m-auto ">
-      {/* NO dataaaaaaaaimpo */}
-      <img src={noDataImg} className="w-full" alt="" />
-      {/* <noDataImg /> */}
 
-    </div>
-  }
-  
+  const emptyMessageTemplate = () => {
+    return (
+      <div className="text-2xl sticky max-w-full w-1/2 m-auto ">
+        {/* NO dataaaaaaaaimpo */}
+        <img src={noDataImg} className="w-full" alt="" />
+        {/* <noDataImg /> */}
+      </div>
+    );
+  };
+
   // Get credit balance..
   const getCredit = async () => {
-    await getCreditBalance().then((res)=>{
-      creditInfo({id:user?.id ?? '', credits:res?.data?.credits, subscriptionType: res?.data?.subscriptionType})
-    })
-  }
+    await getCreditBalance().then((res) => {
+      creditInfo({
+        id: user?.id ?? "",
+        credits: res?.data?.credits,
+        subscriptionType: res?.data?.subscriptionType,
+      });
+    });
+  };
 
   useEffect(() => {
-    getCredit()
+    getCredit();
     loadData(pageNumber);
     setRowClick(false);
     setSelectedFilters({});
-
   }, []);
 
   return (
     <div className="">
-
-            <Dialog
-              header={`Insufficient Credit`}
-              visible={visible}
-              className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-              // style={{ maxWidth: "400px" }}
-              onHide={() => {
-                if (!visible) return;
-                setVisible(false);
-              }}
-              draggable={false}
-              resizable={false}
-            > 
-            
-        <div
-          className="pb-3 w-fit m-auto">
-          <div className="flex flex-col gap-3 m-5 text-center"> 
+      <Dialog
+        header={`Insufficient Credit`}
+        visible={visible}
+        className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
+        // style={{ maxWidth: "400px" }}
+        onHide={() => {
+          if (!visible) return;
+          setVisible(false);
+        }}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="pb-3 w-fit m-auto">
+          <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
               <span className=" text-sm">
@@ -387,19 +403,18 @@ export default function DataTablePage() {
             </p>
           </div>
 
-          <div className="mt-6 flex items-center">
+          <div className="mt-6 flex items-center pb-2">
             <div className=" cursor-pointer w-fit m-auto">
               <button
-              onClick={()=>navigate('/subscription')}
-              className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
+                onClick={() => navigate("/subscription")}
+                className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
               >
                 Subscribe Now
-                
               </button>
             </div>
           </div>
         </div>
-            </Dialog>
+      </Dialog>
       <div className="grid grid-cols-12 pt-3 overflow-hidden">
         {/* The filter section */}
         <div className=" col-span-12 lg:col-span-3 gap-3 lg:gap-0 p-3 maxh-[100vh] overflow-y-auto overflow-x-hidden static">
@@ -468,188 +483,184 @@ export default function DataTablePage() {
               </div>
             </div>
             <div className=" w[100vw] ">
-
-              {loading ?
-
-<DataTable
-value={Array(10).fill(loadingColumns)}
-filters={filters}
-globalFilterFields={fields}
-tableStyle={{ minWidth: "100%" }}
-dataKey="row_id"
-// paginator
-className="text-sm rounded-lg overflow-hidden"
-rows={50}
-selectionMode={rowClick ? null : "checkbox"}
-onSelectionChange={(e: any) => setSelectedProfile(e.value)}
-selection={selectedProfile}
-paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
->
-<Column
-  selectionMode="multiple"
-  headerClassName={"bg-[#F35114] p-3 "}
-  className="bg-[#f34f146c] text-center"
-  headerStyle={{ width: "3rem" }}
-></Column>
-
-
-{columns.map((col) => (
-  <Column
-    key={col.field}
-    field={col.field}
-    className={`text-sm py-3 border-b border-gray-100 p-5 ${
-      col.header === "User"
-        ? "font-bold text-gray-700"
-        : "text-gray-500"
-    }  `}
-    // body={col.field}
-    body={
-      col.field === "Phone"
-        ? skeletonLoad
-        : col.field === "Email"
-        ? skeletonLoad
-        : col.field === "Name"
-        ? skeletonLoad
-        : col.field === ""
-        ? skeletonLoad
-        : col.field === "Designation"
-        ? skeletonLoad
-        : col.field === "City"
-        ? skeletonLoad
-        : col.field === "State"
-        ? skeletonLoad
-        : col.field === "Country"
-        ? skeletonLoad
-        : col.field === "Organization"
-        ? skeletonLoad
-        : col.field === "Org Industry"
-        ? skeletonLoad
-        : col.field === "Org Size"
-        ? skeletonLoad
-
-        : null
-
-    }
-    // body={col.field === "Phone" ? showPhone : ''}
-    header={col.header}
-    headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
-  />
-))
-}
-</DataTable>
-
-:
-              <DataTable
-                value={entries}
-                filters={filters}
-                globalFilterFields={fields}
-                tableStyle={{ minWidth: "100%" }}
-                dataKey="row_id"
-                emptyMessage={emptyMessageTemplate}
-                // paginator
-                className="text-sm rounded-lg overflow-hidden"
-                rows={50}
-                selectionMode={rowClick ? null : "checkbox"}
-                onSelectionChange={(e: any) => setSelectedProfile(e.value)}
-                selection={selectedProfile}
-                paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
-              >
-                <Column
-                  selectionMode="multiple"
-                  headerClassName={"bg-[#F35114] p-3 "}
-                  className="bg-[#f34f146c] text-center"
-                  headerStyle={{ width: "3rem" }}
-                ></Column>
-
-
-                {columns.map((col) => (
+              {loading ? (
+                <DataTable
+                  value={Array(10).fill(loadingColumns)}
+                  filters={filters}
+                  globalFilterFields={fields}
+                  tableStyle={{ minWidth: "100%" }}
+                  dataKey="row_id"
+                  // paginator
+                  className="text-sm rounded-lg overflow-hidden"
+                  rows={50}
+                  selectionMode={rowClick ? null : "checkbox"}
+                  onSelectionChange={(e: any) => setSelectedProfile(e.value)}
+                  selection={selectedProfile}
+                  paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
+                >
                   <Column
-                    key={col.field}
-                    field={col.field}
-                    className={`text-sm py-3 border-b border-gray-100 text-gray-500 p-5 `}
-                    // body={col.field}
-                    body={
-                      col.field === "Phone"
-                        ? showPhone
-                        : col.field === "Email"
-                        ? showEmail
-                        : col.field === "Name"
-                        ? showName
-                        : col.field === ""
-                        ? showLinkedIn
-                        : col.field === "Designation"
-                        ? showDesignation
-                        : col.field === "City"
-                        ? showCity
-                        : col.field === "State"
-                        ? showState
-                        : col.field === "Country"
-                        ? showCountry
-                        : col.field === "Organization"
-                        ? showOrganization
-                        : col.field === "Organization Industry"
-                        ? showOrgIndustry
+                    selectionMode="multiple"
+                    headerClassName={"bg-[#F35114] p-3 "}
+                    className="bg-[#f34f146c] text-center"
+                    headerStyle={{ width: "3rem" }}
+                  ></Column>
 
-                        : null
+                  {columns.map((col) => (
+                    <Column
+                      key={col.field}
+                      field={col.field}
+                      className={`text-sm py-3 border-b border-gray-100 p-5 ${
+                        col.header === "User"
+                          ? "font-bold text-gray-700"
+                          : "text-gray-500"
+                      }  `}
+                      // body={col.field}
+                      body={
+                        col.field === "Phone"
+                          ? skeletonLoad
+                          : col.field === "Email"
+                          ? skeletonLoad
+                          : col.field === "Name"
+                          ? skeletonLoad
+                          : col.field === ""
+                          ? skeletonLoad
+                          : col.field === "Designation"
+                          ? skeletonLoad
+                          : col.field === "City"
+                          ? skeletonLoad
+                          : col.field === "State"
+                          ? skeletonLoad
+                          : col.field === "Country"
+                          ? skeletonLoad
+                          : col.field === "Organization"
+                          ? skeletonLoad
+                          : col.field === "Org Industry"
+                          ? skeletonLoad
+                          : col.field === "Org Size"
+                          ? skeletonLoad
+                          : null
+                      }
+                      // body={col.field === "Phone" ? showPhone : ''}
+                      header={col.header}
+                      headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
+                    />
+                  ))}
+                </DataTable>
+              ) : (
+                <DataTable
+                  value={entries}
+                  filters={filters}
+                  globalFilterFields={fields}
+                  tableStyle={{ minWidth: "100%" }}
+                  dataKey="row_id"
+                  emptyMessage={emptyMessageTemplate}
+                  // paginator
+                  className="text-sm rounded-lg overflow-hidden"
+                  rows={50}
+                  selectionMode={rowClick ? null : "checkbox"}
+                  onSelectionChange={(e: any) => setSelectedProfile(e.value)}
+                  selection={selectedProfile}
+                  paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
+                >
+                  <Column
+                    selectionMode="multiple"
+                    headerClassName={"bg-[#F35114] p-3 "}
+                    className="bg-[#f34f146c] text-center"
+                    headerStyle={{ width: "3rem" }}
+                  ></Column>
 
-                    }
-                    // body={col.field === "Phone" ? showPhone : ''}
-                    header={col.header}
-                    headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
-                  />
-                ))
-                }
-              </DataTable>
-}
+                  {columns.map((col) => (
+                    <Column
+                      key={col.field}
+                      field={col.field}
+                      className={`text-sm py-3 border-b border-gray-100 text-gray-500 p-5 `}
+                      // body={col.field}
+                      body={
+                        col.field === "Phone"
+                          ? showPhone
+                          : col.field === "Email"
+                          ? showEmail
+                          : col.field === "Name"
+                          ? showName
+                          : col.field === ""
+                          ? showLinkedIn
+                          : col.field === "Designation"
+                          ? showDesignation
+                          : col.field === "City"
+                          ? showCity
+                          : col.field === "State"
+                          ? showState
+                          : col.field === "Country"
+                          ? showCountry
+                          : col.field === "Organization"
+                          ? showOrganization
+                          : col.field === "Organization Industry"
+                          ? showOrgIndustry
+                          : null
+                      }
+                      // body={col.field === "Phone" ? showPhone : ''}
+                      header={col.header}
+                      headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
+                    />
+                  ))}
+                </DataTable>
+              )}
             </div>
           </div>
-      {/* pagination */}
-      <div className="p-10 md:flex items-center m-auto">
-        
-        <div className="text-xs w-full m-auto md:flex items-center justify-center gap-5">
-          <div className="text-gray-500   w-fit m-auto flex items-center lg:items-end gap-2">Rows / page
-            
-          <Dropdown value={selectedRowLimit} onChange={(e) => changeRowLimit(e.value)} options={r_Limit} optionLabel="name" 
-              panelClassName="rounded !w-fit" 
-              itemTemplate={(option) => (
-                <div className="text-sm p-2 text-gray-600 hover:bg-red-200 cursor-pointer">
-                  {option}
-                </div>
-              )}
-              collapseIcon={undefined}
-              dropdownIcon=""
-              placeholder="25" className="w-fit rounded border-red-200 border focus:outline-none text-xs p-1" />
-          </div>
-          <div className=" w-fit m-auto my-2 flex">
-          <i
-            className="pi pi-angle-left text-2xl text-gray-300 p-3 cursor-pointer"
-            onClick={() => handleChangePageNumber2("decrease")}
-          ></i>
+          {/* pagination */}
+          <div className="p-10 md:flex items-center m-auto">
+            <div className="text-xs w-full m-auto md:flex items-center justify-center gap-5">
+              <div className="text-gray-500   w-fit m-auto flex items-center lg:items-end gap-2">
+                Rows / page
+                <Dropdown
+                  value={selectedRowLimit}
+                  onChange={(e) => changeRowLimit(e.value)}
+                  options={r_Limit}
+                  optionLabel="name"
+                  panelClassName="rounded !w-fit"
+                  itemTemplate={(option) => (
+                    <div className="text-sm p-2 text-gray-600 hover:bg-red-200 cursor-pointer">
+                      {option}
+                    </div>
+                  )}
+                  collapseIcon={undefined}
+                  dropdownIcon=""
+                  placeholder="25"
+                  className="w-fit rounded border-red-200 border focus:outline-none text-xs p-1"
+                />
+              </div>
+              <div className=" w-fit m-auto my-2 flex">
+                <i
+                  className="pi pi-angle-left text-2xl text-gray-300 p-3 cursor-pointer"
+                  onClick={() => handleChangePageNumber2("decrease")}
+                ></i>
 
-          <input
-            type="number"
-            value={pageNumber}
-            max={totalDataCount}
-            // disabled
-            className="max-w-[100px] text-center order py-2 focus:outline-gray-100 focus:outline-1 rounded"
-            onChange={(e) => handleChangePageNumber(e)}
-          />
+                <input
+                  type="number"
+                  value={pageNumber}
+                  max={totalDataCount}
+                  // disabled
+                  className="max-w-[100px] text-center order py-2 focus:outline-gray-100 focus:outline-1 rounded"
+                  onChange={(e) => handleChangePageNumber(e)}
+                />
 
-          <i
-            className="pi pi-angle-right text-2xl text-gray-300 p-3 cursor-pointer"
-            onClick={() => handleChangePageNumber2("increase")}
-          ></i>
-          </div>
+                <i
+                  className="pi pi-angle-right text-2xl text-gray-300 p-3 cursor-pointer"
+                  onClick={() => handleChangePageNumber2("increase")}
+                ></i>
+              </div>
 
-          <div className="m-auto w-fit text-gray-500">
-            {" "}
-            {totalDataCount ? Math.round(totalDataCount / 25).toLocaleString() : 0 } pages
+              <div className="m-auto w-fit text-gray-500">
+                {" "}
+                {totalDataCount
+                  ? Math.round(totalDataCount / 25).toLocaleString()
+                  : 0}{" "}
+                pages
+              </div>
+            </div>
           </div>
         </div>
       </div>
-        </div>
-      </div>
-
     </div>
   );
 }

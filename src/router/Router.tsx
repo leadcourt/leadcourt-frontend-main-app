@@ -64,10 +64,6 @@ const router = createBrowserRouter([
         path: 'auth/reset-password',
         element: <ResetPassword />
       }, 
-      {
-        path: 'auth/verify',
-        element: <VerifyEmail />
-      }, 
       
     ]
   },
@@ -80,6 +76,10 @@ const router = createBrowserRouter([
         path: '/',
         element: <Dashboard />
       },
+      {
+        path: '/auth/verify',
+        element: <VerifyEmail />
+      }, 
       {
         path: 'dashboard',
         element: <DataTablePage />

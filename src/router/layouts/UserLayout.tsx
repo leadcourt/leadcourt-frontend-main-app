@@ -5,10 +5,11 @@ import {
   refreshTokenState,
   userState,
 } from "../../utils/atom/authAtom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
+import VerifyEmail from "../../pages/auth/VerifyEmail";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
@@ -31,9 +32,17 @@ export default function UserLayout() {
     token: refreshToken,
   };
 
+
+  
+  useEffect(()=>{
+    console.log('UserLayout')
+    console.log(user)
+    console.log(auth)
+  }, [])
+  
   return (
     <div>
-      {auth?.access && user?.email !== null ? (
+      {auth?.access && user?.email !== null && user?.verify ? (
         <div className="">
           <div className="fixed wfit z-50 bottom-5 right-5 ">
             <ScrollButtons />
@@ -79,7 +88,17 @@ export default function UserLayout() {
             </div>
           </div>
         </div>
-      ) : (
+      ) 
+      // : auth?.access && user?.email !== null && !user?.verify ? (
+        
+      //   <div className="">
+      //     <VerifyEmail />
+      //     {/* <p>show</p>
+      //     <Navigate to="/verify" /> */}
+      //   </div>
+      // )
+      
+       : (
         <div className="">
           <Navigate to="/" />
         </div>

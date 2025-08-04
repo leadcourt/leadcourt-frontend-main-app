@@ -61,7 +61,7 @@ interface LoadDataOptions {
 export default function Collab_DataTablePage() {
   // const collabState = useRecoilValue(collabProjectState);
   const creditInfo = useSetRecoilState(collabCreditState);
-  // const creditInfoValue = useRecoilValue(collabCreditState);
+  const creditInfoValue = useRecoilValue(collabCreditState);
   // const [creditInfo, setCreditInfo] = useRecoilState(collabCreditState)
 
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -210,7 +210,12 @@ export default function Collab_DataTablePage() {
             ? { ...entry, ...res?.data.results[0] } // Update the Email field
             : entry
         );
-        getCredit();
+        creditInfo({
+          id: user?._id ?? "",
+          credits: res?.data?.remainingCredits || 0,
+          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+        });
+ 
         setEntries(prevEntries);
       })
       .catch(() => {
@@ -385,15 +390,7 @@ export default function Collab_DataTablePage() {
             </p>
           </div>
 
-          <div className="mt-6 flex">
-            <div className=" cursor-pointer w-fit m-auto">
-              <button
-                onClick={() => navigate("/subscription")}
-                className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                Top Up
-              </button>
-            </div>
+          <div className="mt-6 flex items-center pb-2"> 
 
             <div className=" cursor-pointer w-fit m-auto">
               <button

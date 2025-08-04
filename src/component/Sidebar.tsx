@@ -38,9 +38,8 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   const resetUser = useResetRecoilState(userState);
   const resetCredit = useResetRecoilState(creditState);
 
-  
-      const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
-      const resetCollabState = useResetRecoilState(collabProjectState);
+  const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
+  const resetCollabState = useResetRecoilState(collabProjectState); 
     
   const navigate = useNavigate();
 
@@ -82,6 +81,7 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
 
     resetCollabState();
     resetCollabcreditInfo();
+
     toast.success("Log out successful");
     navigate("/");
   };
@@ -226,23 +226,13 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
               </div>
         </div>
         <div className="absolute mb-15 lg:mb-0 bottom-10 w-full">
-          {/* <Link to={"/user/setting"}>
-            <div className="flex items-center justify-center gap-2 w-fit m-auto p-2 px-4 bg-gray-50 text-gray-500 text-sm cursor-pointer hover:bg-gray-200 transition-all rounded-2xl ">
-              <i className="pi pi-cog"></i>
-              <i className="pi pi-user"></i>
-              {sidebarCollapse ? (
-                <p className=" text-sm">{userData?.name?.slice(0, 12)}... </p>
-              ) : (
-                ""
-              )}
-            </div>
-          </Link> */}
+ 
           <div
             onClick={logout}
-            className="flex lg:hidden justify-center items-center gap-2 w-fit m-auto mt-5 text-red-400 bg-white px-6 py-2 rounded-full"
+            className="flex lg:hidden cursor-pointer justify-center items-center gap-2 w-fit m-auto mt-5 text-red-400 bg-white px-6 py-2 rounded-full"
           >
             <i className="pi pi-sign-out "> </i>
-            <span>Log out</span>
+            <span>Log Out</span>
           </div>
         </div>
       </div>

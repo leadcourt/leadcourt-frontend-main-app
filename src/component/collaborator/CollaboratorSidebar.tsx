@@ -13,7 +13,10 @@ import logo from "../../assets/logo/logoDark.png";
 import { getPersonalInformation } from "../../utils/api/settingsApi";
 import { toast } from "react-toastify";
 import authBG from "../../assets/background/bg_gradient.jpg";
-import { collabProjectState } from "../../utils/atom/collabAuthAtom";
+import {
+  collabCreditState,
+  collabProjectState,
+} from "../../utils/atom/collabAuthAtom";
 
 interface ChildData {
   updateBar: (sidebarCollapse: boolean) => void;
@@ -25,7 +28,7 @@ interface UserInfo {
   phone: string;
 }
 
-const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
+const CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
   const [menuItem, setMenuItem] = useState(menu[1].links[0].text || null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarCollapse, setSidebarCollapse] = useState(true);
@@ -33,12 +36,15 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
 
   const [userData, setUserData] = useState<UserInfo>();
 
-    const collabState = useRecoilValue(collabProjectState)
-  
+  const collabState = useRecoilValue(collabProjectState);
+
   const resetAccessToken = useResetRecoilState(accessTokenState);
   const resetRefreshToken = useResetRecoilState(refreshTokenState);
   const resetUser = useResetRecoilState(userState);
   const resetCredit = useResetRecoilState(creditState);
+
+  const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
+  const resetCollabState = useResetRecoilState(collabProjectState);
 
   const navigate = useNavigate();
 
@@ -76,7 +82,11 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
     resetAccessToken();
     resetRefreshToken();
     resetUser();
-    resetCredit()
+    resetCredit();
+
+    resetCollabState();
+    resetCollabcreditInfo();
+
     toast.success("Log out successful");
     navigate("/");
   };
@@ -84,7 +94,8 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
   useEffect(() => {
     updateParentComponent();
 
-    if (userData) {}
+    if (userData) {
+    }
     getPersonInfo(user);
   }, []);
 
@@ -97,7 +108,7 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
       <img src={authBG} className="absolute rotate-180 h-full w-full" alt="" />
       <div className="relative h-full">
         <div className="lg:hidden h-[20vh] p-3 text-2xl">
-          <img src={logo} alt="" className="h-15" /> 
+          <img src={logo} alt="" className="h-15" />
         </div>
         <div className="hidden lg:flex  p-5 items-center gap-1">
           <div
@@ -108,8 +119,8 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
             }  w-full`}
           >
             {/* <div className="w-fit m-auto"> */}
-            <Link to={'/'}>
-            <img src={logo} alt="" className="h-8" />
+            <Link to={"/"}>
+              <img src={logo} alt="" className="h-8" />
             </Link>
             {/* </div> */}
 
@@ -220,19 +231,18 @@ const   CollaboratorSidebar: React.FC<ChildData> = ({ updateBar }) => {
         </div>
         <div className="absolute mb-15 lg:mb-0 bottom-10 w-full ">
           <Link to={"/teams"} className="relative">
-
             <div className="relative group flex items-center justify-center gap-2 w-fit m-auto p-2 px-4 bg-gray-50 text-gray-500 text-sm cursor-pointer hover:bg-gray-200 transition-all rounded-2xl ">
-          <div className="absolute hidden group-hover:block transition_hover w-fit text-white text-xs px-4 py-2 rounded-2xl bottom-[120%] right-0 -ranslate-x-1/2 bg-gray-600 ">
-            <p>Change Teams</p>
-          </div>
+              <div className="absolute hidden group-hover:block transition_hover w-fit text-white text-xs px-4 py-2 rounded-2xl bottom-[120%] right-0 -ranslate-x-1/2 bg-gray-600 ">
+                <p>Change Teams</p>
+              </div>
               <div className="flex flex-col justify-center items-center">
-              <i className="pi pi-angle-up"></i>
-              <i className="pi pi-angle-down"></i>
+                <i className="pi pi-angle-up"></i>
+                <i className="pi pi-angle-down"></i>
               </div>
               {sidebarCollapse ? (
-                <div className="text-sm">
-                <p className="lg:hidden ">{collabState?.ownerName?.slice(0, 12)}... </p>
-                <p className="hidden lg:block">Teams</p>
+                <div className="text-sm" onClick={resetCollabState}>
+                  <p className="lg:hidden ">{collabState?.ownerName?.slice(0, 12)}...{" "}</p>
+                  <p className="hidden lg:block">Teams</p>
                 </div>
               ) : (
                 ""

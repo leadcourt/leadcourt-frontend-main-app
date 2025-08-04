@@ -13,7 +13,10 @@ const SettingsOption = ({ icon, title, onClick }: any) => {
         </div>
         <span className="text-gray-800 font-medium">{title}</span>
       </div>
+      {title === 'Referral Program' ? 
+      <span className="text-gray-400 text-xs uppercase">coming soon</span>: 
       <ChevronRight className="text-gray-400" size={20} />
+      }
     </div>
   );
 };

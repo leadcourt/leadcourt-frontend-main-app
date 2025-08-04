@@ -3,6 +3,7 @@ import authBG from '../../assets/background/bg_gradient.jpg'
 import { useRecoilValue } from "recoil";
 import { accessTokenState, refreshTokenState, userState } from "../../utils/atom/authAtom";
 import logo from "../../assets/logo/logoDark.png";
+import { useEffect } from "react";
 
 
 export default function DefaultLayout() {
@@ -17,8 +18,7 @@ export default function DefaultLayout() {
     token: refreshToken
   }
 
-
-  
+    console.log('DefaultLayout')
 
   return (
     <div>

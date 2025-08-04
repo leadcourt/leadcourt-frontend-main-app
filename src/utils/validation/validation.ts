@@ -46,6 +46,11 @@ const forgotPasswordValidation = yup.object().shape({
 });
 
 // Define the ForgotPassword validation schema
+const verificationValidation = yup.object().shape({
+  otp: yup.number().required("Required"),
+});
+
+// Define the ForgotPassword validation schema
 const resetPasswordValidation = yup.object().shape({
   oldPassword: yup.string().required("Required"),
 
@@ -80,6 +85,7 @@ export {
   loginUserValidation,
   registerUserValidation,
   forgotPasswordValidation,
+  verificationValidation,
   resetPasswordValidation,
   paymentInIndiaValidation,
 };
