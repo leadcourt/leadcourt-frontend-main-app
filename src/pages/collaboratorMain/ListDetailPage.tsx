@@ -4,7 +4,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
+import { collaboration_showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
 import TextToCapitalize from "../../component/TextToCapital";
 import { toast } from "react-toastify";
 import { Dialog } from "primereact/dialog";
@@ -118,7 +118,7 @@ export default function Collab_ListDetailPage() {
 
     action.map((item: any) => {
       if (item.option === option) {
-        showPhoneAndEmail(item.payload, item.data, user)
+        collaboration_showPhoneAndEmail(item.payload, item.data, user)
           .then((res) => {
             const resMap = new Map(
               res?.data?.results?.map((item: any) => [item.row_id, item])

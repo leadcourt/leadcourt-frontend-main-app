@@ -394,7 +394,8 @@ const CollaboratorDashboard: React.FC = () => {
         toast.info("Please try again!");
       }
       setLoadingResponse("");
-
+      
+      collabProjects();
       getInvitations();
     });
   };
