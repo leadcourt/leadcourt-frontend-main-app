@@ -618,7 +618,7 @@ export default function ListDetailPage() {
                 <span>
                   {(selectedProfile?.length -
                     selectedProfilesRevealed?.phoneLength) *
-                    2}
+                    5}
                 </span>
               </span>
             ) : (
