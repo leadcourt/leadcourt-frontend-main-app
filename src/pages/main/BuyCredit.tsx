@@ -32,7 +32,7 @@ interface CountryAmount {
 const BuyCredit = () => {
   const user = useRecoilValue(userState);
   const [creditAmount, setCreditAmount] = useState<number>(10000);
-  const [totalPrice, setTotalPrice] = useState<number>(100);
+  const [totalPrice, setTotalPrice] = useState<number>(() => calculatePrice(10000));
   const [visible, setVisible] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlanType>();
   const [options, setOptions] = useState<string>();
@@ -105,7 +105,6 @@ const BuyCredit = () => {
 
   const checkLocation = async () => {
     await getLocation().then((res) => {
-      console.log("location response", res);
       setLocation(res?.data?.country);
 
       if (res?.data?.country==='IN'){
@@ -124,8 +123,8 @@ const BuyCredit = () => {
 
   // Update price whenever credit amount changes
   useEffect(() => {
-    setTotalPrice(calculatePrice(creditAmount));
-  }, [creditAmount]);
+  setTotalPrice(calculatePrice(creditAmount));
+}, [creditAmount, location]);
  
   return (
     <div className="min-h-screen w-full p-5 ">
