@@ -90,6 +90,8 @@ export default function VerifyEmail() {
   const reloadUser = () => {
     
     const userAccount = auth.currentUser
+    console.log('userAccount', userAccount);
+    
     if (userAccount) {
       reload(auth.currentUser).then((res) => {
       console.log('log res', res);
@@ -102,6 +104,10 @@ export default function VerifyEmail() {
       }
       
       if (mode === 'verifyEmail' && oobCode) {
+        console.log(mode);
+        console.log( );
+        console.log(oobCode);
+        
         setUser(payload)
 
       }
