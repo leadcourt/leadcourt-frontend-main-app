@@ -97,11 +97,9 @@ export default function VerifyEmail() {
   // return
   const resendVerification = async () => {
     // if (user) {
-    const userAccount = auth.currentUser;
-    if (userAccount) {
-      await sendEmailVerification(userAccount);
-    }
-    toast.info(
+      await sendEmailVerification(firebaseUser);
+
+      toast.info(
       "An email has been sent to your account, please check to proceed."
     );
   };
