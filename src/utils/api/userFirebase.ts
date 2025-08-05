@@ -37,6 +37,7 @@ const userSignUp = async (
       
       sendEmailVerification(res.user);
       return "success";
+      
 
 
 

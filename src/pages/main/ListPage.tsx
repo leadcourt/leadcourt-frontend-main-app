@@ -60,12 +60,12 @@ export default function ListPage() {
       </div>
           </div>
         </div>
-      ) : existingList.length ? (
+      ) : existingList?.length ? (
       // ) : allListDisplay.length ? (
         
       <div className="p-10">
       <div className="p-5 my-5 rounded-2xl text-gray-500 bg-gray-50">
-        <p>You have {existingList.length} list<span>{existingList.length > 1 ? 's': ''}</span> created</p>
+        <p>You have {existingList?.length} list<span>{existingList?.length > 1 ? 's': ''}</span> created</p>
       </div>
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {existingList?.map((item: any, index: any) => (

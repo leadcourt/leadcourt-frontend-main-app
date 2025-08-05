@@ -12,6 +12,10 @@ const postHubspotCRMCode = async (payload: any) => {
     return await axios.post(`${baseUrl}/integrations/hubspot/exchange-code`, payload)
 }
 
+const disconnetHubspotCRMCode = async () => {
+    return await axios.delete(`${baseUrl}/integrations/hubspot/remove`)
+}
+
 const exportToHubspotApi = async (payload: any) => {
     return await axios.post(`${baseUrl}/integrations/hubspot/export`, payload)
 }
@@ -21,6 +25,7 @@ const connectionHubspotCRM = 'https://app-na2.hubspot.com/oauth/authorize?client
 export {
     checkHubspotConnection,
     postHubspotCRMCode,
+    disconnetHubspotCRMCode,
     exportToHubspotApi,
     connectionHubspotCRM,
 }

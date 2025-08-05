@@ -53,7 +53,7 @@ export default function CollaboratorTopbar() {
           <img src={logo} alt="" className="h-8" />
 
         </div>
-        <div className="hidden lg:block border rounded-2xl border-gray-300 px-5 py-2 bg-gray-300">{collabState?.ownerName} Dashboard</div> 
+        <div className="hidden lg:block border rounded-2xl border-gray-300 px-5 py-2 bg-gray-300">{collabState?.ownerName}'s Dashboard</div> 
 
         <div className="hidden lg:flex justify-end items-center gap-5 ">
           <div className="relative">  
@@ -61,8 +61,7 @@ export default function CollaboratorTopbar() {
             >
               {/* <i className="pi pi-wallet"></i>
               <p className=" text-sm font-bold">{credit?.credits}</p> */}
-              <i className="pi pi-pencil"></i>
-              <p className=" text-sm font-bold">Return</p>
+              <p className=" text-sm font-bold">Go Home</p>
             </div>
           </div>
 

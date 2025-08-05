@@ -9,7 +9,7 @@ import { useState } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
-// import VerifyEmail from "../../pages/auth/VerifyEmail";
+import VerifyEmail from "../../pages/auth/VerifyEmail";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
@@ -84,14 +84,14 @@ export default function UserLayout() {
           </div>
         </div>
       ) 
-      // : auth?.access && user?.email !== null && !user?.verify ? (
+      : auth?.access && user?.email !== null && !user?.verify ? (
         
-      //   <div className="">
-      //     <VerifyEmail />
-      //     {/* <p>show</p>
-      //     <Navigate to="/verify" /> */}
-      //   </div>
-      // )
+        <div className="">
+          <VerifyEmail />
+          {/* <p>show</p>
+          <Navigate to="/verify" /> */}
+        </div>
+      )
       
        : (
         <div className="">

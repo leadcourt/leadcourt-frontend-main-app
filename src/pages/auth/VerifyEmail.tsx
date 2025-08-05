@@ -1,5 +1,5 @@
 import { User } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 // import { verificationValidation } from "../../utils/validation/validation";
 // import { useFormik } from "formik";
 import logo from "../../assets/logo/logoDark.png";
@@ -7,7 +7,12 @@ import logo from "../../assets/logo/logoDark.png";
 import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 // import { toast } from "react-toastify";
-import authBG from '../../assets/background/bg_gradient.jpg'
+import authBG from "../../assets/background/bg_gradient.jpg";
+import { reload, sendEmailVerification } from "firebase/auth";
+import { useRecoilState } from "recoil";
+import { userState } from "../../utils/atom/authAtom";
+import { firebaseAuth } from "../../config/firebaseConfig";
+import { toast } from "react-toastify";
 
 // interface FormData {
 //   otp: number;
@@ -17,22 +22,20 @@ export default function VerifyEmail() {
   const [modalVisible, setModalVisible] = useState(false);
   // const [loading, setLoading] = useState(false);
 
+  const [user, setUser] = useRecoilState(userState);
   const navigate = useNavigate();
 
-  const [params] = useSearchParams();
-  const mode = params?.get('mode');
-  const oobCode = params?.get('oobCode');
+  // const [params] = useSearchParams();
+  // const mode = params?.get("mode");
+  // const oobCode = params?.get("oobCode");
 
-
-// // Get the action to complete.
-//   const mode = getParameterByName('mode');
-//   // Get the one-time code from the query parameter.
-//   const actionCode = getParameterByName('oobCode');
-//   // (Optional) Get the continue URL from the query parameter if available.
-//   const continueUrl = getParameterByName('continueUrl');
-//   // (Optional) Get the language code if available.
-  
-
+  // // Get the action to complete.
+  //   const mode = getParameterByName('mode');
+  //   // Get the one-time code from the query parameter.
+  //   const actionCode = getParameterByName('oobCode');
+  //   // (Optional) Get the continue URL from the query parameter if available.
+  //   const continueUrl = getParameterByName('continueUrl');
+  //   // (Optional) Get the language code if available.
 
   // const onSubmit = async (values: FormData) => {
   //   setLoading(true);
@@ -70,85 +73,112 @@ export default function VerifyEmail() {
   //   onSubmit,
   // });
 
-  useEffect(()=>{
-    console.log('mode', mode);
-    console.log('oobCode', oobCode);
-  console.log('show verity');
-     
-  }, [])
+  const resendVerification = async () => {
+    // if (user) {
+    const userAccount = firebaseAuth.currentUser || null
+    await sendEmailVerification(userAccount);
+    toast.info(
+      "An email has been sent to your account, please check to proceed."
+    );
+  };
+
+
+
+  const reloadUser = () => {
+    
+    reload(firebaseAuth?.currentUser).then((res) => {
+      console.log('log res', res);
+
+      const payload = {
+        email: user?.email || '',
+        id: user?.id || '',
+        name: user?.name || '',
+        verify: true,
+      }
+      setUser(payload)
+      // if (user.emailVerified) {
+      //   console.log("Email is verified!");
+      //   // Proceed with giving user access or updating UI
+      // } else {
+      //   console.log("Email is not verified yet.");
+      // }
+    });
+  };
+
+  useEffect(() => {
+      // console.log(user);
+    reloadUser()
+  }, []);
 
   return (
-
-    
-        <div className="flex min-h-full w-full overflow-hidden">
-          {/* Left side - Orange gradient background */}
-          <div className="relative hidden md:block md:w-[40%] ">
-            <div className="fixed top-0 h-[100vh] w-[40%] rounded-r-[30px] overflow-hidden">
-
+    <div className="flex min-h-full w-full overflow-hidden">
+      {/* Left side - Orange gradient background */}
+      <div className="relative hidden md:block md:w-[40%] ">
+        <div className="fixed top-0 h-[100vh] w-[40%] rounded-r-[30px] overflow-hidden">
           <div className="absolute w-full h-full flex items-end justify-center m-auto ">
             <img src={logo} alt="" className="h-30 opacity-[90%] mb-10" />
           </div>
-                <img src={authBG} className="h-full w-full" alt="" />
-            </div>
-          </div>
-          
-
-    <div className="w-full min-h-[100vh] md:w-[60%] flex items-center justify-center px-6 py-8">
-      {/* Right side - Form container */}
-
-      {/* <Dialog header="Header" visible={modalVisible} style={{ width: '50vw' }} onHide={() => {if (!modalVisible) return; setModalVisible(false); }} > */}
-
-      <div
-        className={`card fixed top-0 left-0 w-full h-full p-10 z-50 ${
-          !modalVisible ? "hidden" : "flex"
-        }  bg-[#1f1f1f59] justify-content-center`}
-      >
-        {/* <Button label="Show" icon="pi pi-external-link" onClick={() => setVisible(true)} /> */}
-        <Dialog
-          visible={modalVisible}
-          onHide={() => {
-            if (!modalVisible) return;
-            setModalVisible(false);
-          }}
-          style={{ maxWidth: "400px" }}
-          className="bg-white p-7 rounded-lg"
-          breakpoints={{ "960px": "75vw", "641px": "100vw" }}
-        >
-          <div className="bg-purple-800 w-fit flex justify-center m-auto items-center rounded-md p-3">
-            <User size={20} className=" text-white" />
-          </div>
-
-          <div className=" text-center flex flex-col gap-3 mx-5">
-            <h4 className=" font-bold text-gray-700">
-              Account Verification Successful!
-            </h4>
-            <p className="text-gray-500">
-              You can click here to continue.
-            </p>
-
-
-            <button onClick={() => navigate("/")} className="secondary-btn-red">
-              Proceed
-              </button>
-          </div>
-        </Dialog>
+          <img src={authBG} className="h-full w-full" alt="" />
+        </div>
       </div>
 
-      <div className="w-full max-w-md">
-        <div className="md:hidden w-fit m-auto mb-10">
-          <img src={logo} alt="" className="h-20" />
+      <div className="w-full min-h-[100vh] md:w-[60%] flex items-center justify-center px-6 py-8">
+        {/* Right side - Form container */}
+
+        {/* <Dialog header="Header" visible={modalVisible} style={{ width: '50vw' }} onHide={() => {if (!modalVisible) return; setModalVisible(false); }} > */}
+
+        <div
+          className={`card fixed top-0 left-0 w-full h-full p-10 z-50 ${
+            !modalVisible ? "hidden" : "flex"
+          }  bg-[#1f1f1f59] justify-content-center`}
+        >
+          {/* <Button label="Show" icon="pi pi-external-link" onClick={() => setVisible(true)} /> */}
+          <Dialog
+            visible={modalVisible}
+            onHide={() => {
+              if (!modalVisible) return;
+              setModalVisible(false);
+            }}
+            style={{ maxWidth: "400px" }}
+            className="bg-white p-7 rounded-lg"
+            breakpoints={{ "960px": "75vw", "641px": "100vw" }}
+          >
+            <div className="bg-purple-800 w-fit flex justify-center m-auto items-center rounded-md p-3">
+              <User size={20} className=" text-white" />
+            </div>
+
+            <div className=" text-center flex flex-col gap-3 mx-5">
+              <h4 className=" font-bold text-gray-700">
+                Account Verification Successful!
+              </h4>
+              <p className="text-gray-500">You can click here to continue.</p>
+
+              <button
+                onClick={() => navigate("/")}
+                className="secondary-btn-red"
+              >
+                Proceed
+              </button>
+            </div>
+          </Dialog>
         </div>
 
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Verify your account
-          </h1>
-          <p className="text-gray-600">
-            An email has been sent to you, Please proceed to your email to verify your account. 
-          </p>
-        </div>
+        <div className="w-full max-w-md">
+          <div className="md:hidden w-fit m-auto mb-10">
+            <img src={logo} alt="" className="h-20" />
+          </div>
 
-        {/* <form onSubmit={handleSubmit}>
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Verify your account
+            </h1>
+            <p className="text-gray-600">
+              An email has been sent to you, Please proceed to your email to
+              verify your account.
+            </p>
+          </div>
+
+          {/* <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label className="block text-xs font-medium text-gray-700 uppercase mb-2">
               OTP code
@@ -194,24 +224,21 @@ export default function VerifyEmail() {
           )}
         </form> */}
 
-        {/* Forgot password Link */}
-        <div className="text-center mt-3">
-            <Link
-              to="/auth/user-login"
+          {/* Forgot password Link */}
+          <div className="text-center mt-3">
+            <button
+              // to="/auth/user-login"
+              onClick={resendVerification}
               className="secondary-btn-red2 hover:text-orange-600 text-sm"
             >
               Click here to resend otp...
-            </Link>
-        </div>
-        {/* <div className="text-xs text-center mt-10 text-red-600">
+            </button>
+          </div>
+          {/* <div className="text-xs text-center mt-10 text-red-600">
           Log out
         </div> */}
+        </div>
       </div>
     </div>
-
-
-        </div>
-
-
   );
 }

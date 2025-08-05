@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { postHubspotCRMCode } from '../../utils/api/crmIntegrations';
+import { disconnetHubspotCRMCode, postHubspotCRMCode } from '../../utils/api/crmIntegrations';
 import { useLocation, useNavigate } from 'react-router-dom';
 import hubspotLogo from "../../assets/integrations/hubspot/HubSpot.png";
+import { toast } from 'react-toastify';
  
 
 const IntegrationCallback = ( ) => {
@@ -80,6 +81,16 @@ const IntegrationCallback = ( ) => {
   const handleReturnToIntegrations = () => {
     navigate('/integrations')
   };
+
+  const disconnectHubspot = async () => {
+    await disconnetHubspotCRMCode().then((res)=>{
+      if (res.data.message.endsWith('HubSpot connection removed')) {
+        toast.info('Hubspot disconnected!')
+        navigate('/integrations')
+
+      }
+    })
+  }
 
   const handleTryAgain = () => {
     window.location.href = '/integrations';
@@ -165,7 +176,7 @@ const IntegrationCallback = ( ) => {
               </button>
 
               <button
-                onClick={handleReturnToIntegrations}
+                onClick={disconnectHubspot}
                 className="w-full px-6 py-1 button_hover text-white font-medium rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
               >
                 Disconnect

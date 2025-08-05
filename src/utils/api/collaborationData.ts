@@ -34,6 +34,15 @@ const collaboration_getSingleListDetail_api = async (payload: any) => {
   return await axios.post( `${baseUrl}/list/show`, payload);
 };
 
+const collaboration_deleteAList_api = async (listname: any) => {
+    return await axios.delete(`${baseUrl}/list/${listname}`)
+}
+
+const collaboration_renameAList_api = async (payload: any) => {
+    return await axios.post(`${baseUrl}/list/rename`, payload)
+}
+
+
 const collaboration_addProfilesToList_api = async (payload: any) => {
   return await axios.post( `${baseUrl}/list/store`, payload);
 };
@@ -88,7 +97,8 @@ export {
   collaboration_addProfilesToList_api,
   collaboration_createNewList_api,
   collaboration_exportList_api,
-
+  collaboration_deleteAList_api,
+  collaboration_renameAList_api,
   collaboration_getCreditBalance_api,
   collaboration_showPhoneAndEmail_api,
 };
