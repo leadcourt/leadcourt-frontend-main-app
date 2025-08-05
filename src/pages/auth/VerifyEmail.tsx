@@ -117,6 +117,11 @@ export default function VerifyEmail() {
   useEffect(() => {
       // console.log(user);
     reloadUser()
+
+    
+     console.log('DefaultLayout')
+     console.log(user);
+     
   }, []);
 
   return (

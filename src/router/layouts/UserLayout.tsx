@@ -5,7 +5,7 @@ import {
   refreshTokenState,
   userState,
 } from "../../utils/atom/authAtom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
@@ -33,7 +33,12 @@ export default function UserLayout() {
   };
 
 
-   
+   useEffect(()=>{
+
+     console.log('UserLayout')
+     console.log(user);
+     
+   })
   
   return (
     <div>
