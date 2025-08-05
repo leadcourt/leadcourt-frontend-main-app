@@ -88,6 +88,7 @@ export default function VerifyEmail() {
 
 
   const reloadUser = () => {
+    console.log('In the reload');
     
     const userAccount = auth.currentUser
     console.log('userAccount', userAccount);
