@@ -1,5 +1,5 @@
 import { User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 // import { verificationValidation } from "../../utils/validation/validation";
 // import { useFormik } from "formik";
 import logo from "../../assets/logo/logoDark.png";
@@ -26,9 +26,9 @@ export default function VerifyEmail() {
 
   const auth = getAuth()
 
-  // const [params] = useSearchParams();
-  // const mode = params?.get("mode");
-  // const oobCode = params?.get("oobCode");
+  const [params] = useSearchParams();
+  const mode = params?.get("mode");
+  const oobCode = params?.get("oobCode");
 
   // // Get the action to complete.
   //   const mode = getParameterByName('mode');
@@ -99,7 +99,11 @@ export default function VerifyEmail() {
         name: user?.name || '',
         verify: true,
       }
-      setUser(payload)
+      
+      if (mode === 'verifyEmail' && oobCode) {
+        setUser(payload)
+
+      }
       // if (user.emailVerified) {
       //   console.log("Email is verified!");
       //   // Proceed with giving user access or updating UI
