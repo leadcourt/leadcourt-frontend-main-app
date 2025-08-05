@@ -1,20 +1,35 @@
-import authBG from "../../assets/background/bg_gradient.jpg";
-import { Outlet } from "react-router-dom";
-import logo from "../../assets/logo/logo.png";
+import { Navigate, Outlet } from "react-router-dom";
+import { useRecoilValue } from "recoil";
+import {
+  accessTokenState,
+  refreshTokenState,
+  userState,
+} from "../../utils/atom/authAtom";
+import { useEffect } from "react";
 
-export default function AuthFrame() {
+
+export default function AuthLayout() {
+  const accessToken = useRecoilValue(accessTokenState);
+  const refreshToken = useRecoilValue(refreshTokenState);
+  const user = useRecoilValue(userState);
+
+  const auth = {
+    access: accessToken,
+    token: refreshToken,
+  };
+
+  useEffect(() => {
+    console.log("AuthLayout");
+    console.log(user);
+  });
+
   return (
-    <div className="flex min-h-full w-full overflow-hidden">
-      {/* Left side - Orange gradient background */}
-      <div className="relative hidden md:block md:w-[40%] ">
-        <div className="fixed top-0 h-[100vh] w-[40%] rounded-r-[30px] overflow-hidden">
-          <img src={authBG} className="h-full w-full" alt="" />
-        </div>
-          <div className="absolute top-0 z-50 w-fit m-auto mb-10">
-            <img src={logo} alt="" className="h-20" />
-          </div>
-      </div>
-      <Outlet />
+    <div>
+      {auth?.access && user?.email !== null && !user?.verify ? (
+        <Outlet />
+      ) : (
+        <Navigate to="/" />
+      )}
     </div>
   );
 }

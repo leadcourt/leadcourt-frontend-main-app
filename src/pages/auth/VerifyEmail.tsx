@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 // import { verificationValidation } from "../../utils/validation/validation";
 // import { useFormik } from "formik";
 import logo from "../../assets/logo/logoDark.png";
+import logoLight from "../../assets/logo/logo.png";
 // import { userResetPassword } from "../../utils/api/userFirebase";
 import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
@@ -179,7 +180,7 @@ export default function VerifyEmail() {
 
         <div className="w-full max-w-md">
           <div className="md:hidden w-fit m-auto mb-10">
-            <img src={logo} alt="" className="h-20" />
+            <img src={logoLight} alt="" className="h-20" />
           </div>
 
           <div className="mb-8 text-center">
