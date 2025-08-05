@@ -29,11 +29,12 @@ export default function VerifyEmail() {
 
   const [user, setUser] = useRecoilState(userState);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
-  const [loading, setLoading] = useState(false)
-
+  const [loading, setLoading] = useState(false);
+  const [action, setAction] = useState('')
   const navigate = useNavigate();
 
   const auth = getAuth();
+  const authUser = auth.currentUser;
 
   const [params] = useSearchParams();
   const mode = params?.get("mode");
@@ -83,66 +84,72 @@ export default function VerifyEmail() {
   //   onSubmit,
   // });
 
-  const unsubscribeUser = () => {
-    console.log("firebaseUser");
+  // const unsubscribeUser = () => {
+  //   console.log("firebaseUser");
 
-    onAuthStateChanged(auth, (res) => {
-      console.log("res in unsubscribe", res);
+  //   onAuthStateChanged(auth, (res) => {
+  //     console.log("res in unsubscribe", res);
 
-      setFirebaseUser(res);
-    });
-    console.log("firebaseUser after");
-  };
+  //     setFirebaseUser(res);
+  //   });
+  //   console.log("firebaseUser after");
+  // };
 
   // return
   const resendVerification = async () => {
-    // if (user) {
-      await sendEmailVerification(firebaseUser);
+    setAction('resendOTP')
+    if (authUser) {
+      await sendEmailVerification(authUser);
 
       toast.info(
-      "An email has been sent to your account, please check to proceed."
-    );
+        "An email has been sent to your account, please check to proceed."
+      );
+    }
+    setAction('')
   };
 
-  const reloadUser = () => {
+  const reloadUser = async () => {
+    setAction('reload')
     console.log("In the reload");
-    setLoading(true)
+    setLoading(true);
 
-    if (mode === "verifyEmail" && oobCode) {
+
+    if (mode === "verifyEmail") {
       console.log(mode);
-      console.log();
+      console.log(firebaseUser);
       console.log(oobCode);
+      console.log(auth.currentUser);
 
-      reload(firebaseUser).then((res) => {
-        console.log("log res", res);
+      if (authUser) {
+        await reload(authUser).then((res) => {
+          console.log("log res", res);
 
-        const payload = {
-          email: user?.email || "",
-          id: user?.id || "",
-          name: user?.name || "",
-          verify: true,
-        };
+          const payload = {
+            email: user?.email || "",
+            id: user?.id || "",
+            name: user?.name || "",
+            verify: true,
+          };
 
-        setUser(payload);
-        // if (user.emailVerified) {
-        //   console.log("Email is verified!");
-        //   // Proceed with giving user access or updating UI
-        // } else {
-        //   console.log("Email is not verified yet.");
-        // }
-      });
+          toast.success('Your account is now verified')
+          setUser(payload);
+
+          // if (user.emailVerified) {
+          //   console.log("Email is verified!");
+          //   // Proceed with giving user access or updating UI
+          // } else {
+          //   console.log("Email is not verified yet.");
+          // }
+        });
+      }
     }
-    setLoading(false)
-
+    setAction('')
   };
 
   useEffect(() => {
     // console.log(user);
-    unsubscribeUser();
-    reloadUser();
-
-    console.log("DefaultLayout");
-    console.log(user);
+    // unsubscribeUser();
+    // reloadUser();
   }, []);
 
   return (
@@ -263,12 +270,21 @@ export default function VerifyEmail() {
           <div className="text-center mt-3">
             <button
               // to="/auth/user-login"
-              onClick={resendVerification}
-              className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 items-center"
+              onClick={reloadUser}
+              className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 justify-center items-center"
             >
-              {loading ? 
-              <i className="pi pi-spinner pi-spin"></i>
-            : ''}
+              {loading && action === 'reload' ? <i className="pi pi-spinner pi-spin"></i> : ""}
+              Verify Account
+            </button>
+          </div>
+
+          <div className="text-center mt-3">
+            <button
+              // to="/auth/user-login"
+              onClick={resendVerification}
+              className="secondary-btn-red hovertext-orange-600 text-sm flex gap-2 justify-center items-center"
+            >
+              {loading && action == 'resendOTP' ? <i className="pi pi-spinner pi-spin"></i> : ""}
               Click here to resend otp...
             </button>
           </div>

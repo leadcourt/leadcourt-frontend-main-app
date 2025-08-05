@@ -608,6 +608,27 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
       <div className="p-10">
+        
+        <div className="flex gap-2 items-center justify-start">
+          <div
+            onClick={deleteList}
+            className="flex items-center cursor-pointer gap-2 px-10 py-2 bg-amber-300 text-gray-600 text-xs w-fit rounded"
+          >
+            {loadingDeletePage ? (
+              <i className="pi pi-spin pi-spinner"></i>
+            ) : (
+              <i className="pi pi-trash"></i>
+            )}
+            Delete List
+          </div>
+          <div
+            onClick={() => setRenameListAction(true)}
+            className="flex items-center cursor-pointer gap-2 px-10 py-2 text-white bg-gray-400 text-xs w-fit rounded"
+          >
+            <i className="pi pi-pencil"></i>
+            <span>Rename List</span>
+          </div>
+        </div>
         <div className="p-5  bg-gray-50v lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
           <p className="mb-3">
             <span className="cursor-pointer" onClick={() => navigate("/list")}>
@@ -883,7 +904,8 @@ export default function ListDetailPage() {
           </div> */}
           </div>
         </div>
-        <div className="flex gap-2 items-center justify-start">
+
+        {/* <div className="flex gap-2 items-center justify-start">
           <div
             onClick={deleteList}
             className="flex items-center cursor-pointer gap-2 px-10 py-2 bg-amber-300 text-gray-600 text-xs w-fit rounded"
@@ -902,7 +924,7 @@ export default function ListDetailPage() {
             <i className="pi pi-pencil"></i>
             <span>Rename List</span>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
