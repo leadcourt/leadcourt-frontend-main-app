@@ -29,6 +29,7 @@ export default function VerifyEmail() {
 
   const [user, setUser] = useRecoilState(userState);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate();
 
@@ -107,6 +108,7 @@ export default function VerifyEmail() {
 
   const reloadUser = () => {
     console.log("In the reload");
+    setLoading(true)
 
     if (mode === "verifyEmail" && oobCode) {
       console.log(mode);
@@ -132,6 +134,8 @@ export default function VerifyEmail() {
         // }
       });
     }
+    setLoading(false)
+
   };
 
   useEffect(() => {
@@ -262,8 +266,11 @@ export default function VerifyEmail() {
             <button
               // to="/auth/user-login"
               onClick={resendVerification}
-              className="secondary-btn-red2 hover:text-orange-600 text-sm"
+              className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 items-center"
             >
+              {loading ? 
+              <i className="pi pi-spinner pi-spin"></i>
+            : ''}
               Click here to resend otp...
             </button>
           </div>
