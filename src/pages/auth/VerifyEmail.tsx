@@ -8,10 +8,9 @@ import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 // import { toast } from "react-toastify";
 import authBG from "../../assets/background/bg_gradient.jpg";
-import { reload, sendEmailVerification } from "firebase/auth";
+import { getAuth, reload, sendEmailVerification } from "firebase/auth";
 import { useRecoilState } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
-import { firebaseAuth } from "../../config/firebaseConfig";
 import { toast } from "react-toastify";
 
 // interface FormData {
@@ -24,6 +23,8 @@ export default function VerifyEmail() {
 
   const [user, setUser] = useRecoilState(userState);
   const navigate = useNavigate();
+
+  const auth = getAuth()
 
   // const [params] = useSearchParams();
   // const mode = params?.get("mode");
@@ -75,18 +76,21 @@ export default function VerifyEmail() {
 
   const resendVerification = async () => {
     // if (user) {
-    const userAccount = firebaseAuth.currentUser || null
-    await sendEmailVerification(userAccount);
+    const userAccount = auth.currentUser
+    if (userAccount) {
+      await sendEmailVerification(userAccount);
+    }
     toast.info(
       "An email has been sent to your account, please check to proceed."
     );
   };
 
 
-
   const reloadUser = () => {
     
-    reload(firebaseAuth?.currentUser).then((res) => {
+    const userAccount = auth.currentUser
+    if (userAccount) {
+      reload(auth.currentUser).then((res) => {
       console.log('log res', res);
 
       const payload = {
@@ -103,6 +107,7 @@ export default function VerifyEmail() {
       //   console.log("Email is not verified yet.");
       // }
     });
+    }
   };
 
   useEffect(() => {
