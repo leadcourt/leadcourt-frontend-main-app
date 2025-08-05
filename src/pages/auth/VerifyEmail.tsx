@@ -9,7 +9,12 @@ import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 // import { toast } from "react-toastify";
 import authBG from "../../assets/background/bg_gradient.jpg";
-import { getAuth, reload, sendEmailVerification } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  reload,
+  sendEmailVerification,
+} from "firebase/auth";
 import { useRecoilState } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
@@ -23,9 +28,11 @@ export default function VerifyEmail() {
   // const [loading, setLoading] = useState(false);
 
   const [user, setUser] = useRecoilState(userState);
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+
   const navigate = useNavigate();
 
-  const auth = getAuth()
+  const auth = getAuth();
 
   const [params] = useSearchParams();
   const mode = params?.get("mode");
@@ -75,9 +82,21 @@ export default function VerifyEmail() {
   //   onSubmit,
   // });
 
+  const unsubscribeUser = () => {
+    console.log("firebaseUser");
+
+    onAuthStateChanged(auth, (res) => {
+      console.log("res in unsubscribe", res);
+
+      setFirebaseUser(res);
+    });
+    console.log("firebaseUser after");
+  };
+
+  // return
   const resendVerification = async () => {
     // if (user) {
-    const userAccount = auth.currentUser
+    const userAccount = auth.currentUser;
     if (userAccount) {
       await sendEmailVerification(userAccount);
     }
@@ -86,50 +105,42 @@ export default function VerifyEmail() {
     );
   };
 
-
   const reloadUser = () => {
-    console.log('In the reload');
-    
-    const userAccount = auth.currentUser
-    console.log('userAccount', userAccount);
-    
-    if (userAccount) {
-      reload(auth.currentUser).then((res) => {
-      console.log('log res', res);
+    console.log("In the reload");
 
-      const payload = {
-        email: user?.email || '',
-        id: user?.id || '',
-        name: user?.name || '',
-        verify: true,
-      }
-      
-      if (mode === 'verifyEmail' && oobCode) {
-        console.log(mode);
-        console.log( );
-        console.log(oobCode);
-        
-        setUser(payload)
+    if (mode === "verifyEmail" && oobCode) {
+      console.log(mode);
+      console.log();
+      console.log(oobCode);
 
-      }
-      // if (user.emailVerified) {
-      //   console.log("Email is verified!");
-      //   // Proceed with giving user access or updating UI
-      // } else {
-      //   console.log("Email is not verified yet.");
-      // }
-    });
+      reload(firebaseUser).then((res) => {
+        console.log("log res", res);
+
+        const payload = {
+          email: user?.email || "",
+          id: user?.id || "",
+          name: user?.name || "",
+          verify: true,
+        };
+
+        setUser(payload);
+        // if (user.emailVerified) {
+        //   console.log("Email is verified!");
+        //   // Proceed with giving user access or updating UI
+        // } else {
+        //   console.log("Email is not verified yet.");
+        // }
+      });
     }
   };
 
   useEffect(() => {
-      // console.log(user);
-    reloadUser()
+    // console.log(user);
+    unsubscribeUser();
+    reloadUser();
 
-    
-     console.log('DefaultLayout')
-     console.log(user);
-     
+    console.log("DefaultLayout");
+    console.log(user);
   }, []);
 
   return (
