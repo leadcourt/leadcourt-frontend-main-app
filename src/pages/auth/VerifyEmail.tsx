@@ -97,7 +97,10 @@ export default function VerifyEmail() {
 
   // return
   const resendVerification = async () => {
+    setLoading(true);
     setAction('resendOTP')
+    console.log('show');
+    
     if (authUser) {
       await sendEmailVerification(authUser);
 
@@ -106,6 +109,7 @@ export default function VerifyEmail() {
       );
     }
     setAction('')
+    setLoading(false);
   };
 
   const reloadUser = async () => {
@@ -217,7 +221,7 @@ export default function VerifyEmail() {
 
             {mode === "verifyEmail" && oobCode ? 
             <p className="text-gray-600">
-              Click on the Proceed to verify your account. You can resend the email with the <span className="text-yellow-400">Resend Verification Link</span> button
+              Click on the <span className="text-yellow-600 text-sm">Proceed</span> to verify your account. <br /> You can resend the email with the <span className="text-yellow-600  text-sm">Resend Verification Link</span> button
             </p>
               : 
             <p className="text-gray-600">
