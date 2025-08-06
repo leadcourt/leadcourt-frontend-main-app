@@ -12,7 +12,7 @@ import authBG from "../../assets/background/bg_gradient.jpg";
 import {
   getAuth,
   // onAuthStateChanged,
-  reload,
+  // reload,
   sendEmailVerification,
 } from "firebase/auth";
 import { useRecoilState } from "recoil";
@@ -123,9 +123,10 @@ export default function VerifyEmail() {
       // console.log(firebaseUser);
       console.log(oobCode);
       console.log(auth.currentUser);
+      console.log(authUser);
 
       if (authUser) {
-        await reload(authUser).then((res) => {
+        await authUser.reload().then((res) => {
           console.log("log res", res);
 
           const payload = {
@@ -135,8 +136,16 @@ export default function VerifyEmail() {
             verify: true,
           };
 
+          console.log(authUser.emailVerified)
+          if (authUser.emailVerified){
           toast.success('Your account is now verified')
-          setUser(payload);
+  
+
+            setUser(payload);
+            
+          }
+
+
 
           // if (user.emailVerified) {
           //   console.log("Email is verified!");

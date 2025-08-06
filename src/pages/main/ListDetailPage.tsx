@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import {
-  deleteAList,
   exportList,
   getLinkedInUrl,
   // getDataPhoneAndEmail,
   getSingleListDetail,
-  renameAList,
 } from "../../utils/api/data";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -64,9 +62,6 @@ export default function ListDetailPage() {
     RevealedProfile | any
   >();
   const [exportLoading, setExportLoading] = useState(false);
-  const [loadingDeletePage, setLoadingDeletePage] = useState(false);
-  const [renameListAction, setRenameListAction] = useState(false);
-  const [listName, setListName] = useState("");
   const [selectedProfilesRevealed, setSelectedProfileRevealed] = useState<
     RevealedProfile | any
   >();
@@ -438,40 +433,7 @@ export default function ListDetailPage() {
   const skeletonLoad = () => {
     return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>;
   };
-
-  const deleteList = async () => {
-    setLoadingDeletePage(true);
-    await deleteAList(params?.listName).then((res) => {
-      if (res?.data?.message.endsWith("deleted successfully")) {
-        toast.success("List deleted successfully");
-        navigate("/list");
-      } else {
-        toast.error("List not deleted!");
-      }
-    });
-    setLoadingDeletePage(false);
-  };
-
-  const renameList = async () => {
-
-    const payload = {
-      oldName: params?.listName,
-      newName: listName,
-    };
-    if (params?.listName == listName) {
-      toast.info('No changes made to list name')
-      return
-    }
-    await renameAList(payload).then((res) => {
-      if (res?.data?.message?.endsWith("renamed successfully")) {
-        toast.success(res?.data?.message);
-        navigate(`/list/${listName}/details`);
-        setRenameListAction(false)
-
-      }
-    });
-
-  };
+ 
 
   useEffect(() => {
     // checkPhone(entries);
@@ -569,66 +531,9 @@ export default function ListDetailPage() {
           </div>
         </div>
       </Dialog>
-
-      <Dialog
-        header={`Rename List`}
-        visible={renameListAction}
-        className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-        // style={{ maxWidth: "400px" }}
-        onHide={() => {
-          if (!visible) return;
-          setRenameListAction(false);
-        }}
-        draggable={false}
-        resizable={false}
-      >
-        <div className="pb-3 w-fit m-auto">
-          <div className="flex flex-col gap-3 m-5 text-center">
-            <p className=" w-full text-center text-sm">Change the list name</p>
-
-            <input
-              onChange={(e) => setListName(e.target.value)}
-              value={listName}
-              type="text"
-              className="border-red-400 border-2 py-2 px-4 rounded-full "
-              placeholder="Enter new list name"
-            />
-          </div>
-
-          <div className="mt-6 flex items-center pb-2">
-            <div className=" cursor-pointer w-fit m-auto">
-              <button
-                onClick={renameList}
-                className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      </Dialog>
+ 
       <div className="p-10">
-        
-        <div className="flex gap-2 items-center justify-start">
-          <div
-            onClick={deleteList}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 bg-amber-300 text-gray-600 text-xs w-fit rounded"
-          >
-            {loadingDeletePage ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              <i className="pi pi-trash"></i>
-            )}
-            Delete List
-          </div>
-          <div
-            onClick={() => setRenameListAction(true)}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 text-white bg-gray-400 text-xs w-fit rounded"
-          >
-            <i className="pi pi-pencil"></i>
-            <span>Rename List</span>
-          </div>
-        </div>
+         
         <div className="p-5  bg-gray-50v lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
           <p className="mb-3">
             <span className="cursor-pointer" onClick={() => navigate("/list")}>
