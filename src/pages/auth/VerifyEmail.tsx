@@ -115,7 +115,7 @@ export default function VerifyEmail() {
 
 
     if (mode === "verifyEmail") {
-      console.log(mode);
+      // console.log(mode);
       // console.log(firebaseUser);
       console.log(oobCode);
       console.log(auth.currentUser);
@@ -214,59 +214,22 @@ export default function VerifyEmail() {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               Verify your account
             </h1>
+
+            {mode === "verifyEmail" && oobCode ? 
+            <p className="text-gray-600">
+              Click on the Proceed to verify your account. You can resend the email with the <span className="text-yellow-400">Resend Verification Link</span> button
+            </p>
+              : 
             <p className="text-gray-600">
               An email has been sent to you, Please proceed to your email to
               verify your account.
             </p>
+            }
           </div>
-
-          {/* <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label className="block text-xs font-medium text-gray-700 uppercase mb-2">
-              OTP code
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <i className="pi pi-lock text-red-500"></i>
-              </div>
-              <input
-                name="otp"
-                type="text"
-                value={values.otp !== 0 ? values.otp : ''}
-                
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className="pl-12 w-full py-3 bg-gray-100 rounded-md focus:ring-2 focus:ring-purple-100 focus:outline-none"
-                placeholder="Enter your otp"
-                required
-              />
-            </div>
-            {errors.otp && touched.otp && (
-              <p className="error text-sm text-red-400">{errors.otp}</p>
-            )}
-          </div>
-
-
-          {loading ? (
-            <button
-              type="button"
-              className="secondary-btn-red !bg-[#f34f146c] flex items-center justify-center gap-2 "
-            >
-              <i className="pi pi-spin pi-spinner text-xl"></i>
-              Continue
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!isValid || isValidating || isSubmitting}
-              className="secondary-btn-red"
-            >
-              Continue
-            </button>
-          )}
-        </form> */}
+ 
 
           {/* Forgot password Link */}
+            {mode === "verifyEmail" && oobCode ? 
           <div className="text-center mt-3">
             <button
               // to="/auth/user-login"
@@ -274,9 +237,12 @@ export default function VerifyEmail() {
               className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 justify-center items-center"
             >
               {loading && action === 'reload' ? <i className="pi pi-spinner pi-spin"></i> : ""}
-              Verify Account
+              Proceed
             </button>
           </div>
+              
+            :''
+            } 
 
           <div className="text-center mt-3">
             <button
@@ -285,7 +251,7 @@ export default function VerifyEmail() {
               className="secondary-btn-red hovertext-orange-600 text-sm flex gap-2 justify-center items-center"
             >
               {loading && action == 'resendOTP' ? <i className="pi pi-spinner pi-spin"></i> : ""}
-              Click here to resend otp...
+              Resend Verification Link
             </button>
           </div>
           {/* <div className="text-xs text-center mt-10 text-red-600">
