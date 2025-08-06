@@ -11,7 +11,7 @@ import { Dialog } from "primereact/dialog";
 import authBG from "../../assets/background/bg_gradient.jpg";
 import {
   getAuth,
-  onAuthStateChanged,
+  // onAuthStateChanged,
   reload,
   sendEmailVerification,
 } from "firebase/auth";
@@ -28,7 +28,7 @@ export default function VerifyEmail() {
   // const [loading, setLoading] = useState(false);
 
   const [user, setUser] = useRecoilState(userState);
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  // const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState('')
   const navigate = useNavigate();
@@ -116,7 +116,7 @@ export default function VerifyEmail() {
 
     if (mode === "verifyEmail") {
       console.log(mode);
-      console.log(firebaseUser);
+      // console.log(firebaseUser);
       console.log(oobCode);
       console.log(auth.currentUser);
 
