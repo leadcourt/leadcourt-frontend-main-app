@@ -51,7 +51,10 @@ const exportList = async (payload: any) => {
     return await axios.post(`${baseUrl}/list/export`, payload)
 }
  
-
+// newletter on sign-up
+const addSubscriber = async (payload: any) => {
+    return await axios.post(`${baseUrl}/add-subscriber`, payload)
+}
 
  
 
@@ -68,5 +71,7 @@ export {
     deleteAList,
     renameAList,
     exportList,
+
+    addSubscriber,
 }
 

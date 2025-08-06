@@ -12,6 +12,7 @@ import logo from '../../assets/logo/logo.png'
 import { toast } from "react-toastify";
 import { useSetRecoilState } from "recoil";
 import { accessTokenState, refreshTokenState, userState } from "../../utils/atom/authAtom";
+import { addSubscriber } from "../../utils/api/data";
 
 interface FormData {
   displayName: string;
@@ -31,8 +32,19 @@ export default function Register() {
   const [useEmail, setUseEmail] = useState<boolean>(false);
   const navigate = useNavigate()
 
+    const [subscibeNewsletter, setSubscibeNewsletter] = useState(false);
+  
   // Function for Email Sign Up
-  const onSubmit = async (values: FormData) => { 
+  const onSubmit = async (values: FormData) => {
+    
+    if (subscibeNewsletter) {
+      const payload = {
+        email: values.email,
+        name: values.displayName
+      }
+      await addSubscriber(payload)
+      // .then(()=>{})
+    }
     
     await userSignUp(values.email, values.password, values.displayName).then((res) => {
       if (res !== 'success'){
@@ -179,7 +191,7 @@ export default function Register() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <User size={20} className="text-purple-800" />
+                  <User size={20} className="text-red-400" />
                 </div>
                 <input
                   type="text"
@@ -204,7 +216,7 @@ export default function Register() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Mail size={20} className="text-purple-800" />
+                  <Mail size={20} className="text-red-400" />
                 </div>
                 <input
                   type="email"
@@ -233,9 +245,9 @@ export default function Register() {
                   className="absolute h-full w-11 left-0 flex cursor-pointer items-center pl-3"
                 >
                   {passwordVisible ? (
-                    <Key size={20} className="text-purple-800" />
+                    <Key size={20} className="text-red-400" />
                   ) : (
-                    <Lock size={20} className="text-purple-800" />
+                    <Lock size={20} className="text-red-400" />
                   )}
                 </div>
                 <input
@@ -266,9 +278,9 @@ export default function Register() {
                   className="absolute h-full w-11 left-0 flex cursor-pointer items-center pl-3"
                 >
                   {password2Visible ? (
-                    <Key size={20} className="text-purple-800" />
+                    <Key size={20} className="text-red-400" />
                   ) : (
-                    <Lock size={20} className="text-purple-800" />
+                    <Lock size={20} className="text-red-400" />
                   )}
                 </div>
                 <input
@@ -287,6 +299,22 @@ export default function Register() {
                 <p className="error text-sm text-red-400">{errors.password2}</p>
               )}
             </div>
+
+
+              {/* Suscribe to newsletter */}
+              <div className="flex items-center my-5 mb-2">
+                <input
+                  type="checkbox"
+                  id="subscibeNewsletter"
+                  checked={subscibeNewsletter}
+                  onChange={() => setSubscibeNewsletter(!subscibeNewsletter)}
+                  className="h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                />
+                <label htmlFor="subscibeNewsletter" className="ml-2 block text-gray-700">
+                  Subscribe to our newletter
+                </label>
+              </div>
+
 
             {/* Submit Button */}
             <button
