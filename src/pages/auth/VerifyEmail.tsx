@@ -10,9 +10,10 @@ import { Dialog } from "primereact/dialog";
 // import { toast } from "react-toastify";
 import authBG from "../../assets/background/bg_gradient.jpg";
 import {
+  applyActionCode,
   getAuth,
   // onAuthStateChanged,
-  // reload,
+  reload,
   sendEmailVerification,
 } from "firebase/auth";
 import { useRecoilState } from "recoil";
@@ -30,7 +31,7 @@ export default function VerifyEmail() {
   const [user, setUser] = useRecoilState(userState);
   // const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [action, setAction] = useState('')
+  const [action, setAction] = useState("");
   const navigate = useNavigate();
 
   const auth = getAuth();
@@ -98,9 +99,9 @@ export default function VerifyEmail() {
   // return
   const resendVerification = async () => {
     setLoading(true);
-    setAction('resendOTP')
-    console.log('show');
-    
+    setAction("resendOTP");
+    console.log("show");
+
     if (authUser) {
       await sendEmailVerification(authUser);
 
@@ -108,15 +109,14 @@ export default function VerifyEmail() {
         "An email has been sent to your account, please check to proceed."
       );
     }
-    setAction('')
+    setAction("");
     setLoading(false);
   };
 
   const reloadUser = async () => {
-    setAction('reload')
+    setAction("reload");
     console.log("In the reload");
     setLoading(true);
-
 
     if (mode === "verifyEmail") {
       // console.log(mode);
@@ -125,44 +125,45 @@ export default function VerifyEmail() {
       console.log(auth.currentUser);
       console.log(authUser);
 
-      if (authUser) {
-        await authUser.reload().then((res) => {
-          console.log("log res", res);
+      await applyActionCode(auth, oobCode ?? "");
 
-          const payload = {
-            email: user?.email || "",
-            id: user?.id || "",
-            name: user?.name || "",
-            verify: true,
-          };
-
-          console.log(authUser.emailVerified)
-          if (authUser.emailVerified){
-          toast.success('Your account is now verified')
-  
-
-            setUser(payload);
-            
-          }
-
-
-
-          // if (user.emailVerified) {
-          //   console.log("Email is verified!");
-          //   // Proceed with giving user access or updating UI
-          // } else {
-          //   console.log("Email is not verified yet.");
-          // }
-        });
+      if (auth?.currentUser) {
+        await reload(auth?.currentUser);
       }
+
+      if (auth?.currentUser?.emailVerified) {
+        const payload = {
+          email: user?.email || "",
+          id: user?.id || "",
+          name: user?.name || "",
+          verify: true,
+        };
+
+        console.log(auth?.currentUser);
+        //     if (auth?.currentUser?.emailVerified){
+        toast.success("Your account is now verified");
+
+        setUser(payload);
+      }
+
+      //     }
+
+      //     // if (user.emailVerified) {
+      //     //   console.log("Email is verified!");
+      //     //   // Proceed with giving user access or updating UI
+      //     // } else {
+      //     //   console.log("Email is not verified yet.");
+      //     // }
+      //   });
+      // }
     }
-    setAction('')
+    setAction("");
   };
 
   useEffect(() => {
     // console.log(user);
     // unsubscribeUser();
-    // reloadUser();
+    reloadUser();
   }, []);
 
   return (
@@ -228,34 +229,43 @@ export default function VerifyEmail() {
               Verify your account
             </h1>
 
-            {mode === "verifyEmail" && oobCode ? 
-            <p className="text-gray-600">
-              Click on the <span className="text-yellow-600 text-sm">Proceed</span> to verify your account. <br /> You can resend the email with the <span className="text-yellow-600  text-sm">Resend Verification Link</span> button
-            </p>
-              : 
-            <p className="text-gray-600">
-              An email has been sent to you, Please proceed to your email to
-              verify your account.
-            </p>
-            }
+            {mode === "verifyEmail" && oobCode ? (
+              <p className="text-gray-600">
+                Click on the{" "}
+                <span className="text-yellow-600 text-sm">Proceed</span> to
+                verify your account. <br /> You can resend the email with the{" "}
+                <span className="text-yellow-600  text-sm">
+                  Resend Verification Link
+                </span>{" "}
+                button
+              </p>
+            ) : (
+              <p className="text-gray-600">
+                An email has been sent to you, Please proceed to your email to
+                verify your account.
+              </p>
+            )}
           </div>
- 
 
           {/* Forgot password Link */}
-            {mode === "verifyEmail" && oobCode ? 
-          <div className="text-center mt-3">
-            <button
-              // to="/auth/user-login"
-              onClick={reloadUser}
-              className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 justify-center items-center"
-            >
-              {loading && action === 'reload' ? <i className="pi pi-spinner pi-spin"></i> : ""}
-              Proceed
-            </button>
-          </div>
-              
-            :''
-            } 
+          {mode === "verifyEmail" && oobCode ? (
+            <div className="text-center mt-3">
+              <button
+                // to="/auth/user-login"
+                onClick={reloadUser}
+                className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 justify-center items-center"
+              >
+                {loading && action === "reload" ? (
+                  <i className="pi pi-spinner pi-spin"></i>
+                ) : (
+                  ""
+                )}
+                Proceed
+              </button>
+            </div>
+          ) : (
+            ""
+          )}
 
           <div className="text-center mt-3">
             <button
@@ -263,7 +273,11 @@ export default function VerifyEmail() {
               onClick={resendVerification}
               className="secondary-btn-red hovertext-orange-600 text-sm flex gap-2 justify-center items-center"
             >
-              {loading && action == 'resendOTP' ? <i className="pi pi-spinner pi-spin"></i> : ""}
+              {loading && action == "resendOTP" ? (
+                <i className="pi pi-spinner pi-spin"></i>
+              ) : (
+                ""
+              )}
               Resend Verification Link
             </button>
           </div>
