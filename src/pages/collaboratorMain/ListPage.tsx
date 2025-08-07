@@ -46,7 +46,7 @@ export default function Collab_ListPage() {
  
   useEffect(() => {
     allList();
-    console.log(collabProject);
+    // console.log(collabProject);
     
 
   }, []);
@@ -123,8 +123,9 @@ export default function Collab_ListPage() {
               campaigns. Pick a template below to get started
             </p>
             <div className="w-fit m-auto">
+              {/* collaboration/689109db5c6e6916efe21cf0/list/new-list */}
               <button
-                onClick={() => navigate("/list/new-list")}
+                onClick={() => navigate(`/collaboration/${collabProjectState}/list/new-list`)}
                 className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-1"
               >
                 {" "}

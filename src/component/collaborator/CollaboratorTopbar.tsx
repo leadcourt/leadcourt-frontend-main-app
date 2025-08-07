@@ -61,7 +61,7 @@ export default function CollaboratorTopbar() {
             >
               {/* <i className="pi pi-wallet"></i>
               <p className=" text-sm font-bold">{credit?.credits}</p> */}
-              <p className=" text-sm font-bold">Go Home</p>
+              <p className="min-w-[100px] text-center text-sm font-bold">Go Home</p>
             </div>
           </div>
 

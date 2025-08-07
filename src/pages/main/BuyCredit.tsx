@@ -6,6 +6,8 @@ import { userState } from "../../utils/atom/authAtom";
 import SupportPage from "../../component/settings/SupportPage";
 import PaymentInIndia from "../../component/settings/PaymentInIndia";
 import { getLocation } from "../../utils/api/location";
+import { useSearchParams } from "react-router-dom";
+import paymentFailed from '../../assets/icons/payment_failed.jpeg'
 
 interface PaymentPlanType {
   userId: string | undefined;
@@ -45,6 +47,7 @@ const BuyCredit = () => {
   const [visible, setVisible] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlanType>();
   const [options, setOptions] = useState<string>();
+  const [paymentStatus, setPaymentStatus] = useState<boolean>(false)
 
   const [indiaPayment, setIndiaPayment] = useState<PaymentInIndiaData>({
     location: "",
@@ -72,6 +75,16 @@ const BuyCredit = () => {
   ];
   const [paymentAmount, setPaymentAmount] = useState<CountryAmount>(sub_price[1]);
   // Calculate price based on credits (at $10 per 1000 credits)
+
+  const [urlSearchParams] = useSearchParams()
+
+  const checkUrlSearchParams = () => {
+    const status = urlSearchParams?.get('status');
+    console.log(urlSearchParams?.get('method'));
+    if (status=== 'failed'){
+      setPaymentStatus(true)
+    }
+  }
   
 
   // Update price when credit amount changes
@@ -117,7 +130,7 @@ const BuyCredit = () => {
 
   useEffect(()=>{
     checkLocation();
-
+checkUrlSearchParams()
   }, []
   )
 
@@ -128,6 +141,26 @@ const BuyCredit = () => {
  
   return (
     <div className="min-h-screen w-full p-5 ">
+
+            <Dialog
+        header="Payment Failed"
+        visible={paymentStatus}
+        style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
+        onHide={() => {
+          if (paymentStatus) return;
+          setPaymentStatus(!paymentStatus);
+        }}
+      >
+        <div className="">
+          <div className=" w-fit m-auto">
+            <img src={paymentFailed} className="h-[100px]" alt="" />
+          </div>
+          <p className="max-w-[300px] text-center m-auto mt-5 text-sm text-gray-700">The transaction you are trying to initiate has failed.</p>
+        </div>
+      </Dialog>
+
+
+
       <Dialog
         header="Support"
         visible={options === "Support"}

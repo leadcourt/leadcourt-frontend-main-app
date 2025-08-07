@@ -108,7 +108,9 @@ export default function CreditBalance() {
                 {TextToCapitalize(`${items?.plan.toLowerCase()} Plan`)}
                 </span>
 
-                {items?.subscriptionId === transactions[0]?.subscriptionId ?
+                {
+                    items.status === 'DENIED' || items.status.toLowerCase() === 'failed' ? '':
+                items?.subscriptionId === transactions[0]?.subscriptionId ?
                 <span className="text-[10px] bg-teal-300 text-white font-bold px-3 py-1 rounded-full">
                   
                   
@@ -155,7 +157,7 @@ export default function CreditBalance() {
                   ${
                     items.status === 'COMPLETED'?
                     'bg-green-200' :
-                    items.status === 'DENIED'?
+                    items.status === 'DENIED' || items.status.toLowerCase() === 'failed' ?
                     'bg-red-200' :
                     items.status === 'PENDING'?
                     'bg-yellow-200' :
