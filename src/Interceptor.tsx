@@ -56,6 +56,9 @@ function Interceptor() {
 
         logout();
       }
+
+          return Promise.reject(error);
+
     }
   );
 

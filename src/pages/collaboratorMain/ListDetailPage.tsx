@@ -14,7 +14,6 @@ import { exportToHubspotApi } from "../../utils/api/crmIntegrations";
 import {
   collaboration_getLinkedInUrl_api,
   collaboration_getSingleListDetail_api,
-  collaboration_renameAList_api,
   collaboration_showPhoneAndEmail_api,
 } from "../../utils/api/collaborationData";
 import { collabCreditState, collabProjectState } from "../../utils/atom/collabAuthAtom";
@@ -65,11 +64,7 @@ export default function Collab_ListDetailPage() {
   >();
   const [exportLoading, setExportLoading] = useState(false);
 
-  const [selectedProfilesRevealed, setSelectedProfileRevealed] = useState<
-    RevealedProfile | any
-  >();
-
-  const [listName, setListName] = useState("");
+  const [selectedProfilesRevealed, setSelectedProfileRevealed] = useState<RevealedProfile | any>();
 
   const columns = [
     { field: "Name", header: "Name" },
@@ -438,45 +433,7 @@ export default function Collab_ListDetailPage() {
     return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>;
   };
 
-
-
-    // const deleteList = async () => {
-    //   setLoadingDeletePage(true);
-    //   await collaboration_deleteAList_api(params?.listName).then((res) => {
-    //     if (res?.data?.message.endsWith("deleted successfully")) {
-    //       toast.success("List deleted successfully");
-    //       navigate("/list");
-    //     } else {
-    //       toast.error("List not deleted!");
-    //     }
-    //   });
-    //   setLoadingDeletePage(false);
-    // };
-  
-    const renameList = async () => {
-  
-      const payload = {
-        oldName: params?.listName,
-        newName: listName,
-      };
-      if (params?.listName == listName) {
-        toast.info('No changes made to list name')
-        return
-      }
-      await collaboration_renameAList_api(payload).then((res) => {
-        if (res?.data?.message?.endsWith("renamed successfully")) {
-          toast.success(res?.data?.message);
-          navigate(`/collaboration/${user?._id}/list/${listName}/details`);
-          setRenameListAction(false)
-
-        }
-      });
-  
-    };
-  
-
-
-  useEffect(() => {
+   useEffect(() => {
     // checkPhone(entries);
 
     checkSelectedPhone(selectedProfile);

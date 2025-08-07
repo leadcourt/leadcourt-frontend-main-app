@@ -9,8 +9,10 @@ export default function AddnewListPage() {
   const user: any = useRecoilValue(userState);
   const navigate = useNavigate();
   const [listName, setListName] = useState("");
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
+    setLoading(true)
     const payload = {
       userId: user.id,
       listName: listName,
@@ -21,9 +23,11 @@ export default function AddnewListPage() {
         toast.success("List created successfully");
         navigate("/list");
       })
-      .catch(( ) => {
-        toast.error("Error occurred");
+      .catch((err) => {        
+        toast.error(err.response.data.error);
       });
+    setLoading(false)
+
   };
 
   return (
@@ -43,8 +47,13 @@ export default function AddnewListPage() {
                 onClick={handleSubmit}
                 className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-1"
               >
-                {" "}
-                <i className="pi pi-user-edit"></i>Create new list
+                {loading ? 
+                <i className="pi pi-spin pi-spinner">
+                  </i>
+                  :
+                <i className="pi pi-user-edit">
+                  </i>
+                }Create new list
               </button>
             </div>
           </div>

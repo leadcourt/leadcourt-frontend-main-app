@@ -10,10 +10,12 @@ export default function Collab_AddnewListPage() {
   const user: any = useRecoilValue(userState);
   const navigate = useNavigate();
   const [listName, setListName] = useState("");
+  const [loading, setLoading] = useState(false)
 
   const collab = useRecoilValue(collabProjectState)
 
   const handleSubmit = async () => {
+    setLoading(true)
     const payload = {
       userId: user.id,
       listName: listName,
@@ -21,13 +23,20 @@ export default function Collab_AddnewListPage() {
 
     
     await collaboration_createNewList_api(payload)
-      .then(() => {
+      .then((res) => {
+        console.log(res);
+        
         toast.success("List created successfully");
         navigate(`/collaboration/${collab?._id}/list`);
       })
-      .catch(( ) => {
-        toast.error("Error occurred");
+      .catch((err) => {
+        console.log(err.response);
+        
+        toast.error(err.response.data.error);
       });
+
+    setLoading(false)
+
   };
 
   return (
@@ -45,10 +54,16 @@ export default function Collab_AddnewListPage() {
             <div className="w-fit m-auto">
               <button
                 onClick={handleSubmit}
-                className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-1"
+                className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-2"
               >
-                {" "}
-                <i className="pi pi-user-edit"></i>Create new list
+                {loading ? 
+                <i className="pi pi-spin pi-spinner">
+                  </i>
+                  :
+                <i className="pi pi-user-edit">
+                  </i>
+                }
+                  Create new list
               </button>
             </div>
           </div>
