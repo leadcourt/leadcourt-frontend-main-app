@@ -72,22 +72,20 @@ export default function ListPage() {
     });
   };
 
-
-  
-    const deleteList = async () => {
-      setLoadingDeletePage(true);
-      await deleteAList(oldListName).then((res) => {
-        if (res?.data?.message.endsWith("deleted successfully")) {
-          toast.success("List deleted successfully");
-          navigate("/list");
-        } else {
-          toast.error("List not deleted!");
-        }
-      });
-      allList();
-      setLoadingDeletePage(false);
-          setDeleteListAction(!deleteListAction);
-    };
+  const deleteList = async () => {
+    setLoadingDeletePage(true);
+    await deleteAList(oldListName).then((res) => {
+      if (res?.data?.message.endsWith("deleted successfully")) {
+        toast.success("List deleted successfully");
+        navigate("/list");
+      } else {
+        toast.error("List not deleted!");
+      }
+    });
+    allList();
+    setLoadingDeletePage(false);
+    setDeleteListAction(!deleteListAction);
+  };
 
   useEffect(() => {
     allList();
@@ -145,15 +143,17 @@ export default function ListPage() {
       >
         <div className="pb-3 w-fit m-auto">
           <div className="flex flex-col gap-3 m-5 text-center">
-            <p className=" w-full text-center text-sm">Are you sure you want to delete this list?</p>
+            <p className=" w-full text-center text-sm">
+              Are you sure you want to delete this list?
+            </p>
           </div>
 
           <div className="mt-6 flex items-center pb-2">
             <div className=" cursor-pointer w-fit m-auto">
               <button
                 onClick={() => {
-          setDeleteListAction(!deleteListAction);
-        }}
+                  setDeleteListAction(!deleteListAction);
+                }}
                 className="bg-yellow-300 flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
               >
                 Cancel
@@ -164,7 +164,11 @@ export default function ListPage() {
                 onClick={deleteList}
                 className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
               >
-                {loadingDeletePage ? <i className="pi pi-spinner pi-spin"></i>: ''}
+                {loadingDeletePage ? (
+                  <i className="pi pi-spinner pi-spin"></i>
+                ) : (
+                  ""
+                )}
                 Delete
               </button>
             </div>
@@ -251,8 +255,8 @@ export default function ListPage() {
                             </li>
                             <li
                               onClick={() => setDeleteListAction(true)}
-
-                            className="flex items-center gap-1 text-xs p-2">
+                              className="flex items-center gap-1 text-xs p-2"
+                            >
                               <i className="pi pi-trash text-xs"></i>
                               <span>Delete</span>
                             </li>
