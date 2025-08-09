@@ -446,7 +446,7 @@ export default function ListDetailPage() {
   }, []);
 
   return (
-    <div>
+    <div className=" h-[90vh]">
       <Dialog
         header={`Insufficient Credit`}
         visible={visible && insufficientCredit === "Insufficient credit"}
@@ -532,10 +532,10 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
  
-      <div className="p-10">
+      <div className="px-10">
          
-        <div className="p-5  bg-gray-50v lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
-          <p className="mb-3">
+        <div className="p-2 lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
+          <p className="">
             <span className="cursor-pointer" onClick={() => navigate("/list")}>
               List
             </span>{" "}
@@ -567,7 +567,7 @@ export default function ListDetailPage() {
           </div>
         </div>
 
-        <div className="my-10 flex flex-wrap justify-center gap-5 text-gray-600">
+        <div className="my-2 flex flex-wrap justify-center gap-5 text-gray-600">
           <button
             className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
             onClick={() => handleShowButton("allPhone")}
@@ -650,6 +650,7 @@ export default function ListDetailPage() {
           </button>
         </div>
 
+<div className=" overflow-hidden overflow-y-auto scrollbarhide max-h-[70vh] ">
         {loading ? (
           <DataTable
             value={Array(10).fill(loadingColumns)}
@@ -714,12 +715,14 @@ export default function ListDetailPage() {
             ))}
           </DataTable>
         ) : (
-          <div className=" max-w-full my-10 ">
+          <div className=" max-w-full my10 ">
             <DataTable
               value={entries}
               globalFilterFields={fields}
               tableStyle={{ minWidth: "100%" }}
               dataKey="row_id"
+                  scrollable 
+                  scrollHeight="400px" 
               // paginator
               className="text-sm rounded-lg overflow-hidden"
               rows={50}
@@ -781,6 +784,7 @@ export default function ListDetailPage() {
             </DataTable>
           </div>
         )}
+</div>
 
         {/* pagination */}
         <div className="px-10 py-5 flex items-center m-auto">

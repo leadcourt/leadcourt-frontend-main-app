@@ -440,11 +440,11 @@ export default function Collab_ListDetailPage() {
   }, [creditInfo]);
 
   useEffect(() => {
-    listDetail(pageNumber);
+    // listDetail(pageNumber);
   }, []);
 
   return (
-    <div>
+    <div className="h-[90vh]">
       <Dialog
         header={`Insufficient Credit`}
         visible={visible && insufficientCredit === "Insufficient credit"}
@@ -532,9 +532,9 @@ export default function Collab_ListDetailPage() {
       </Dialog>
 
  
-      <div className="p-10">
-        <div className="p-5  bg-gray-50v lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
-          <p className="mb-3">
+      <div className="px-10">
+        <div className="p-2 lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
+          <p className="">
             <span className="cursor-pointer" onClick={() => navigate(`/collaboration/${user?._id}/list`)}>
               List
             </span>{" "}
@@ -566,7 +566,7 @@ export default function Collab_ListDetailPage() {
           </div>
         </div>
 
-        <div className="my-10 flex flex-wrap justify-center gap-5 text-gray-600">
+        <div className="my-2 flex flex-wrap justify-center gap-5 text-gray-600">
           <button
             className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
             onClick={() => handleShowButton("allPhone")}
@@ -649,6 +649,8 @@ export default function Collab_ListDetailPage() {
           </button>
         </div>
 
+<div className=" overflow-hidden overflow-y-auto scrollbarhide max-h-[70vh] ">
+
         {loading ? (
           <DataTable
             value={Array(10).fill(loadingColumns)}
@@ -713,12 +715,14 @@ export default function Collab_ListDetailPage() {
             ))}
           </DataTable>
         ) : (
-          <div className=" max-w-full my-10 ">
+          <div className=" max-w-full my10 ">
             <DataTable
               value={entries}
               globalFilterFields={fields}
               tableStyle={{ minWidth: "100%" }}
               dataKey="row_id"
+                  scrollable 
+                  scrollHeight="400px" 
               // paginator
               className="text-sm rounded-lg overflow-hidden"
               rows={50}
@@ -780,9 +784,10 @@ export default function Collab_ListDetailPage() {
             </DataTable>
           </div>
         )}
+</div>
 
         {/* pagination */}
-        <div className="p-10 flex items-center m-auto">
+        <div className="p10 flex items-center m-auto">
           <div className="text-xs w-full m-auto  flex items-center justify-center gap-5">
             <div className="text-gray-500">Rows 50</div>
             <i

@@ -612,7 +612,7 @@ export default function DataTablePage() {
           {/* pagination */}
           <div className="p-10 lg:p-0 md:flex items-center m-auto">
             <div className="text-xs w-full m-auto md:flex items-center justify-center gap-5">
-              <div className="text-gray-500 w-fit m-auto h-fit flex items-center lgitems-end gap-2">
+              <div className="text-gray-500 w-fit m-auto h-fit flex items-center gap-2">
                  Rows / page
                   <Dropdown
                   value={selectedRowLimit}
