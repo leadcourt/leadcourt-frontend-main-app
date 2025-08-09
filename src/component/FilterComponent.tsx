@@ -246,9 +246,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
     <div>
       <div className=" col-span-6 lg:col-span-12 gap-5">
         {/* Country filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             Country{" "}
             {selectedFilters["Country"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -285,9 +284,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
         </div>
 
         {/* State filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             State{" "}
             {selectedFilters["State"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -324,9 +322,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
         </div>
 
         {/* City filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             City{" "}
             {selectedFilters["City"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -363,9 +360,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
         </div>
 
         {/* Designation filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             Designation{" "}
             {/* {selectedFilters["Designation"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -416,9 +412,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
         </div>
 
 {/* Organization filter */}
-<div className="card flex flex-col gap-2 justify-content-center">
-  <br />
-  <h4 className="text-gray-400 flex items-start gap-3">
+<div className="card mb-2 flex flex-col justify-content-center">
+  <h4 className="text-gray-400 text-xs flex items-start gap-3">
     Organization{" "}
     {selectedFilters["Organization"]?.length ? (
       <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -456,9 +451,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
 
 
         {/* Organization Size filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             Organization Size{" "}
             {selectedFilters["orgSize"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
@@ -497,9 +491,8 @@ export default function FilterComponent({ functionName, setFitler, setPage }: an
 
 
         {/* Organization Industry filter */}
-        <div className="card flex flex-col gap-2 justify-content-center">
-          <br />
-          <h4 className="text-gray-400 flex items-start gap-3">
+        <div className="card mb-2 flex flex-col justify-content-center">
+          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
             Organization Industry{" "}
             {selectedFilters["orgIndustry"]?.length ? (
               <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">

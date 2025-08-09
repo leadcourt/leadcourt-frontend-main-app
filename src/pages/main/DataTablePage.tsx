@@ -380,7 +380,7 @@ export default function DataTablePage() {
   }, []);
 
   return (
-    <div className="">
+    <div className=" lg:h-[90vh]">
       <Dialog
         header={`Insufficient Credit`}
         visible={visible}
@@ -415,7 +415,7 @@ export default function DataTablePage() {
           </div>
         </div>
       </Dialog>
-      <div className="grid grid-cols-12 pt-3 overflow-hidden">
+      <div className=" grid grid-cols-12 pt3 overflow-hidden">
         {/* The filter section */}
         <div className=" col-span-12 lg:col-span-3 gap-3 lg:gap-0 p-3 maxh-[100vh] overflow-y-auto overflow-x-hidden static">
           {/* {keyFilters.Designation} */}
@@ -433,7 +433,7 @@ export default function DataTablePage() {
         {/* The table section */}
         <div className="col-span-12 lg:col-span-9">
           <div className="card ">
-            <div className="mt-5 max-w-[100vw] flex flex-col-reverse lg:flex-row gap-5 lg: items-center  mb-10 justify-between px-3">
+            <div className="max-w-[100vw] flex flex-col-reverse lg:flex-row gap-5 lg: items-center justify-between p-2">
               {/* Global filter */}
               <div className="flex items-center gap-3 border border-gray-300 text-gray-500 rounded-lg p-3   w-full md:w-[30%] max-w-[400px]">
                 <i className="pi pi-search"></i>
@@ -446,7 +446,7 @@ export default function DataTablePage() {
               </div>
 
               {/* Add to list button and pop-up section */}
-              <div className="flex flex-col gap-5 min-w-1/2 justify-end lg:flex-row items-center">
+              <div className=" flex flex-col gap-5 min-w-1/2 justify-end lg:flex-row items-center">
                 <Dialog
                   header="Add Profiles to list"
                   visible={modalVisible}
@@ -482,7 +482,7 @@ export default function DataTablePage() {
                 </div>
               </div>
             </div>
-            <div className=" w[100vw] ">
+            <div className=" w[100vw] overflow-hidden overflow-y-auto scrollbar-hide max-h-[70vh] " >
               {loading ? (
                 <DataTable
                   value={Array(10).fill(loadingColumns)}
@@ -554,6 +554,8 @@ export default function DataTablePage() {
                   tableStyle={{ minWidth: "100%" }}
                   dataKey="row_id"
                   emptyMessage={emptyMessageTemplate}
+                  scrollable 
+                  scrollHeight="400px" 
                   // paginator
                   className="text-sm rounded-lg overflow-hidden"
                   rows={50}
@@ -573,7 +575,7 @@ export default function DataTablePage() {
                     <Column
                       key={col.field}
                       field={col.field}
-                      className={`text-sm py-3 border-b border-gray-100 text-gray-500 p-5 `}
+                      className={`text-xs border-b border-gray-100 text-gray-500 p-1 `}
                       // body={col.field}
                       body={
                         col.field === "Phone"
@@ -608,11 +610,11 @@ export default function DataTablePage() {
             </div>
           </div>
           {/* pagination */}
-          <div className="p-10 md:flex items-center m-auto">
+          <div className="p-10 lg:p-0 md:flex items-center m-auto">
             <div className="text-xs w-full m-auto md:flex items-center justify-center gap-5">
-              <div className="text-gray-500   w-fit m-auto flex items-center lg:items-end gap-2">
-                Rows / page
-                <Dropdown
+              <div className="text-gray-500 w-fit m-auto h-fit flex items-center lgitems-end gap-2">
+                 Rows / page
+                  <Dropdown
                   value={selectedRowLimit}
                   onChange={(e) => changeRowLimit(e.value)}
                   options={r_Limit}

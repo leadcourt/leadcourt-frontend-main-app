@@ -54,6 +54,16 @@
   @apply transition-all ease-in-out duration-300 bg-[#F35114] hover:bg-white text-white hover:text-[#F35114] hover:border border-[#F35114];
 }
 
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
 /* .--bg-primary-color{
   @apply 
 } */
