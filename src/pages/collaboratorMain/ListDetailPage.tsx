@@ -440,7 +440,7 @@ export default function Collab_ListDetailPage() {
   }, [creditInfo]);
 
   useEffect(() => {
-    // listDetail(pageNumber);
+    listDetail(pageNumber);
   }, []);
 
   return (
