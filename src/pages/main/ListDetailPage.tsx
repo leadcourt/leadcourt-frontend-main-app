@@ -650,7 +650,7 @@ export default function ListDetailPage() {
           </button>
         </div>
 
-<div className=" overflow-hidden overflow-y-auto scrollbar-hide h-[70vh] border">
+<div className=" overflow-hidden overflow-y-auto scrollbar-hide h-[70vh] ">
         {loading ? (
           <DataTable
             value={Array(10).fill(loadingColumns)}
