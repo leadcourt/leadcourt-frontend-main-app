@@ -2,12 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { FilterMatchMode } from "primereact/api";
-// import { TieredMenu } from "primereact/tieredmenu";
-// import { useNavigate } from "react-router-dom";
 import { getAllData, getLinkedInUrl } from "../../utils/api/data";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
-// import { MultiSelect } from "primereact/multiselect";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { creditState, userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
@@ -21,6 +18,7 @@ import { getCreditBalance } from "../../utils/api/creditApi";
 import { debounce } from "lodash";
 import { Dropdown } from "primereact/dropdown";
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 
 // import FilterComponent from "../../component/FilterComponent";
 
@@ -43,8 +41,6 @@ interface LoadDataOptions {
 export default function DataTablePage() {
   const creditInfo = useSetRecoilState(creditState);
   const creditInfoValue = useRecoilValue(creditState);
-  // const [creditInfo, setCreditInfo] = useRecoilState(creditState)
-
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [entries, setEntries] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState<any>({});
@@ -65,12 +61,35 @@ export default function DataTablePage() {
   const navigate = useNavigate();
 
   const r_Limit: number[] = [25, 50, 100];
+  const totalPages = useMemo(() => {
+    const perPage = selectedRowLimit || 25;
+    const total = Math.ceil((totalDataCount || 0) / perPage);
+    return Math.max(total, 1);
+  }, [totalDataCount, selectedRowLimit]);
 
-  const changeRowLimit = (value: any) => {
-    console.log("value", value);
-    console.log("typeof(value)", typeof value);
+  const changeRowLimit = (value: number) => {
     setSelectedRowLimit(value);
-    loadData(pageNumber, { rowLimit: value });
+    setPageNumber(1);                       // reset to first page
+    loadData(1, { rowLimit: value });       // fetch with new limit
+  };
+
+  const handleChangePageNumber = (e: any) => {
+    e.preventDefault();
+    const raw = parseInt(e.target.value || "1", 10);
+    const num = Math.min(Math.max(raw, 1), totalPages); // clamp
+    setPageNumber(num);
+    loadData(num, { filter: selectedFilters });
+  };
+
+  const handleChangePageNumber2 = (dir: "increase" | "decrease") => {
+    setPageNumber(prev => {
+      const next = dir === "increase" ? prev + 1 : prev - 1;
+      const clamped = Math.min(Math.max(next, 1), totalPages); // clamp
+      if (clamped !== prev) {
+        loadData(clamped, { filter: selectedFilters });
+      }
+      return clamped;
+    });
   };
   const addToList = () => {
     if (selectedProfile.length !== 0) {
@@ -185,23 +204,6 @@ export default function DataTablePage() {
     },
     [selectedFilters, user?.id, selectedRowLimit]
   );
-
-  const handleChangePageNumber = (e: any) => {
-    e.preventDefault();
-    const num: number = parseInt(e.target.value);
-    setPageNumber(num);
-    loadData(num, { filter: selectedFilters });
-  };
-
-  const handleChangePageNumber2 = (chk: string) => {
-    if (chk === "increase") {
-      setPageNumber(pageNumber + 1);
-      loadData(pageNumber + 1, { filter: selectedFilters });
-    } else if (chk === "decrease") {
-      setPageNumber(pageNumber - 1);
-      loadData(pageNumber - 1, { filter: selectedFilters });
-    }
-  };
 
   const handleShowPhoneOrEmail = async (type: string, id: any) => {
     setLoadRow({ type: type, row_id: id });
@@ -494,7 +496,7 @@ export default function DataTablePage() {
                   scrollHeight="70vh" 
                   // paginator
                   className="text-sm rounded-lg overflow-hidden"
-                  rows={50}
+                  rows={selectedRowLimit}
                   selectionMode={rowClick ? null : "checkbox"}
                   onSelectionChange={(e: any) => setSelectedProfile(e.value)}
                   selection={selectedProfile}
@@ -643,7 +645,7 @@ export default function DataTablePage() {
                 <input
                   type="number"
                   value={pageNumber}
-                  max={totalDataCount}
+                  max={totalPages}
                   // disabled
                   className="max-w-[100px] text-center order py-2 focus:outline-gray-100 focus:outline-1 rounded"
                   onChange={(e) => handleChangePageNumber(e)}
@@ -657,10 +659,7 @@ export default function DataTablePage() {
 
               <div className="m-auto w-fit text-gray-500">
                 {" "}
-                {totalDataCount
-                  ? Math.round(totalDataCount / 25).toLocaleString()
-                  : 0}{" "}
-                pages
+                {totalPages.toLocaleString()} pages
               </div>
             </div>
           </div>
