@@ -29,19 +29,13 @@ import Collab_IntegrationCallback from '../pages/collaboratorMain/IntegrationCal
 import VerifyEmail from '../pages/auth/VerifyEmail';
 import AuthLayout from './layouts/AuthLayout';
 import IntegrationZohoCallback from '../pages/main/IntegrationZohoCallback';
-// import LeadCourtCredits2 from '../pages/main/BuyCredit2';
-
-// Create the router configuration
+import LinkedIn from '../pages/main/LinkedIn';
 const router = createBrowserRouter([
   {
     path: '/',
     element: <DefaultLayout />,
     errorElement: <ErrorPage />,
     children: [
-      // { 
-      //   index: true, 
-      //   element: <Navigate to="/auth/login" replace /> 
-      // },
       {
         path: '/',
         element: <LoginTwo />
@@ -73,7 +67,6 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <AuthLayout />,
-    // errorElement: <ErrorPage />,
     children: [ 
       {
         path: '/auth/verify',
@@ -85,7 +78,6 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <UserLayout />,
-    // errorElement: <ErrorPage />,
     children: [ 
       {
         path: '/',
@@ -138,13 +130,16 @@ const router = createBrowserRouter([
       {
         path: '/collaborators',
         element: <CollaboratorManager />
-      }, 
+      },
+      {
+        path: '/linkedin',
+        element: <LinkedIn />
+      },
     ]
   },
   {
     path: '/collaboration/:collaborationId',
     element: <CollaboratorLayout />,
-    // errorElement: <ErrorPage />,
     children: [ 
       {
         path: '',

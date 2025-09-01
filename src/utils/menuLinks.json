@@ -9,6 +9,12 @@
         "sub": []
       },
       {
+        "text": "Lead enrichment",
+        "img": "pi-linkedin",
+        "link": "/linkedin",
+        "sub": []
+      },
+      {
         "text": "Lists",
         "img": "pi-list",
         "link": "#",

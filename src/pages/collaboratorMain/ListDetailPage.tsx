@@ -36,7 +36,6 @@ interface RevealedProfile {
 }
 
 interface ListDetailPayload {
-  // userId: string | undefined;
   page: number | undefined;
   listName: string | undefined;
 }
@@ -148,10 +147,7 @@ export default function Collab_ListDetailPage() {
           .catch(() => {});
       }
     });
-
-    // } catch (err) {
-
-    // }
+ 
 
     setLoadRow({});
   };
@@ -175,7 +171,7 @@ export default function Collab_ListDetailPage() {
 
         prevEntries = entries.map((entry: any) =>
           entry.row_id === id
-            ? { ...entry, ...res?.data.results[0] } // Update the Phone or Email field
+            ? { ...entry, ...res?.data.results[0] }
             : entry
         );
 
@@ -188,11 +184,9 @@ export default function Collab_ListDetailPage() {
         setEntries(prevEntries);
       })
       .catch(() => {
-        // console.log("err occured in show phone or email", err);
       });
 
     setLoadRow({});
-    // loadData(pageNumber);
   };
 
   const openLinkedInPopup = async (id: any) => {
@@ -315,10 +309,6 @@ export default function Collab_ListDetailPage() {
     if (exportOptions.toLowerCase() === "hubspot") {
       await exportToHubspotApi(payload)
         .then((res) => {
-          console.log("response from hubspot export", res);
-          // data :
-          //   portalId: 242990985
-          //   success: true
           if (res?.data?.success) {
             toast.success("Exported to Hubspot successfully");
             window.open(
@@ -347,7 +337,6 @@ export default function Collab_ListDetailPage() {
     setLoading(true);
 
     const payload: ListDetailPayload = {
-      // userId: user?.id,
       page: pageNum,
       listName: params?.listName,
     };
@@ -363,7 +352,6 @@ export default function Collab_ListDetailPage() {
         setEntries(data);
       })
       .catch(() => {
-        // console.log("Error occurred: ", err);
       });
 
     setLoading(false);
@@ -434,7 +422,6 @@ export default function Collab_ListDetailPage() {
   };
 
    useEffect(() => {
-    // checkPhone(entries);
 
     checkSelectedPhone(selectedProfile);
   }, [creditInfo]);
@@ -449,7 +436,6 @@ export default function Collab_ListDetailPage() {
         header={`Insufficient Credit`}
         visible={visible && insufficientCredit === "Insufficient credit"}
         className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-        // style={{ maxWidth: "400px" }}
         onHide={() => {
           if (!visible) return;
           setVisible(false);
@@ -486,7 +472,6 @@ export default function Collab_ListDetailPage() {
         header={`Export to ${TextToCapitalize(exportOptions)}`}
         visible={visible && exportOptions.length > 0}
         className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-        // style={{ maxWidth: "400px" }}
         onHide={() => {
           if (!visible) return;
           setVisible(false);
@@ -579,7 +564,7 @@ export default function Collab_ListDetailPage() {
             <span className="flex items-center gap-1">
               <i className="pi pi-wallet"></i>
               <span>
-                {(entries?.length - profilesRevealed?.phoneLength) * 2}
+                {(entries?.length - profilesRevealed?.phoneLength) * 5}
               </span>
             </span>
             Show all phone
@@ -616,7 +601,7 @@ export default function Collab_ListDetailPage() {
                 <span>
                   {(selectedProfile?.length -
                     selectedProfilesRevealed?.phoneLength) *
-                    2}
+                    5}
                 </span>
               </span>
             ) : (
@@ -654,13 +639,11 @@ export default function Collab_ListDetailPage() {
         {loading ? (
           <DataTable
             value={Array(10).fill(loadingColumns)}
-            // filters={filters}
             globalFilterFields={fields}
             tableStyle={{ minWidth: "100%" }}
             dataKey="row_id"
                   scrollable 
                   scrollHeight="64vh" 
-            // paginator
             className="text-sm rounded-lg overflow-hidden"
             rows={50}
             selectionMode={rowClick ? null : "checkbox"}
@@ -684,7 +667,6 @@ export default function Collab_ListDetailPage() {
                     ? "font-bold text-gray-700"
                     : "text-gray-500"
                 }  `}
-                // body={col.field}
                 body={
                   col.field === "Phone"
                     ? skeletonLoad
@@ -710,7 +692,6 @@ export default function Collab_ListDetailPage() {
                     ? skeletonLoad
                     : null
                 }
-                // body={col.field === "Phone" ? showPhone : ''}
                 header={col.header}
                 headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
               />
@@ -725,7 +706,6 @@ export default function Collab_ListDetailPage() {
               dataKey="row_id"
                   scrollable 
                   scrollHeight="70vh"  
-              // paginator
               className="text-sm rounded-lg overflow-hidden"
               rows={50}
               selectionMode={rowClick ? null : "checkbox"}
@@ -749,7 +729,6 @@ export default function Collab_ListDetailPage() {
                       ? "font-bold text-gray-700"
                       : "text-gray-500"
                   }  `}
-                  // body={col.field}
                   body={
                     col.field === "Phone"
                       ? showPhone
@@ -773,22 +752,15 @@ export default function Collab_ListDetailPage() {
                       ? showOrgIndustry
                       : null
                   }
-                  // body={col.field === "Phone" ? showPhone : ''}
                   header={col.header}
                   headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
                 />
               ))}
-              {/* <Column
-                    body={actionBodyTemplate}
-                    className="border-b"
-                    header="Actions"
-                  /> */}
             </DataTable>
           </div>
         )}
 </div>
 
-        {/* pagination */}
         <div className="p10 flex items-center m-auto">
           <div className="text-xs w-full m-auto  flex items-center justify-center gap-5">
             <div className="text-gray-500">Rows 50</div>
@@ -809,34 +781,8 @@ export default function Collab_ListDetailPage() {
               className="pi pi-angle-right text-2xl text-gray-300 p-3 cursor-pointer"
               onClick={() => handleChangePageNumber2("increase")}
             ></i>
-            {/* <div className="text-gray-500">
-            {" "}
-            {Math.round(totalDataCount / 50).toLocaleString()} pages
-          </div> */}
           </div>
         </div>
-
-        
-        {/* <div className="flex gap-2 items-center justify-start">
-          <div
-            onClick={deleteList}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 bg-amber-300 text-gray-600 text-xs w-fit rounded"
-          >
-            {loadingDeletePage ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              <i className="pi pi-trash"></i>
-            )}
-            Delete List
-          </div>
-          <div
-            onClick={() => setRenameListAction(true)}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 text-white bg-gray-400 text-xs w-fit rounded"
-          >
-            <i className="pi pi-pencil"></i>
-            <span>Rename List</span>
-          </div>
-        </div> */}
       </div>
     </div>
   );

@@ -22,6 +22,10 @@ const getLinkedInUrl = async (payload: any) => {
     return await axios.post(`${baseUrl}/filter/linkedin`, payload)
 }
 
+const searchLinkedInProfile = async (payload: any) => {
+    return await axios.post(`${baseUrl}/filter/linkedin-search`, payload)
+}
+
 const addProfilesToList = async (payload: any) => {
     return await axios.post(`${baseUrl}/list/store`, payload)
 }
@@ -67,6 +71,7 @@ export {
     addProfilesToList,
     getDataPhoneAndEmail,
     getLinkedInUrl,
+    searchLinkedInProfile,
     createNewList,
     deleteAList,
     renameAList,
