@@ -8,6 +8,7 @@ import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
 import { searchLinkedInProfile } from "../../utils/api/data";
 import TextToCapitalize from "../../component/TextToCapital";
+import AddToListComponent from "../../component/AddToListComponent";
 
 type Lead = {
   row_id: number;
@@ -38,6 +39,7 @@ export default function LinkedIn() {
   const [status, setStatus] = useState<"idle" | "success" | "fail">("idle");
   const [revealLoading, setRevealLoading] = useState<{ type?: "email" | "phone"; id?: number }>({});
   const [insufficientVisible, setInsufficientVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -57,6 +59,32 @@ export default function LinkedIn() {
   }, [setCreditInfo, user?.id]);
 
   const isFree = (creditInfoValue?.subscriptionType ?? "FREE") === "FREE";
+
+  const peopleForList = lead
+  ? [
+      {
+        row_id: lead.row_id,
+        Name: lead.Name ?? "",
+        Designation: lead.Designation ?? "",
+        Email: lead.Email ?? "",
+        Phone: lead.Phone ?? "",
+        Organization: lead.Organization ?? "",
+        City: lead.City ?? "",
+        State: lead.State ?? "",
+        Country: lead.Country ?? "",
+        "Organization Size": lead["Org Size"] ?? "",
+        "Organization Industry": lead["Org Industry"] ?? "",
+      },
+    ]
+  : [];
+
+  const openAddModal = () => {
+    if (!lead) {
+      toast.error("No profile to add");
+      return;
+    }
+    setAddModalVisible(true);
+  };
 
   const onCheck = async () => {
     const raw = (input || "").trim();
@@ -167,6 +195,14 @@ export default function LinkedIn() {
           </div>
         </div>
       </Dialog>
+      <Dialog
+        header="Add Profiles to list"
+        visible={addModalVisible}
+        className="p-2 bg-white w-[90vw] lg:w-1/2"
+        onHide={() => addModalVisible && setAddModalVisible(false)}
+      >
+        <AddToListComponent onClose={() => setAddModalVisible(false)} people={peopleForList} />
+      </Dialog>
 
       <div className="max-w-6xl mx-auto">
         {status === "idle" ? (
@@ -253,13 +289,23 @@ export default function LinkedIn() {
                   </div>
                 </div>
 
-                <button
-                  onClick={openOnLinkedIn}
-                  className="h-10 px-4 flex items-center gap-2 border border-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-50 cursor-pointer"
-                >
-                  <i className="pi pi-external-link" />
-                  Open on LinkedIn
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openAddModal}
+                    className="h-10 px-4 flex items-center gap-2 border border-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-50 cursor-pointer"
+                  >
+                    <i className="pi pi-plus" />
+                    Add to list
+                  </button>
+
+                  <button
+                    onClick={openOnLinkedIn}
+                    className="h-10 px-4 flex items-center gap-2 border border-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-50 cursor-pointer"
+                  >
+                    <i className="pi pi-external-link" />
+                    Open on LinkedIn
+                  </button>
+                </div>
               </div>
 
               <div className="mt-6 p-4 bg-gray-50 rounded-lg flex flex-wrap items-center gap-3">
