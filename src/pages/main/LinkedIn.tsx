@@ -250,6 +250,9 @@ export default function LinkedIn() {
                 <span>Check Profile</span>
               </button>
 
+              {/* NEW: credit usage hint */}
+              <div className="mt-2 text-xs text-gray-500">(This feature uses 5 credits)</div>
+
               <div className="mt-8 text-xs text-gray-400">
                 Powered by <span className="font-semibold text-[#F35114]">LeadCourt</span>
               </div>
