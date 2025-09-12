@@ -41,42 +41,49 @@ export default function LinkedIn() {
   const [insufficientVisible, setInsufficientVisible] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
 
+  // Helper to refresh header credits from /total
+  const refreshCredits = async () => {
+    try {
+      const res = await getCreditBalance();
+      setCreditInfo({
+        id: user?.id ?? "",
+        credits: res?.data?.credits || 0,
+        subscriptionType: res?.data?.subscriptionType || "FREE",
+        expiresAt: res?.data?.expiresAt,
+        proRemainingDays: res?.data?.proRemainingDays,
+        starterRemainingDays: res?.data?.starterRemainingDays,
+      });
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     (async () => {
-      try {
-        const res = await getCreditBalance();
-        setCreditInfo({
-          id: user?.id ?? "",
-          credits: res?.data?.credits || 0,
-          subscriptionType: res?.data?.subscriptionType || "FREE",
-          expiresAt: res?.data?.expiresAt,
-          proRemainingDays: res?.data?.proRemainingDays,
-          starterRemainingDays: res?.data?.starterRemainingDays,
-        });
-      } catch {
-      }
+      await refreshCredits();
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setCreditInfo, user?.id]);
 
   const isFree = (creditInfoValue?.subscriptionType ?? "FREE") === "FREE";
 
   const peopleForList = lead
-  ? [
-      {
-        row_id: lead.row_id,
-        Name: lead.Name ?? "",
-        Designation: lead.Designation ?? "",
-        Email: lead.Email ?? "",
-        Phone: lead.Phone ?? "",
-        Organization: lead.Organization ?? "",
-        City: lead.City ?? "",
-        State: lead.State ?? "",
-        Country: lead.Country ?? "",
-        "Organization Size": lead["Org Size"] ?? "",
-        "Organization Industry": lead["Org Industry"] ?? "",
-      },
-    ]
-  : [];
+    ? [
+        {
+          row_id: lead.row_id,
+          Name: lead.Name ?? "",
+          Designation: lead.Designation ?? "",
+          Email: lead.Email ?? "",
+          Phone: lead.Phone ?? "",
+          Organization: lead.Organization ?? "",
+          City: lead.City ?? "",
+          State: lead.State ?? "",
+          Country: lead.Country ?? "",
+          "Organization Size": lead["Org Size"] ?? "",
+          "Organization Industry": lead["Org Industry"] ?? "",
+        },
+      ]
+    : [];
 
   const openAddModal = () => {
     if (!lead) {
@@ -102,6 +109,9 @@ export default function LinkedIn() {
       if (apiLead && typeof apiLead === "object") {
         setLead(apiLead);
         setStatus("success");
+
+        // Immediately refresh header credits since /linkedin-search deducts 5 on success
+        await refreshCredits();
       } else {
         setLead(null);
         setStatus("fail");
@@ -113,6 +123,9 @@ export default function LinkedIn() {
       if (http === 404) {
         setLead(null);
         setStatus("fail");
+      } else if (http === 402) {
+        // insufficient credits for the 5-credit charge
+        setInsufficientVisible(true);
       } else {
         toast.error(msg);
       }
@@ -148,6 +161,7 @@ export default function LinkedIn() {
       const revealed = res?.data?.results?.[0] || {};
       setLead((prev) => (prev ? { ...prev, ...revealed } : prev));
 
+      // Update credits from response after reveal (API returns remainingCredits)
       setCreditInfo({
         id: user?.id ?? "",
         credits: res?.data?.remainingCredits || 0,
@@ -380,14 +394,18 @@ export default function LinkedIn() {
                   className={`col-span-12 md:col-span-6 ${isFree ? "opacity-60" : ""}`}
                   label="Organization Size"
                   value={
-                    isFree ? "Upgrade Account to see" : TextToCapitalize(safe(lead?.["Org Size"] as string))
+                    isFree
+                      ? "Upgrade Account to see"
+                      : TextToCapitalize(safe(lead?.["Org Size"] as string))
                   }
                 />
                 <InfoItem
                   className={`col-span-12 md:col-span-6 ${isFree ? "opacity-60" : ""}`}
                   label="Organization Industry"
                   value={
-                    isFree ? "Upgrade Account to see" : TextToCapitalize(safe(lead?.["Org Industry"] as string))
+                    isFree
+                      ? "Upgrade Account to see"
+                      : TextToCapitalize(safe(lead?.["Org Industry"] as string))
                   }
                 />
               </div>
@@ -402,7 +420,6 @@ export default function LinkedIn() {
     </div>
   );
 }
-
 
 function Label({ label }: { label: string }) {
   return <div className="text-xs text-gray-400 mb-1">{label}</div>;
