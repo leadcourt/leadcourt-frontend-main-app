@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import menu from "../utils/menuLinks.json";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useRecoilValue, useResetRecoilState } from "recoil";
+import { useResetRecoilState } from "recoil";
 import {
   accessTokenState,
   creditState,
@@ -9,19 +9,12 @@ import {
   userState,
 } from "../utils/atom/authAtom";
 import logo from "../assets/logo/logoDark.png";
-import { getPersonalInformation } from "../utils/api/settingsApi";
 import { toast } from "react-toastify";
 import authBG from "../assets/background/bg_gradient.jpg";
 import { collabCreditState, collabProjectState } from "../utils/atom/collabAuthAtom";
 
 interface ChildData {
   updateBar: (sidebarCollapse: boolean) => void;
-}
-
-interface UserInfo {
-  name: string;
-  email: string;
-  phone: string;
 }
 
 type SubLink = { text: string; link: string };
@@ -73,9 +66,6 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarCollapse, setSidebarCollapse] = useState(true);
 
-  const user = useRecoilValue(userState);
-  const [userData, setUserData] = useState<UserInfo>();
-
   const resetAccessToken = useResetRecoilState(accessTokenState);
   const resetRefreshToken = useResetRecoilState(refreshTokenState);
   const resetUser = useResetRecoilState(userState);
@@ -112,20 +102,6 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
     });
   };
 
-  const getPersonInfo = async (payload: any) => {
-    if (!payload?.id) return;
-    try {
-      const res = await getPersonalInformation(payload.id);
-      setUserData({
-        name: res?.full_name ?? payload?.email ?? "",
-        email: res?.email ?? payload?.email ?? "",
-        phone: res?.phone_number ?? "",
-      });
-    } catch {
-      // noop
-    }
-  };
-
   const logout = () => {
     resetAccessToken();
     resetRefreshToken();
@@ -140,7 +116,6 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   // initial mount
   useEffect(() => {
     updateParentComponent();
-    if (user) getPersonInfo(user);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
