@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import menu from "../utils/menuLinks.json";
-import { Link, useNavigate } from "react-router-dom";
-import { Tooltip } from "primereact/tooltip";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useRecoilValue, useResetRecoilState } from "recoil";
 import {
   accessTokenState,
@@ -25,12 +24,56 @@ interface UserInfo {
   phone: string;
 }
 
+type SubLink = { text: string; link: string };
+type MenuLink = { text: string; img?: string; link?: string; sub?: SubLink[] };
+
+const normalize = (l?: string | null) => {
+  if (!l || l === "#") return null;
+  return l.startsWith("/") ? l : `/${l}`;
+};
+
+const findActiveParent = (links: MenuLink[], path: string) => {
+  let best:
+    | {
+        text: string;
+        matchLen: number;
+        hasSub: boolean;
+      }
+    | null = null;
+
+  for (const m of links) {
+    const parent = normalize(m.link ?? null);
+    const subs = m.sub ?? [];
+    const candidates = [
+      ...(parent ? [parent] : []),
+      ...subs.map((s) => normalize(s.link)).filter(Boolean) as string[],
+    ];
+
+    for (const l of candidates) {
+      const isMatch = path === l || path.startsWith(`${l}/`);
+      if (isMatch) {
+        const len = l.length;
+        if (!best || len > best.matchLen) {
+          best = { text: m.text, matchLen: len, hasSub: subs.length > 0 };
+        }
+      }
+    }
+  }
+
+  // handle Settings (outside JSON)
+  if (path.startsWith("/user/setting")) {
+    return { text: "Settings", matchLen: 999, hasSub: false };
+  }
+
+  return best;
+};
+
 const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
-  const [menuItem, setMenuItem] = useState(menu[0].links[0].text || null);
+  const [menuItem, setMenuItem] = useState<string | null>(null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarCollapse, setSidebarCollapse] = useState(true);
-  const user = useRecoilValue(userState);
 
+  const user = useRecoilValue(userState);
   const [userData, setUserData] = useState<UserInfo>();
 
   const resetAccessToken = useResetRecoilState(accessTokenState);
@@ -39,38 +82,48 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   const resetCredit = useResetRecoilState(creditState);
 
   const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
-  const resetCollabState = useResetRecoilState(collabProjectState); 
-    
-  const navigate = useNavigate();
+  const resetCollabState = useResetRecoilState(collabProjectState);
 
-  const menuList = menu[0];
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const menuList = useMemo(() => menu[0] as { role: string; links: MenuLink[] }, []);
 
   const updateParentComponent = () => {
     updateBar(sidebarCollapse);
   };
+
   const handleSideBar = () => {
-    setSidebarCollapse(!sidebarCollapse);
-    updateBar(!sidebarCollapse);
+    setSidebarCollapse((v) => {
+      const nv = !v;
+      updateBar(nv);
+      return nv;
+    });
   };
 
-  const dropMenuItem = (menu: any) => {
-    setMenuItem(menu);
-
-    if (menuItem == menu) {
-      setMenuItemDrop(!menuItemDrop);
-    } else {
-      setMenuItemDrop(true);
-    }
+  const dropMenuItem = (text: string) => {
+    setMenuItem((prev) => {
+      if (prev === text) {
+        setMenuItemDrop((d) => !d);
+      } else {
+        setMenuItemDrop(true);
+      }
+      return text;
+    });
   };
 
   const getPersonInfo = async (payload: any) => {
-    await getPersonalInformation(payload.id).then((res) => {
+    if (!payload?.id) return;
+    try {
+      const res = await getPersonalInformation(payload.id);
       setUserData({
-        name: res?.full_name ?? user?.email,
-        email: res?.email ?? user?.email,
+        name: res?.full_name ?? payload?.email ?? "",
+        email: res?.email ?? payload?.email ?? "",
         phone: res?.phone_number ?? "",
       });
-    });
+    } catch {
+      // noop
+    }
   };
 
   const logout = () => {
@@ -78,45 +131,57 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
     resetRefreshToken();
     resetUser();
     resetCredit();
-
     resetCollabState();
     resetCollabcreditInfo();
-
     toast.success("Log out successful");
     navigate("/");
   };
 
+  // initial mount
   useEffect(() => {
     updateParentComponent();
-
-    if (userData) {}
-    getPersonInfo(user);
+    if (user) getPersonInfo(user);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // sync active item with URL
+  useEffect(() => {
+    const active = findActiveParent(menuList.links, location.pathname);
+    if (active) {
+      setMenuItem(active.text);
+      setMenuItemDrop(active.hasSub);
+    } else {
+      setMenuItem(menuList.links[0]?.text ?? null);
+      setMenuItemDrop(false);
+    }
+  }, [location.pathname, menuList.links]);
 
   return (
     <div
-      className={` rounded-r-4xl overflow-hidden text-white fixed ${
+      className={`rounded-r-4xl overflow-hidden text-white fixed ${
         sidebarCollapse ? "w-[80%] lg:w-[200px]" : "max-w-[80px]"
       } h-[100vh]`}
     >
       <img src={authBG} className="absolute rotate-180 h-full w-full" alt="" />
+
       <div className="relative h-full">
+        {/* Mobile header */}
         <div className="lg:hidden h-[20vh] p-3 text-2xl">
-          <img src={logo} alt="" className="h-15" /> 
+          <img src={logo} alt="LeadCourt" className="h-15" />
         </div>
-        <div className="hidden lg:flex  p-5 items-center gap-1">
+
+        {/* Desktop header */}
+        <div className="hidden lg:flex p-5 items-center gap-1">
           <div
-            className={`flex items-center  gap-5 ${
+            className={`flex items-center gap-5 ${
               sidebarCollapse
-                ? "justify-between  mb-20"
+                ? "justify-between mb-20"
                 : "flex-col justify-between mb-15"
-            }  w-full`}
+            } w-full`}
           >
-            {/* <div className="w-fit m-auto"> */}
-            <Link to={'/'}>
-            <img src={logo} alt="" className="h-8" />
+            <Link to={"/"}>
+              <img src={logo} alt="LeadCourt" className="h-8" />
             </Link>
-            {/* </div> */}
 
             <i
               onClick={handleSideBar}
@@ -124,114 +189,95 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
                 sidebarCollapse
                   ? "pi-arrow-down-left-and-arrow-up-right-to-center"
                   : "pi-arrow-up-right-and-arrow-down-left-from-center"
-              } border-dotted p-1 hover:text-lg cursor-pointer`}
+              } border-dotted p-1 cursor-pointer`}
             ></i>
           </div>
         </div>
 
-
         {/* Menu Items */}
         <div className="flex flex-col gap-0 text-gray-700">
-          
-          {menuList.links.map((menu, index) => (
-            <div
-              key={index}
-              className={`${menu.text} py-2 mr-2 rounded-r-xl ${
-                menuItem === menu.text
-                  ? "bg-white text-[#F35114]"
-                  : "hover:text-lg text-white"
-              }`}
-            >
-              <Link
-                to={menu?.link ?? null}
-                onClick={() => dropMenuItem(menu?.text)}
-                key={index}
+          {menuList.links.map((item, index) => {
+            const active = menuItem === item.text;
+            const to = normalize(item.link) ?? "#";
+
+            return (
+              <div
+                key={`${item.text}-${index}`}
+                className={`${item.text} py-2 mr-2 rounded-r-xl ${
+                  active ? "bg-white text-[#F35114]" : "text-white"
+                }`}
               >
-                <Tooltip
-                  event="hover"
-                  position="top"
-                  target=".knob"
-                  content={menu.text}
-                />
+                <Link to={to} onClick={() => dropMenuItem(item.text)}>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      sidebarCollapse
+                        ? "mr-5 rounded-r-xl px-5 py-1"
+                        : "justify-center py-3"
+                    } transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]`}
+                  >
+                    <i className={`pi ${item.img ?? ""}`}></i>
+                    {sidebarCollapse ? <p>{item.text}</p> : null}
+                  </div>
+                </Link>
 
-                <div
-                  data-pr-tooltip={menu.text}
-                  data-pr-position="right"
-                  className={`flex items-center gap-2 ${
-                    sidebarCollapse
-                      ? " mr-5 rounded-r-xl px-5 py-1"
-                      : "justify-center py-3"
-                  }`}
-                >
-                  <i className={`pi ${menu.img}`}></i>
-                  {sidebarCollapse ? <p className="">{menu.text}</p> : ""}
-                </div>
-              </Link>
-
-              {/* Sub Menu Items */}
-              {menu?.sub && menuItemDrop && (
-                <div
-                  className={`${
-                    sidebarCollapse ? "pl-10" : "pl-5 overflow-x-clip"
-                  }  flex flex-col gap-3 mt-2 `}
-                >
-                  {menu.sub.map((item, index) => (
-                    <Link
-                      key={index}
-                      to={item.link}
-                      className={`${
-                        menuItem === menu.text ? "block" : "hidden"
-                      } text-sm cursor-pointer  `}
-                    >
-                      {item.text}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          <div
-              className={`  py-2 mr-2 rounded-r-xl
-                ${
-                menuItem === "Settings"
-                  ? "bg-white text-[#F35114]"
-                  : "hover:text-lg text-white"
-                }
-              `}
-            >
-              <Link
-                to='/user/setting'
-                onClick={() => dropMenuItem('Settings')}
-              >
-                <Tooltip
-                  event="hover"
-                  position="top"
-                  target=".knob"
-                  content={'Settings'}
-                />
-
-                <div
-                  data-pr-tooltip='Settings'
-                  data-pr-position="right"
-                  className={`flex items-center gap-2 ${
-                    sidebarCollapse
-                      ? " mr-5 rounded-r-xl px-5 py-1"
-                      : "justify-center py-3"
-                  }`}
-                >
-                  <i className={`pi pi pi-cog`}></i>
-                  {sidebarCollapse ? <p className="">Settings</p> : ""}
-                </div>
-              </Link>
+                {/* Sub Menu */}
+                {item?.sub && item.sub.length > 0 && menuItemDrop && active && (
+                  <div
+                    className={`${
+                      sidebarCollapse ? "pl-10" : "pl-5 overflow-x-clip"
+                    } flex flex-col gap-3 mt-2`}
+                  >
+                    {item.sub.map((s, sIdx) => {
+                      const subTo = normalize(s.link) ?? "#";
+                      const isSubActive =
+                        location.pathname === subTo ||
+                        location.pathname.startsWith(`${subTo}/`);
+                      return (
+                        <Link
+                          key={`${s.text}-${sIdx}`}
+                          to={subTo}
+                          className={`text-sm cursor-pointer ${
+                            isSubActive ? "text-[#F35114] font-medium" : ""
+                          }`}
+                        >
+                          {s.text}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+            );
+          })}
+
+          {/* Settings (not in JSON) */}
+          <div
+            className={`py-2 mr-2 rounded-r-xl ${
+              menuItem === "Settings" ? "bg-white text-[#F35114]" : "text-white"
+            }`}
+          >
+            <Link to="/user/setting" onClick={() => dropMenuItem("Settings")}>
+              <div
+                className={`flex items-center gap-2 ${
+                  sidebarCollapse
+                    ? "mr-5 rounded-r-xl px-5 py-1"
+                    : "justify-center py-3"
+                } transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]`}
+              >
+                <i className="pi pi-cog"></i>
+                {sidebarCollapse ? <p>Settings</p> : null}
+              </div>
+            </Link>
+          </div>
         </div>
+
+        {/* Bottom (mobile logout) */}
         <div className="absolute mb-15 lg:mb-0 bottom-10 w-full">
- 
           <div
             onClick={logout}
             className="flex lg:hidden cursor-pointer justify-center items-center gap-2 w-fit m-auto mt-5 text-red-400 bg-white px-6 py-2 rounded-full"
           >
-            <i className="pi pi-sign-out "> </i>
+            <i className="pi pi-sign-out"></i>
             <span>Log Out</span>
           </div>
         </div>
