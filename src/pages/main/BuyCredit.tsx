@@ -412,7 +412,7 @@ const [countryCurrency, setCountryCurrency] = useState({
                       {countryCurrency.symbol}
                       {/* {' '}{countryCurrency.rate*(creditAmount/100)} {' '} */}
                       {/* {calculatePrice(creditAmount).toLocaleString()} */}
-                      {(calculatePrice(creditAmount)*Math.round(countryCurrency.rate)).toLocaleString()}
+                      {(calculatePrice(creditAmount)).toLocaleString()}
                     </span>
                   </div>
                 </div>
