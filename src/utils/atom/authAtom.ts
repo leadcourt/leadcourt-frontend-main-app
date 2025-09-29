@@ -28,6 +28,7 @@ export interface Credit {
   expiresAt?: string;
   starterRemainingDays?: number;
   proRemainingDays?: number;
+  isLTD?: boolean;
 }
 
 

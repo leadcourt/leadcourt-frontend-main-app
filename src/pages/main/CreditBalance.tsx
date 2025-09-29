@@ -22,12 +22,12 @@ export default function CreditBalance() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB"); // DD/MM/YYYY only
+    return date.toLocaleDateString("en-GB");
   };
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    const formattedDate = date.toLocaleDateString("en-GB"); 
+    const formattedDate = date.toLocaleDateString("en-GB");
     const formattedTime = date.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
@@ -36,34 +36,39 @@ export default function CreditBalance() {
   };
 
   const getCredit = async () => {
-    await getCreditBalance().then((res) => {
-      setCreditInfo({
-        id: user?.id ?? "",
-        credits: res?.data?.credits || 0,
-        subscriptionType: res?.data?.subscriptionType || "FREE",
-        expiresAt: res?.data?.expiresAt,
-        proRemainingDays: res?.data?.proRemainingDays,
-        starterRemainingDays: res?.data?.starterRemainingDays,
-      });
+    const total = await getCreditBalance();
+    setCreditInfo({
+      id: user?.id ?? "",
+      credits: total?.data?.credits || 0,
+      subscriptionType: total?.data?.subscriptionType || "FREE",
+      expiresAt: total?.data?.expiresAt ?? null,
+      proRemainingDays: total?.data?.proRemainingDays ?? 0,
+      starterRemainingDays: total?.data?.starterRemainingDays ?? 0,
+      isLTD: total?.data?.isLTD ?? false,
     });
 
-    await getAllTransactions(pageNumber).then((res: any) => {
-      setTransactions(res?.data?.data);
-    });
+    const tx = await getAllTransactions(pageNumber);
+    setTransactions(tx?.data?.data);
   };
 
   const formatPlanName = (plan: string) => {
     if (plan.includes("_ANNUAL")) {
-      return `${TextToCapitalize(plan.replace("_ANNUAL", "").toLowerCase())} Annual Plan`;
+      return `${TextToCapitalize(
+        plan.replace("_ANNUAL", "").toLowerCase()
+      )} Annual Plan`;
     }
     return `${TextToCapitalize(plan.toLowerCase())} Plan`;
   };
 
   const getUpcomingPlan = () => {
+    if (creditInfo?.isLTD) return "NONE"; // LTD => no upcoming plan
     if (creditInfo?.proRemainingDays && creditInfo.proRemainingDays > 0) {
       return `Pro (${creditInfo.proRemainingDays} days)`;
     }
-    if (creditInfo?.starterRemainingDays && creditInfo.starterRemainingDays > 0) {
+    if (
+      creditInfo?.starterRemainingDays &&
+      creditInfo.starterRemainingDays > 0
+    ) {
       return `Starter (${creditInfo.starterRemainingDays} days)`;
     }
     return "NONE";
@@ -77,13 +82,12 @@ export default function CreditBalance() {
   return (
     <div className="p-5 my-3">
       <div className="mt-10 mb-5">
-        <p className="text-4xl font-bold text-gray-600 my-2">
-          My Subscriptions
-        </p>
+        <p className="text-4xl font-bold text-gray-600 my-2">My Subscriptions</p>
         <p className=" text-gray-500">
           Here is list of package/product that you have subscribed.
         </p>
       </div>
+
       <div className="my-5 rounded-xl p-5 border border-red-100">
         <div className="grid grid-cols-2 gap-y-6 gap-x-10">
           <div>
@@ -93,7 +97,7 @@ export default function CreditBalance() {
               <span className="text-gray-500">{creditInfo?.credits}</span>
             </p>
           </div>
-      
+
           <div>
             <h3>Upcoming Plan</h3>
             <p className="flex items-center gap-2">
@@ -101,27 +105,32 @@ export default function CreditBalance() {
               <span className="text-gray-500">{getUpcomingPlan()}</span>
             </p>
           </div>
-      
+
           <div>
             <h3>Active Subscription</h3>
             <p className="flex items-center gap-2">
               <span className="pi pi-briefcase text-[#f34f14] text-xs"></span>
-              <span className="text-gray-500">{creditInfo?.subscriptionType}</span>
+              <span className="text-gray-500">
+                {creditInfo?.subscriptionType}
+              </span>
             </p>
           </div>
-      
+
           <div>
             <h3>Expiry Date</h3>
             <p className="flex items-center gap-2">
               <span className="pi pi-calendar text-[#f34f14] text-xs"></span>
               <span className="text-gray-500">
-                {creditInfo?.expiresAt ? formatDate(creditInfo.expiresAt) : "—"}
+                {creditInfo?.isLTD
+                  ? "LIFETIME"
+                  : creditInfo?.expiresAt
+                  ? formatDate(creditInfo.expiresAt)
+                  : "—"}
               </span>
             </p>
           </div>
         </div>
       </div>
-
 
       <div>
         {transactions?.map((items) => (
@@ -146,7 +155,9 @@ export default function CreditBalance() {
               <div className="mt-10 flex justify-between flex-wrap">
                 <div className="text-sm">
                   <p className="text-gray-400">Start date</p>
-                  <p className="text-gray-700">{formatDateTime(items.purchaseDate)}</p>
+                  <p className="text-gray-700">
+                    {formatDateTime(items.purchaseDate)}
+                  </p>
                 </div>
                 <div className="text-sm">
                   <p className="text-gray-400">Price</p>
@@ -162,22 +173,21 @@ export default function CreditBalance() {
                 <div className="text-sm">
                   <p className="text-gray-400">Status</p>
                   <p
-                    className={` text-gray-700 text-xs px-3 py-1 rounded-full textwhite
-                  ${
-                    items.status === "COMPLETED"
-                      ? "bg-green-200"
-                      : items.status === "DENIED" ||
-                        items.status.toLowerCase() === "failed"
-                      ? "bg-red-200"
-                      : items.status === "PENDING"
-                      ? "bg-yellow-200"
-                      : items.status === "REFUNDED"
-                      ? "bg-purple-300"
-                      : items.status === "REVERSED"
-                      ? "bg-blue-300"
-                      : ""
-                  }
-                `}
+                    className={` text-gray-700 text-xs px-3 py-1 rounded-full
+                    ${
+                      items.status === "COMPLETED"
+                        ? "bg-green-200"
+                        : items.status === "DENIED" ||
+                          items.status.toLowerCase() === "failed"
+                        ? "bg-red-200"
+                        : items.status === "PENDING"
+                        ? "bg-yellow-200"
+                        : items.status === "REFUNDED"
+                        ? "bg-purple-300"
+                        : items.status === "REVERSED"
+                        ? "bg-blue-300"
+                        : ""
+                    }`}
                   >
                     {items.status === "DENIED"
                       ? "Failed"
