@@ -34,6 +34,14 @@ export default function FilterComponent({
   const [loadingData, setLoadingData] = useState<any>("");
   const [selectAllDesignation, setSelectAllDesignation] = useState<any>(false);
 
+  const [baseCountryJson, setBaseCountryJson] = useState<any>([]);
+  const [baseStateJson, setBaseStateJson] = useState<any>([]);
+  const [baseCityJson, setBaseCityJson] = useState<any>([]);
+  const [baseOrganization, setBaseOrganization] = useState<any>([]);
+  const [baseDesignations, setBaseDesignations] = useState<any>([]);
+  const [baseOrgSize, setBaseOrgSize] = useState<any>([]);
+  const [baseOrgIndustry, setBaseOrgIndustry] = useState<any>([]);
+
   const handleFilterChange = (keyItem: any, value: any) => {
     setSelectedFilters((prevState: any) => ({
       ...prevState,
@@ -51,7 +59,7 @@ export default function FilterComponent({
       return item;
     });
 
-    const payload = {
+    const payload: any = {
       ...selectedFilters,
       selectAll: selectedFilterValue["Designation"]?.length
         ? selectAllDesignation
@@ -66,83 +74,110 @@ export default function FilterComponent({
     }
 
     setFitler(payload);
-
     setPage(1);
     await functionName(1, { filter: payload });
     setLoadingData("");
   };
 
-  // debounce to delay api call for 2 sec after user types || useRef to force delay
   const loadData = useRef(
     debounce(async (field: string, query: string) => {
-      setLoading(true);
-      setLoadingData(field);
+      try {
+        const payload = {
+          field: field === "Designation" ? "designation" : field,
+          query,
+        };
 
-      const payload = {
-        field: field === "Designation" ? "designation" : field,
-        query: query,
-      };
-
-      if (query.length > 1 && field !== "Designation") {
-        await searchOption(payload)
-          .then((res: any) => {
-            const dataInfo = res?.data?.map((item: string) =>
-              TextToCapitalize(item)
-            );
-            if (field === "Country") {
-              const dataInfor = [...countryJson, ...dataInfo];
-              const unique = Array.from(new Set(dataInfor));
-              setCountryJson(unique);
-            } else if (field === "State") {
-              const dataInfor = [...stateJson, ...dataInfo];
-              const unique = Array.from(new Set(dataInfor));
-              setStateJson(unique);
-            } else if (field === "City") {
-              const dataInfor = [...cityJson, ...dataInfo];
-              const unique = Array.from(new Set(dataInfor));
-              setCityJson(unique);
-            } else if (field === "Organization") {
-              const dataInfor = [...organization, ...dataInfo];
-              const unique = Array.from(new Set(dataInfor));
-              setOrganisation(unique);
-            }
-          })
-          .catch(() => {
-            toast.info("Try again..");
-
-            setLoadingData("");
-            setLoading(false);
-          });
-      } else if (query.length > 1 && field === "Designation") {
-        await searchOptionDesignation(payload).then((res: any) => {
-          const dataInfo: any = res?.data?.map((item: string) =>
+        if (query.length >= 3 && field !== "Designation") {
+          const res: any = await searchOption(payload);
+          const dataInfo = res?.data?.map((item: string) =>
             TextToCapitalize(item)
           );
 
-          if (field === "Designation") {
-            const dataInfor = [...designations, ...dataInfo];
+          if (!dataInfo) return;
 
+          if (field === "Country") {
+            const dataInfor = [...baseCountryJson, ...dataInfo];
             const unique = Array.from(new Set(dataInfor));
-            setDesignations(unique);
+            setCountryJson(unique);
+          } else if (field === "State") {
+            const dataInfor = [...baseStateJson, ...dataInfo];
+            const unique = Array.from(new Set(dataInfor));
+            setStateJson(unique);
+          } else if (field === "City") {
+            const dataInfor = [...baseCityJson, ...dataInfo];
+            const unique = Array.from(new Set(dataInfor));
+            setCityJson(unique);
+          } else if (field === "Organization") {
+            const dataInfor = [...baseOrganization, ...dataInfo];
+            const unique = Array.from(new Set(dataInfor));
+            setBaseOrganization(unique);
+            setOrganisation(unique);
+          } else if (field === "orgSize") {
+            const dataInfor = [...baseOrgSize, ...dataInfo];
+            const unique = Array.from(new Set(dataInfor));
+            setOrgSize(unique);
+          } else if (field === "orgIndustry") {
+            const dataInfor = [...baseOrgIndustry, ...dataInfo];
+            const unique = Array.from(new Set(dataInfor));
+            setOrgIndustry(unique);
           }
-        });
+        } else if (query.length >= 3 && field === "Designation") {
+          const res: any = await searchOptionDesignation(payload);
+          const dataInfo: any =
+            res?.data?.map((item: string) => TextToCapitalize(item)) || [];
+          const dataInfor = [...baseDesignations, ...dataInfo];
+          const unique = Array.from(new Set(dataInfor));
+          setDesignations(unique);
+        }
+      } catch (e) {
+        toast.info("Try again..");
+      } finally {
+        setLoadingData("");
+        setLoading(false);
       }
-
-      setLoadingData("");
-      setLoading(false);
     }, 2000)
   ).current;
 
-  // {selectedFilters["Designation"]}
+  const handleFilterSearch = (field: string, query: string) => {
+    const value = query || "";
+
+    if (!value || value.length === 0) {
+      if (field === "Country") {
+        setCountryJson(baseCountryJson);
+      } else if (field === "State") {
+        setStateJson(baseStateJson);
+      } else if (field === "City") {
+        setCityJson(baseCityJson);
+      } else if (field === "Organization") {
+        setOrganisation(baseOrganization);
+      } else if (field === "Designation") {
+        setDesignations(baseDesignations);
+      } else if (field === "orgSize") {
+        setOrgSize(baseOrgSize);
+      } else if (field === "orgIndustry") {
+        setOrgIndustry(baseOrgIndustry);
+      }
+      setLoadingData("");
+      setLoading(false);
+      return;
+    }
+
+    if (value.length >= 3) {
+      setLoading(true);
+      setLoadingData(field);
+      loadData(field, value);
+    }
+  };
+
   const selectedItemTemplate = (item: any, key: string) => {
     return selectedFilters[key]?.length ? (
-      <div className="">
-        <div className="m-1 bg-red-100 text-amber-700 flex items-center justify-center gap-3  w-fit text-[11px] p1 px-3 py-0.5 rounded-full ">
+      <div>
+        <div className="m-1 bg-white border border-gray-200 text-gray-800 flex items-center justify-center gap-2 w-fit text-[11px] px-3 py-0.5 rounded-full">
           {item}
         </div>
       </div>
     ) : (
-      <div className="">
+      <div>
         {creditInfo?.subscriptionType === "FREE" &&
         (key === "orgSize" || key === "orgIndustry") ? (
           <span className="text-gray-700">Upgrade Account</span>
@@ -164,70 +199,56 @@ export default function FilterComponent({
 
     return (
       <div className="px-5 p-multiselect-filter-container">
-        <div className="p-input-icon-right w-full">
-          <input
-            value={selectedFilterValue[placeholder]}
-            onChange={(e) => {
-              filterOptions.filter(e);
-              loadData(placeholder, e.target.value);
-              setSelectedFilterValue({
-                ...selectedFilterValue,
-                [placeholder]: e.target.value,
-              });
-            }}
-            className="w-full m-auto focus:outline-none bg-white text-xs p-2 my-2 rounded-2xl "
-            placeholder={
-              placeholder == "Designation"
-                ? `Please enter "Job Title" or "Keyword"`
-                : `Search ${placeholder}...`
-            }
-          />
+        <div className="p-input-icon-right w-full flex items-center gap-2">
+          <span className="p-input-icon-left flex-1">
+            <input
+              value={selectedFilterValue[placeholder] || ""}
+              onChange={(e) => {
+                filterOptions.filter(e);
+                const value = e.target.value;
+                setSelectedFilterValue((prev: any) => ({
+                  ...prev,
+                  [placeholder]: value,
+                }));
+                handleFilterSearch(placeholder, value);
+              }}
+              className="w-full m-auto focus:outline-none bg-white text-xs px-3 py-1 my-2 rounded-full"
+              placeholder={
+                placeholder === "Designation"
+                  ? `Please enter "Job Title" or "Keyword"`
+                  : `Search ${placeholder}...`
+              }
+            />
+          </span>
         </div>
       </div>
     );
   };
 
-  const multiSelectRef: any = useRef(null);
   const handleSelectAll = () => {
-    // const allValues = event.originalEvent.checked ? (multiSelectRef.current?.initialValue || designations) : [];
-
-    // console.log('select all');
-    // console.log('select all designation', designations.length);
-    // console.log('select all button', selectAllDesignation);
-
     let searchQuery;
     if (selectedFilterValue["Designation"]) {
       searchQuery = selectedFilterValue["Designation"]?.toLowerCase();
-      console.log("select all searchQuery", searchQuery);
     } else {
-      setSelectedFilterValue({ ...selectedFilterValue, Designation: "" });
+      setSelectedFilterValue({
+        ...selectedFilterValue,
+        Designation: "",
+      });
       searchQuery = "";
-      console.log("not select all searchQuery", searchQuery);
     }
-    // console.log('select all searchQuery', searchQuery);
 
     const filterValues = designations.filter((options: any) =>
       options?.toLowerCase()?.includes(searchQuery)
     );
-    // console.log('select all filterValues', filterValues);
 
     const allDesignationData = selectedFilters["Designation"] ?? [];
-    // console.log('select all allDesignationData', allDesignationData);
 
     if (selectAllDesignation) {
       setSelectedFilters({ ...selectedFilters, Designation: [] });
-      console.log(" click select all searchQuery", searchQuery, {
-        ...selectedFilters,
-        Designation: [],
-      });
     } else {
       setSelectedFilters({
         ...selectedFilters,
         Designation: [...allDesignationData, ...filterValues],
-      });
-      console.log("unclick select all searchQuery", searchQuery, {
-        ...selectedFilters,
-        Designation: [],
       });
     }
 
@@ -235,42 +256,54 @@ export default function FilterComponent({
   };
 
   useEffect(() => {
-    setCountryJson(
-      countries_data?.Country?.map((item: string) => TextToCapitalize(item))
+    const initialCountries = countries_data?.Country?.map((item: string) =>
+      TextToCapitalize(item)
     );
-    setStateJson(
-      state_data?.State?.map((item: string) => TextToCapitalize(item))
+    const initialStates = state_data?.State?.map((item: string) =>
+      TextToCapitalize(item)
     );
-    setDesignations(
+    const initialDesignations =
       designation_groups_data?.Designation_Groups?.map((item: string) =>
         TextToCapitalize(item)
-      )
+      ) || [];
+    const initialCities = cities_data?.City?.map((item: string) =>
+      TextToCapitalize(item)
     );
-    setCityJson(
-      cities_data?.City?.map((item: string) => TextToCapitalize(item))
-    );
-    setOrgIndustry(
-      org_industry?.org_industry?.map((item: string) => TextToCapitalize(item))
-    );
-    setOrgSize(
-      org_size?.org_size?.map((item: string) => TextToCapitalize(item))
-    );
+    const initialOrgIndustry =
+      org_industry?.org_industry?.map((item: string) =>
+        TextToCapitalize(item)
+      ) || [];
+    const initialOrgSize =
+      org_size?.org_size?.map((item: string) => TextToCapitalize(item)) || [];
+
+    setBaseCountryJson(initialCountries);
+    setBaseStateJson(initialStates);
+    setBaseDesignations(initialDesignations);
+    setBaseCityJson(initialCities);
+    setBaseOrgIndustry(initialOrgIndustry);
+    setBaseOrgSize(initialOrgSize);
+
+    setCountryJson(initialCountries);
+    setStateJson(initialStates);
+    setDesignations(initialDesignations);
+    setCityJson(initialCities);
+    setOrgIndustry(initialOrgIndustry);
+    setOrgSize(initialOrgSize);
   }, []);
 
   return (
     <div>
-      <div className=" col-span-6 lg:col-span-12 gap-5">
-        {/* Country filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            Country{" "}
+      <div className="col-span-6 lg:col-span-12 gap-5">
+        {/* Country */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-globe text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">Country</span>
             {selectedFilters["Country"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["Country"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
@@ -279,13 +312,9 @@ export default function FilterComponent({
             onChange={(e) => handleFilterChange("Country", e.value)}
             loading={loadingData === "Country" && loading}
             filter
-            style={{
-              minWidth: "100%",
-            }}
+            style={{ minWidth: "100%" }}
             emptyMessage={
-              loadingData === "Country"
-                ? "Data Loading..."
-                : "Search for more..."
+              loadingData === "Country" ? "Data Loading..." : "Search for more..."
             }
             emptyFilterMessage={
               loadingData === "Country" ? (
@@ -299,42 +328,35 @@ export default function FilterComponent({
               )
             }
             filterPlaceholder="Search.."
-            placeholder={`Select ${"Country"}`}
+            placeholder="Select Country"
             display="chip"
             filterTemplate={getFilterTemplate("Country")}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "Country")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            // virtualScrollerOptions={{ itemSize: 43 }}
-            className={` p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["Country"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto  text-sm hover:shadow shadow-3xl border-2 border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            className="p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm hover:shadow shadow-sm border border-gray-300 hover:border-gray-400 px-3 py-0.5 md:w-20rem rounded-full"
           />
         </div>
 
-        {/* State filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            State{" "}
+        {/* State */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-flag text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">State</span>
             {selectedFilters["State"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["State"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
             value={selectedFilters["State"]}
             onChange={(e) => handleFilterChange("State", e.value)}
             options={stateJson}
-            onFilter={(e) => loadData("State", e.filter)}
+            onFilter={(e) => handleFilterSearch("State", e.filter)}
             loading={loadingData === "State" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
-            // emptyMessage={loadingData === "State"  ? 'Data Loading...' : 'Search for more...'}
+            style={{ maxWidth: "100%" }}
             emptyMessage={
               loadingData === "State" ? "Data Loading..." : "Search for more..."
             }
@@ -350,40 +372,35 @@ export default function FilterComponent({
               )
             }
             filterPlaceholder="Search.."
-            placeholder={`Select ${"State"}`}
+            placeholder="Select State"
             display="chip"
             filterTemplate={getFilterTemplate("State")}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "State")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            className={` p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["State"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto  text-sm hover:shadow shadow-3xl border-2 border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            className="p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm hover:shadow shadow-sm border border-gray-300 hover:border-gray-400 px-3 py-0.5 md:w-20rem rounded-full"
           />
         </div>
 
-        {/* City filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            City{" "}
+        {/* City */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-map-marker text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">City</span>
             {selectedFilters["City"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["City"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
             value={selectedFilters["City"]}
             onChange={(e) => handleFilterChange("City", e.value)}
             options={cityJson}
-            onFilter={(e) => loadData("City", e.filter)}
+            onFilter={(e) => handleFilterSearch("City", e.filter)}
             loading={loadingData === "City" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
+            style={{ maxWidth: "100%" }}
             emptyMessage={
               loadingData === "City" ? "Data Loading..." : "Search for more..."
             }
@@ -399,45 +416,32 @@ export default function FilterComponent({
               )
             }
             filterPlaceholder="Search.."
-            placeholder={`Select ${"City"}`}
+            placeholder="Select City"
             display="chip"
             filterTemplate={getFilterTemplate("City")}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "City")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            className={` p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["City"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto  text-sm hover:shadow shadow-3xl border-2 border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            className="p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm hover:shadow shadow-sm border border-gray-300 hover:border-gray-400 px-3 py-0.5 md:w-20rem rounded-full"
           />
         </div>
 
-        {/* Designation filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            Designation{" "}
-            {/* {selectedFilters["Designation"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
-                {selectedFilters["Designation"].length}
-              </span>
-            ) : (
-              ""
-            )}{" "} */}
+        {/* Designation */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-briefcase text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">Designation</span>
           </h4>
-          {/*  */}
 
           <MultiSelect
             value={selectedFilters["Designation"]}
             onChange={(e) => handleFilterChange("Designation", e.value)}
             options={designations}
-            onFilter={(e) => loadData("Designation", e.filter)}
+            onFilter={(e) => handleFilterSearch("Designation", e.filter)}
             loading={loadingData === "Designation" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
+            style={{ maxWidth: "100%" }}
             emptyMessage={
-              loadingData === "Designation"
-                ? "Data Loading"
-                : "Search for more.."
+              loadingData === "Designation" ? "Data Loading" : "Search for more.."
             }
             emptyFilterMessage={
               loadingData === "Designation" ? (
@@ -451,52 +455,37 @@ export default function FilterComponent({
               )
             }
             resetFilterOnHide={false}
-            ref={multiSelectRef}
             onSelectAll={handleSelectAll}
             filterPlaceholder="Search.."
-            placeholder={`Select ${"Designation"}`}
+            placeholder="Select Designation"
             display="chip"
             filterTemplate={getFilterTemplate("Designation")}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "Designation")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            // itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] max-w-[400px] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            // className={` p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-            //   selectedFilters["Designation"]?.length > 0
-            //     ? "flex flex-wrap "
-            //     : ""
-            // } overflow-auto  text-sm shadow border border-gray-200 p-2 md:w-20rem  custom-checkbox-multiselect`}
-
-            className={` p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["Designation"]?.length > 0
-                ? "flex flex-wrap "
-                : ""
-            } overflow-auto  text-sm hover:shadow border-2 border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            className="p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm hover:shadow border border-gray-300 hover:border-gray-400 px-3 py-0.5 md:w-20rem rounded-full"
           />
         </div>
 
-        {/* Organization filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className="text-gray-400 text-xs flex items-start gap-3">
-            Organization{" "}
+        {/* Organization */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-building text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">Organization</span>
             {selectedFilters["Organization"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["Organization"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
             value={selectedFilters["Organization"]}
             onChange={(e) => handleFilterChange("Organization", e.value)}
             options={organization}
-            onFilter={(e) => loadData("Organization", e.filter)}
+            onFilter={(e) => handleFilterSearch("Organization", e.filter)}
             loading={loadingData === "Organization" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
+            style={{ maxWidth: "100%" }}
             emptyMessage={
               loadingData === "Organization"
                 ? "Data Loading..."
@@ -518,43 +507,35 @@ export default function FilterComponent({
             selectedItemTemplate={(e) =>
               selectedItemTemplate(e, "Organization")
             }
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            placeholder={`Select Organization`}
-            className={`   p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["City"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto  text-sm hover:shadow shadow-3xl border-2 border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
-            // } overflow-auto  text-sm shadow border border-gray-200 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            placeholder="Select Organization"
+            className="p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm hover:shadow shadow-sm border border-gray-300 hover:border-gray-400 px-3 py-0.5 md:w-20rem rounded-full"
           />
         </div>
 
-        {/* Organization Size filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            Organization Size{" "}
+        {/* Org Size */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-users text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">Organization Size</span>
             {selectedFilters["orgSize"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["orgSize"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
             value={selectedFilters["orgSize"]}
             onChange={(e) => handleFilterChange("orgSize", e.value)}
             options={orgSize}
-            onFilter={(e) => loadData("orgSize", e.filter)}
+            onFilter={(e) => handleFilterSearch("orgSize", e.filter)}
             loading={loadingData === "orgSize" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
+            style={{ maxWidth: "100%" }}
             disabled={creditInfo?.subscriptionType === "FREE" && true}
             emptyMessage={
-              loadingData === "orgSize"
-                ? "Data Loading..."
-                : "Search for more..."
+              loadingData === "orgSize" ? "Data Loading..." : "Search for more..."
             }
             emptyFilterMessage={
               loadingData === "orgSize" ? (
@@ -570,39 +551,36 @@ export default function FilterComponent({
             display="chip"
             filterTemplate={getFilterTemplate("Organization Size")}
             selectedItemTemplate={(e) => selectedItemTemplate(e, "orgSize")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            placeholder={`Select ${"Organization Size"}`}
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            placeholder="Select Organization Size"
             className={`${
-              creditInfo?.subscriptionType === "FREE" ? "bg-gray-400 border" : " hover:shadow border-2 shadow-3xl"
-            }  p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["City"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto  text-sm hover:shadow  border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+              creditInfo?.subscriptionType === "FREE"
+                ? "bg-gray-200 border border-gray-300"
+                : "hover:shadow border border-gray-300 hover:border-gray-400"
+            } p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm shadow-sm px-3 py-0.5 md:w-20rem rounded-full`}
           />
         </div>
 
-        {/* Organization Industry filter */}
-        <div className="card mb-2 flex flex-col justify-content-center">
-          <h4 className=" text-gray-400 text-xs flex items-start gap-3">
-            Organization Industry{" "}
+        {/* Org Industry */}
+        <div className="card mb-4 flex flex-col justify-content-center">
+          <h4 className="text-gray-800 text-sm flex items-center gap-2 mb-1">
+            <span className="pi pi-briefcase text-xs text-gray-500 ml-5" />
+            <span className="font-semibold">Organization Industry</span>
             {selectedFilters["orgIndustry"]?.length ? (
-              <span className="text-xs py-1 px-2 text-gray-700 font-bold bg-orange-300 rounded-full">
+              <span className="text-[10px] py-0.5 px-2 text-gray-700 font-bold bg-orange-300 rounded-full ml-1">
                 {selectedFilters["orgIndustry"].length}
               </span>
-            ) : (
-              ""
-            )}{" "}
+            ) : null}
           </h4>
 
           <MultiSelect
             value={selectedFilters["orgIndustry"]}
             onChange={(e) => handleFilterChange("orgIndustry", e.value)}
             options={orgIndustry}
-            onFilter={(e) => loadData("orgIndustry", e.filter)}
+            onFilter={(e) => handleFilterSearch("orgIndustry", e.filter)}
             loading={loadingData === "orgIndustry" && loading}
             filter
-            style={{
-              maxWidth: "100%",
-            }}
+            style={{ maxWidth: "100%" }}
             disabled={creditInfo?.subscriptionType === "FREE" && true}
             emptyMessage={
               loadingData === "orgIndustry"
@@ -622,43 +600,52 @@ export default function FilterComponent({
             }
             display="chip"
             filterTemplate={getFilterTemplate("Organization Industry")}
-            selectedItemTemplate={(e) => selectedItemTemplate(e, "orgIndustry")}
-            itemClassName="text-xs text-red-800 flex flex-wrap w-[100%] items-center gap-2  bg-red-50 border-b border-b-red-200 p-2 "
-            placeholder={`Select ${"Organization Industry"}`}
+            selectedItemTemplate={(e) =>
+              selectedItemTemplate(e, "orgIndustry")
+            }
+            itemClassName="text-xs text-gray-800 flex flex-wrap w-[100%] items-center gap-2 bg-white border-b border-b-gray-100 p-2"
+            placeholder="Select Organization Industry"
             className={`${
-              creditInfo?.subscriptionType === "FREE" ? "bg-gray-400 border" : " hover:shadow border-2 shadow-3xl"
-            }  p-multiselect p-checkbox-box  w-full max-h-[100px] max-w-[100px] ${
-              selectedFilters["City"]?.length > 0 ? "flex flex-wrap " : ""
-            } overflow-auto text-sm  border-gray-300 hover:border-gray-300 p-2 md:w-20rem  custom-checkbox-multiselect`}
+              creditInfo?.subscriptionType === "FREE"
+                ? "bg-gray-200 border border-gray-300"
+                : "hover:shadow border border-gray-300 hover:border-gray-400"
+            } p-multiselect p-checkbox-box custom-checkbox-multiselect w-full text-sm px-3 py-0.5 md:w-20rem rounded-full`}
           />
         </div>
       </div>
 
-      {loadingData === "Main filter" ? (
-        <button
-          className={`bg-[#f34f146c] cursor-not-allowed flex items-center justify-center gap-2 rounded-lg text-white text-sm font-bold py-3 w-full`}
-        >
-          {" "}
-          <i className="pi pi-spin pi-spinner"></i>
-          Filter
-        </button>
-      ) : (
-        <button
-          className={`cursor-pointer bg-[#F35114] rounded-lg text-white text-sm font-bold py-3 w-full mt-2`}
-          onClick={onSubmitFilter}
-        >
-          Filter
-        </button>
-      )}
+      <div className="mt-2">
+        {loadingData === "Main filter" ? (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 rounded-full text-white text-sm font-bold py-3 cursor-not-allowed"
+            style={{
+              background:
+                "linear-gradient(90deg, #3B82F6 0%, #6366F1 50%, #F97316 100%)",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.18)",
+              opacity: 0.7,
+            }}
+          >
+            <i className="pi pi-spin pi-spinner text-xs" />
+            <span>Filter</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 rounded-full text-white text-sm font-bold py-3"
+            style={{
+              background:
+                "linear-gradient(90deg, #3B82F6 0%, #6366F1 50%, #F97316 100%)",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.18)",
+            }}
+            onClick={onSubmitFilter}
+          >
+            <i className="pi pi-filter text-xs" />
+            <span>Filter</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
-
-// "ceo - chief investment officer, president and interim chief executive officer"
-// "ceo - executive vice president of strategic planning, chief information officer for cke restaurants"
-// "ceo - chief executive officer"
-// "ceo - president & chief executive officer"
-// "ceo - president, chief executive officer"
-// "ceo - president and chief executive officer"
-
-// hr - human

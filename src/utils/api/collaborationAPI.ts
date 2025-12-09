@@ -24,6 +24,11 @@ const getAllSentInvitations = async () => {
     return await axios.get(`${baseUrl}/sentInvites`);  
 }
 
+const removeCollaboration = async (collab_id:string) => {
+    return await axios.delete(`${baseUrl}/delete/${collab_id}`);  
+
+}
+
 
 // ============= Collaborations dashboard api================ 
 
@@ -43,7 +48,7 @@ export {
     inviteUser,
     replyInvite,
     getAllSentInvitations,
-
+    removeCollaboration,
     getCollabCreditBalance,
     getAllDash
 

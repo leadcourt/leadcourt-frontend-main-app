@@ -63,7 +63,7 @@ const SupportPage:any = ({faq}:any) => {
             <Link to={"https://www.leadcourt.com/termsandcondition.html"}>
               <SupportOption
                 icon={<FileText size={20} />}
-                title="Terms and Condition"
+                title="Terms and Conditions"
                 description=""
               />
             </Link>

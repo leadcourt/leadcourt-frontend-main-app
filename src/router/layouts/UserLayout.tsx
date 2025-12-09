@@ -1,5 +1,5 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { useRecoilValue } from "recoil";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useRecoilValue, useRecoilState } from "recoil";
 import {
   accessTokenState,
   refreshTokenState,
@@ -10,6 +10,7 @@ import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
+import { sidebarOpenState } from "../../utils/atom/layoutAtom";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
@@ -17,10 +18,16 @@ export default function UserLayout() {
   const user = useRecoilValue(userState);
   const [sideBar, setSideBar] = useState(false);
 
-  const [displaySide, setDisplaySide] = useState(false);
+  // global mobile sidebar open/close state
+  const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
+
+  const location = useLocation();
+
+  const hideTopbarOnPaths = ["/subscription"];
+  const hideTopbar = hideTopbarOnPaths.includes(location.pathname);
 
   const handleSideBar = () => {
-    setDisplaySide(!displaySide);
+    setDisplaySide((prev) => !prev);
   };
 
   const updateSidebarFromChild = (childData: boolean) => {
@@ -32,14 +39,11 @@ export default function UserLayout() {
     token: refreshToken,
   };
 
+  useEffect(() => {
+    console.log("UserLayout");
+    console.log(user);
+  });
 
-   useEffect(()=>{
-
-     console.log('UserLayout')
-     console.log(user);
-     
-   })
-  
   return (
     <div>
       {auth?.access && user?.email !== null && user?.verify ? (
@@ -56,30 +60,39 @@ export default function UserLayout() {
               <Sidebar updateBar={updateSidebarFromChild} />
             </div>
             <div className="">
-              <div
-                className={`top-0 right-0 fixed w-full  ${
-                  sideBar ? "lg:w-[calc(100%-200px)]" : "lg:w-[calc(100%-80px)]"
-                }  z-40`}
-              >
-                <div className="relative border-b-gray-100 border-b-2 items-center justify-between flex bg-white ">
-                  <Topbar />
-                  <div className="lg:hidden">
-                    {displaySide ? (
-                      <i
-                        onClick={handleSideBar}
-                        className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-2xl pi pi-times "
-                      ></i>
-                    ) : (
-                      <i
-                        onClick={handleSideBar}
-                        className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-4xl pi pi-bars "
-                      ></i>
-                    )}
+              {/* TOPBAR (hidden for specific paths) */}
+              {!hideTopbar && (
+                <div
+                  className={`top-0 right-0 fixed w-full ${
+                    sideBar
+                      ? "lg:w-[calc(100%-200px)]"
+                      : "lg:w-[calc(100%-80px)]"
+                  } z-40`}
+                >
+                  <div className="relative border-b-gray-100 border-b-2 items-center justify-between flex bg-white ">
+                    <Topbar />
+                    <div className="lg:hidden">
+                      {displaySide ? (
+                        <i
+                          onClick={handleSideBar}
+                          className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-2xl pi pi-times "
+                        ></i>
+                      ) : (
+                        <i
+                          onClick={handleSideBar}
+                          className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-4xl pi pi-bars "
+                        ></i>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* MAIN CONTENT */}
               <div
-                className={`mt-[10vh] w-full ${
+                className={`${
+                  hideTopbar ? "mt-0" : "mt-[10vh]"
+                } w-full ${
                   sideBar ? "lg:w-[calc(100%-200px)]" : "lg:w-[calc(100%-80px)]"
                 } absolute top-0 right-0 min-h-50`}
               >
@@ -88,34 +101,15 @@ export default function UserLayout() {
             </div>
           </div>
         </div>
-      ) 
-      : auth?.access && user?.email !== null && !user?.verify ? (
-        
+      ) : auth?.access && user?.email !== null && !user?.verify ? (
         <div className="">
           <VerifyEmail />
-          {/* <p>show</p>
-          <Navigate to="/verify" /> */}
         </div>
-      )
-      
-       : (
+      ) : (
         <div className="">
           <Navigate to="/" />
         </div>
       )}
     </div>
   );
-  // return (
-  //   <div className="">
-  //     {auth?.access && user?.email !== null ?
-
-  //         <div>
-  //           <Outlet />
-  //         </div>
-  //         :
-  //         <Navigate to=''/>
-  //     }
-  //   </div>
-
-  // )
 }

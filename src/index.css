@@ -2,7 +2,6 @@
 @import "primereact/resources/primereact.min.css";
 @import "primereact/resources/themes/lara-light-indigo/theme.css";
 
-
 @import "tailwindcss";
 
 :root {
@@ -20,7 +19,6 @@
 .secondary-btn-blue{
   @apply text-white hover:text-[#503E9D] hover:bg-[#4f3e9d36] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
   background-color: var(--primary-color);
-  
 }
 
 .primary-btn-red{
@@ -32,16 +30,13 @@
 .secondary-btn-red{
   @apply text-white hover:bg-[#f34f14c2] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
   background-color: var(--primary-color);
-  
 }
  
 .secondary-btn-red2{
   @apply text-white hover:bg-[#f34f14c2] w-full py-3 px-4 cursor-pointer font-medium rounded-md transition-colors duration-200;
   background-color: var(--primary-color);
-  
 }
  
-
 .sub_bg_gradient {
   background: linear-gradient(to right, #F35114, #F35114, #f34f14cb, #f34f146c, #f34f146c, #f34f146c, #f34f146c, #F35114) ;
 }
@@ -54,83 +49,86 @@
   @apply transition-all ease-in-out duration-300 bg-[#F35114] hover:bg-white text-white hover:text-[#F35114] hover:border border-[#F35114];
 }
 
-
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-/* .--bg-primary-color{
-  @apply 
-} */
 
+/* ------------ MultiSelect + checkbox styling ------------ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* If you want to style all item labels (both checked and unchecked) */
 .p-multiselect-item .p-multiselect-item-label {
-  color: black !important;
+  color: #111827 !important; /* gray-900 */
   font-size: 0.875rem;
 }
 
-
-/* Target the checked checkboxes in the dropdown */
-.p-multiselect-item.p-highlight .p-checkbox .p-checkbox-box {
-  @apply border-gray-100 bg-red-50;
-
-  /* border-color: red !important; */
-  /* background: red !important; */
+/* rows always white */
+.p-multiselect-item {
+  background-color: #ffffff;
 }
 
-/* Check icon: the mark symbole */
-.p-multiselect-item.p-highlight .p-checkbox .p-checkbox-box .p-checkbox-icon {
-  @apply text-red-500;
-  /* color: white !important; */
+.p-multiselect-item.p-highlight {
+  background-color: #ffffff !important;
+  color: #111827 !important;
 }
 
-/* Hover state of the checkbox */
-.p-multiselect-item .p-checkbox .p-checkbox-box:hover {
-  border: solid 3px red !important;
+/* pill/box that holds the selected text & chips */
+.custom-checkbox-multiselect .p-multiselect-label-container {
+  min-height: 40px;
+  max-height: 64px;          /* limit growth so shape stays sane */
+  display: flex;
+  align-items: center;        /* <-- centers placeholder + chips vertically */
+  flex-wrap: wrap;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  overflow-y: auto;          /* scroll chips instead of stretching forever */
 }
 
-
-.p-multiselect-header {
-  @apply bg-red-100 ;
-  /* background-color: ; */
-  padding: 0 8px;
-  border-bottom: 1px solid #e9ecef;
+/* chips inside the input – white with light border */
+.custom-checkbox-multiselect .p-multiselect-token {
+  background-color: #ffffff !important;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  padding: 0.05rem 0.5rem;
 }
 
-
+/* base checkbox box: GREY by default (list + header) */
+.p-multiselect-item .p-checkbox .p-checkbox-box,
 .p-multiselect-header .p-checkbox .p-checkbox-box {
-  border-color: green !important;
+  @apply border-gray-500 bg-gray-200;
+  box-shadow: none;
 }
 
+/* hover state of checkbox */
+.p-multiselect-item .p-checkbox .p-checkbox-box:hover,
+.p-multiselect-header .p-checkbox .p-checkbox-box:hover {
+  @apply border-gray-600 bg-gray-300;
+}
+
+/* checked state = darker grey, dark border, darker icon */
+.p-multiselect-item.p-highlight .p-checkbox .p-checkbox-box,
 .p-multiselect-header .p-checkbox.p-checkbox-checked .p-checkbox-box {
-  background: green !important;
-  border-color: green !important;
+  @apply bg-gray-400 border-gray-700;
 }
 
+.p-multiselect-item.p-highlight
+  .p-checkbox
+  .p-checkbox-box
+  .p-checkbox-icon,
+.p-multiselect-header
+  .p-checkbox.p-checkbox-checked
+  .p-checkbox-box
+  .p-checkbox-icon {
+  @apply text-gray-900;
+}
 
-/* Style the "Select All" checkbox box */
-.p-multiselect-header .p-checkbox .p-checkbox-box {
-  border-color: red !important;
-  color: red !important ;
+/* header area above list */
+.p-multiselect-header {
+  @apply bg-gray-50;
+  padding: 0 8px;
+  border-bottom: 1px solid #e5e7eb;
 }

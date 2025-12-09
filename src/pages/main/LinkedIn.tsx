@@ -264,12 +264,14 @@ export default function LinkedIn() {
           </div>
         ) : status === "fail" ? (
           <>
-            <div className="pt-20 pb-3 flex items-center gap-2 text-gray-500">
-              <i className="pi pi-arrow-left" />
-              <button onClick={goBack} className="text-sm hover:underline cursor-pointer">
-                Back to verification
-              </button>
-            </div>
+            <button onClick={goBack} className="text-sm  cursor-pointer">
+              <div className="pt-20 pb-3 flex items-center gap-2 text-gray-500">
+                <i className="pi pi-arrow-left" />
+                  <div className="hover:underline" >
+                    Back to verification
+                  </div>
+              </div>
+            </button>
 
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
               <div className="flex items-start justify-between">
@@ -294,12 +296,14 @@ export default function LinkedIn() {
           </>
         ) : (
           <>
-            <div className="pt-20 pb-3 flex items-center gap-2 text-gray-500">
-              <i className="pi pi-arrow-left" />
-              <button onClick={goBack} className="text-sm hover:underline cursor-pointer">
-                Back to verification
-              </button>
-            </div>
+            <button onClick={goBack} className="text-sm  cursor-pointer">
+              <div className="pt-20 pb-3 flex items-center gap-2 text-gray-500">
+                <i className="pi pi-arrow-left" />
+                  <div className="hover:underline" >
+                    Back to verification
+                  </div>
+              </div>
+            </button>
 
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
               <div className="flex items-start justify-between">

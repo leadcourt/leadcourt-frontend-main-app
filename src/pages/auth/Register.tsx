@@ -7,7 +7,6 @@ import { LoaderCircle } from "lucide-react";
 import { userGoogleSignIn, userSignUp } from "../../utils/api/userFirebase";
 import { Dialog } from "primereact/dialog";
 import { FcGoogle } from "react-icons/fc";
-// import { TiVendorMicrosoft } from "react-icons/ti";
 import logo from '../../assets/logo/logo.png'
 import { toast } from "react-toastify";
 import { useSetRecoilState } from "recoil";
@@ -31,59 +30,71 @@ export default function Register() {
   const setUser = useSetRecoilState(userState);
   const [useEmail, setUseEmail] = useState<boolean>(false);
   const navigate = useNavigate()
-
-    const [subscibeNewsletter, setSubscibeNewsletter] = useState(false);
   
   // Function for Email Sign Up
   const onSubmit = async (values: FormData) => {
-    
-    if (subscibeNewsletter) {
-      const payload = {
-        email: values.email,
-        name: values.displayName
-      }
-      await addSubscriber(payload)
-      // .then(()=>{})
-    }
-    
-    await userSignUp(values.email, values.password, values.displayName).then((res) => {
-      if (res !== 'success'){
-        toast.error(res)
+    const payload = {
+      email: values.email,
+      name: values.displayName,
+    };
+
+    try {
+      const res = await userSignUp(values.email, values.password, values.displayName);
+
+      if (res !== "success") {
+        toast.error(res);
       } else {
+        try {
+          await addSubscriber(payload);
+        } catch (err) {
+          console.error("Failed to add subscriber", err);
+        }
+
         setModalVisible(true);
-        navigate('/')
+        navigate("/");
       }
-    });
-    values.password = "";
-    values.password2 = "";
-    // Add your form submission logic here
+    } catch (err) {
+      toast.error("Error occurred during signup");
+    } finally {
+      values.password = "";
+      values.password2 = "";
+    }
   };
-
-
 
   // Google auth login
   const googleAuth = async () => {
-    
-    await userGoogleSignIn().then((res)=>{
+    await userGoogleSignIn()
+      .then(async (res) => {
+        if (!res?.error) {
+          toast.success("Log in successful");
+          setAccessToken(res.access);
+          setRefreshToken(res.refresh);
+          setUser(res.user);
+          const payload = {
+            email: res.user?.email,
+            name:
+              res.user?.displayName ||
+              res.user?.name ||
+              res.user?.email?.split("@")[0] ||
+              "",
+          };
 
-      
-      if (!res?.error) {
-        toast.success('Log in successful');
-        setAccessToken(res.access);
-        setRefreshToken(res.refresh);
-        setUser(res.user);
+          try {
+            await addSubscriber(payload);
+          } catch (err) {
+            console.error("Failed to add subscriber (Google)", err);
+          }
 
-        navigate('/')
-      } else {
-        toast.error(res.error);
-      }
-
-      
-    }).catch(()=>{
-      toast.error('Error Occurred, try again!');
-    })
-
-  }
+          navigate("/");
+        } else {
+          toast.error(res.error);
+        }
+      })
+      .catch(() => {
+        toast.error("Error Occurred, try again!");
+      });
+  };
+  
   // Initial value for Formik
   const initialValues: FormData = {
     displayName: "",
@@ -304,27 +315,10 @@ export default function Register() {
               )}
             </div>
 
-
-              {/* Suscribe to newsletter */}
-              <div className="flex items-center my-5 mb-2">
-                <input
-                  type="checkbox"
-                  id="subscibeNewsletter"
-                  checked={subscibeNewsletter}
-                  onChange={() => setSubscibeNewsletter(!subscibeNewsletter)}
-                  className="h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                />
-                <label htmlFor="subscibeNewsletter" className="ml-2 block text-gray-700">
-                  Subscribe to our newletter
-                </label>
-              </div>
-
-
             {/* Submit Button */}
             <button
               type="submit"
               disabled={!isValid || isSubmitting}
-              // onClick={handleSubmit}
               className=" secondary-btn-red flex gap-3 justify-center"
             >
               {isSubmitting && isValid ? (

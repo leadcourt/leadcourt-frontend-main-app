@@ -11,7 +11,10 @@ import {
 import logo from "../assets/logo/logoDark.png";
 import { toast } from "react-toastify";
 import authBG from "../assets/background/bg_gradient.jpg";
-import { collabCreditState, collabProjectState } from "../utils/atom/collabAuthAtom";
+import {
+  collabCreditState,
+  collabProjectState,
+} from "../utils/atom/collabAuthAtom";
 
 interface ChildData {
   updateBar: (sidebarCollapse: boolean) => void;
@@ -44,7 +47,7 @@ const findActiveParent = (links: MenuLink[], path: string) => {
 
     for (const l of candidates) {
       const isMatch = path === l || path.startsWith(`${l}/`);
-      if (isMatch) {
+          if (isMatch) {
         const len = l.length;
         if (!best || len > best.matchLen) {
           best = { text: m.text, matchLen: len, hasSub: subs.length > 0 };
@@ -53,7 +56,6 @@ const findActiveParent = (links: MenuLink[], path: string) => {
     }
   }
 
-  // handle Settings (outside JSON)
   if (path.startsWith("/user/setting")) {
     return { text: "Settings", matchLen: 999, hasSub: false };
   }
@@ -64,7 +66,6 @@ const findActiveParent = (links: MenuLink[], path: string) => {
 const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   const [menuItem, setMenuItem] = useState<string | null>(null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
-  const [sidebarCollapse, setSidebarCollapse] = useState(true);
 
   const resetAccessToken = useResetRecoilState(accessTokenState);
   const resetRefreshToken = useResetRecoilState(refreshTokenState);
@@ -77,19 +78,10 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuList = useMemo(() => menu[0] as { role: string; links: MenuLink[] }, []);
-
-  const updateParentComponent = () => {
-    updateBar(sidebarCollapse);
-  };
-
-  const handleSideBar = () => {
-    setSidebarCollapse((v) => {
-      const nv = !v;
-      updateBar(nv);
-      return nv;
-    });
-  };
+  const menuList = useMemo(
+    () => menu[0] as { role: string; links: MenuLink[] },
+    []
+  );
 
   const dropMenuItem = (text: string) => {
     setMenuItem((prev) => {
@@ -113,13 +105,10 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
     navigate("/");
   };
 
-  // initial mount
   useEffect(() => {
-    updateParentComponent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    updateBar(true);
   }, []);
 
-  // sync active item with URL
   useEffect(() => {
     const active = findActiveParent(menuList.links, location.pathname);
     if (active) {
@@ -132,44 +121,22 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
   }, [location.pathname, menuList.links]);
 
   return (
-    <div
-      className={`rounded-r-4xl overflow-hidden text-white fixed ${
-        sidebarCollapse ? "w-[80%] lg:w-[200px]" : "max-w-[80px]"
-      } h-[100vh]`}
-    >
+    <div className="overflow-hidden text-white fixed w-[80%] lg:w-[200px] h-[100vh]">
       <img src={authBG} className="absolute rotate-180 h-full w-full" alt="" />
 
       <div className="relative h-full">
-        {/* Mobile header */}
         <div className="lg:hidden h-[20vh] p-3 text-2xl">
           <img src={logo} alt="LeadCourt" className="h-15" />
         </div>
 
-        {/* Desktop header */}
         <div className="hidden lg:flex p-5 items-center gap-1">
-          <div
-            className={`flex items-center gap-5 ${
-              sidebarCollapse
-                ? "justify-between mb-20"
-                : "flex-col justify-between mb-15"
-            } w-full`}
-          >
+          <div className="flex items-center justify-center w-full mb-20">
             <Link to={"/"}>
               <img src={logo} alt="LeadCourt" className="h-8" />
             </Link>
-
-            <i
-              onClick={handleSideBar}
-              className={`pi w-fit ${
-                sidebarCollapse
-                  ? "pi-arrow-down-left-and-arrow-up-right-to-center"
-                  : "pi-arrow-up-right-and-arrow-down-left-from-center"
-              } border-dotted p-1 cursor-pointer`}
-            ></i>
           </div>
         </div>
 
-        {/* Menu Items */}
         <div className="flex flex-col gap-0 text-gray-700">
           {menuList.links.map((item, index) => {
             const active = menuItem === item.text;
@@ -183,25 +150,14 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
                 }`}
               >
                 <Link to={to} onClick={() => dropMenuItem(item.text)}>
-                  <div
-                    className={`flex items-center gap-2 ${
-                      sidebarCollapse
-                        ? "mr-5 rounded-r-xl px-5 py-1"
-                        : "justify-center py-3"
-                    } transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]`}
-                  >
+                  <div className="flex items-center gap-2 mr-5 rounded-r-xl px-5 py-1 transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]">
                     <i className={`pi ${item.img ?? ""}`}></i>
-                    {sidebarCollapse ? <p>{item.text}</p> : null}
+                    <p>{item.text}</p>
                   </div>
                 </Link>
 
-                {/* Sub Menu */}
                 {item?.sub && item.sub.length > 0 && menuItemDrop && active && (
-                  <div
-                    className={`${
-                      sidebarCollapse ? "pl-10" : "pl-5 overflow-x-clip"
-                    } flex flex-col gap-3 mt-2`}
-                  >
+                  <div className="pl-10 flex flex-col gap-3 mt-2">
                     {item.sub.map((s, sIdx) => {
                       const subTo = normalize(s.link) ?? "#";
                       const isSubActive =
@@ -225,28 +181,20 @@ const Sidebar: React.FC<ChildData> = ({ updateBar }) => {
             );
           })}
 
-          {/* Settings (not in JSON) */}
           <div
             className={`py-2 mr-2 rounded-r-xl ${
               menuItem === "Settings" ? "bg-white text-[#F35114]" : "text-white"
             }`}
           >
             <Link to="/user/setting" onClick={() => dropMenuItem("Settings")}>
-              <div
-                className={`flex items-center gap-2 ${
-                  sidebarCollapse
-                    ? "mr-5 rounded-r-xl px-5 py-1"
-                    : "justify-center py-3"
-                } transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]`}
-              >
+              <div className="flex items-center gap-2 mr-5 rounded-r-xl px-5 py-1 transition-transform duration-150 will-change-transform hover:scale-[1.02] active:scale-[0.99]">
                 <i className="pi pi-cog"></i>
-                {sidebarCollapse ? <p>Settings</p> : null}
+                <p>Settings</p>
               </div>
             </Link>
           </div>
         </div>
 
-        {/* Bottom (mobile logout) */}
         <div className="absolute mb-15 lg:mb-0 bottom-10 w-full">
           <div
             onClick={logout}
