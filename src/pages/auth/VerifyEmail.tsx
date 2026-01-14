@@ -1,18 +1,13 @@
 import { User } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-// import { verificationValidation } from "../../utils/validation/validation";
-// import { useFormik } from "formik";
 import logo from "../../assets/logo/logoDark.png";
 import logoLight from "../../assets/logo/logo.png";
-// import { userResetPassword } from "../../utils/api/userFirebase";
 import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
-// import { toast } from "react-toastify";
 import authBG from "../../assets/background/bg_gradient.jpg";
 import {
   applyActionCode,
   getAuth,
-  // onAuthStateChanged,
   reload,
   sendEmailVerification,
 } from "firebase/auth";
@@ -20,16 +15,10 @@ import { useRecoilState } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
 import { toast } from "react-toastify";
 
-// interface FormData {
-//   otp: number;
-// }
-export default function VerifyEmail() {
-  // const [email, setEmail] = useState('markclarke@gmail.com');
+ export default function VerifyEmail() {
   const [modalVisible, setModalVisible] = useState(false);
-  // const [loading, setLoading] = useState(false);
 
   const [user, setUser] = useRecoilState(userState);
-  // const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState("");
   const navigate = useNavigate();
@@ -40,67 +29,10 @@ export default function VerifyEmail() {
   const [params] = useSearchParams();
   const mode = params?.get("mode");
   const oobCode = params?.get("oobCode");
-
-  // // Get the action to complete.
-  //   const mode = getParameterByName('mode');
-  //   // Get the one-time code from the query parameter.
-  //   const actionCode = getParameterByName('oobCode');
-  //   // (Optional) Get the continue URL from the query parameter if available.
-  //   const continueUrl = getParameterByName('continueUrl');
-  //   // (Optional) Get the language code if available.
-
-  // const onSubmit = async (values: FormData) => {
-  //   setLoading(true);
-  //   await userResetPassword(values)
-  //     .then((res) => {
-  //       if (res.message == 'success') {
-  //         setModalVisible(true);
-  //         return
-  //       } else if (res.message == 'failed') {
-  //         toast.error('Error occured')
-  //       }
-  //     })
-
-  //   setLoading(false);
-  // };
-
-  // const initialValues: FormData = {
-  //   otp: 0,
-  // };
-
-  // const {
-  //   values,
-  //   errors,
-  //   isValid,
-  //   isValidating,
-  //   isSubmitting,
-  //   touched,
-  //   handleBlur,
-  //   handleChange,
-  //   handleSubmit,
-  // } = useFormik({
-  //   validateOnMount: true,
-  //   initialValues: initialValues,
-  //   validationSchema: verificationValidation,
-  //   onSubmit,
-  // });
-
-  // const unsubscribeUser = () => {
-  //   console.log("firebaseUser");
-
-  //   onAuthStateChanged(auth, (res) => {
-  //     console.log("res in unsubscribe", res);
-
-  //     setFirebaseUser(res);
-  //   });
-  //   console.log("firebaseUser after");
-  // };
-
-  // return
+ 
   const resendVerification = async () => {
     setLoading(true);
     setAction("resendOTP");
-    console.log("show");
 
     if (authUser) {
       await sendEmailVerification(authUser);
@@ -112,59 +44,46 @@ export default function VerifyEmail() {
     setAction("");
     setLoading(false);
   };
-
+  
   const reloadUser = async () => {
     setAction("reload");
-    console.log("In the reload");
     setLoading(true);
 
-    if (mode === "verifyEmail") {
-      // console.log(mode);
-      // console.log(firebaseUser);
-      console.log(oobCode);
-      console.log(auth.currentUser);
-      console.log(authUser);
-
-      await applyActionCode(auth, oobCode ?? "");
-
-      if (auth?.currentUser) {
-        await reload(auth?.currentUser);
+    try {
+      // Case A: coming from email link
+      if (mode === "verifyEmail" && oobCode) {
+        await applyActionCode(auth, oobCode);
       }
 
-      if (auth?.currentUser?.emailVerified) {
+      // Case B: in-app screen (no params) — just refresh and check verified flag
+      if (auth.currentUser) {
+        await reload(auth.currentUser);
+      }
+
+      const isVerified =
+        (mode === "verifyEmail" && !!oobCode) || !!auth.currentUser?.emailVerified;
+
+      if (isVerified) {
         const payload = {
-          email: user?.email || "",
+          email: user?.email || auth.currentUser?.email || "",
           id: user?.id || "",
-          name: user?.name || "",
+          name: user?.name || auth.currentUser?.displayName || "",
           verify: true,
         };
 
-        console.log(auth?.currentUser);
-        //     if (auth?.currentUser?.emailVerified){
-        toast.success("Your account is now verified");
-
         setUser(payload);
+        setModalVisible(true);
+        toast.success("Your account is now verified");
       }
-
-      //     }
-
-      //     // if (user.emailVerified) {
-      //     //   console.log("Email is verified!");
-      //     //   // Proceed with giving user access or updating UI
-      //     // } else {
-      //     //   console.log("Email is not verified yet.");
-      //     // }
-      //   });
-      // }
+    } catch (e) {
+      toast.error("Verification link is invalid or expired");
+    } finally {
+      setAction("");
+      setLoading(false);
     }
-    setAction("");
   };
 
-  useEffect(() => {
-    // console.log(user);
-    // unsubscribeUser();
-    reloadUser();
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     <div className="flex min-h-full w-full overflow-hidden">
@@ -210,7 +129,7 @@ export default function VerifyEmail() {
               <p className="text-gray-500">You can click here to continue.</p>
 
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dashboard")}
                 className="secondary-btn-red"
               >
                 Proceed
@@ -251,7 +170,6 @@ export default function VerifyEmail() {
           {mode === "verifyEmail" && oobCode ? (
             <div className="text-center mt-3">
               <button
-                // to="/auth/user-login"
                 onClick={reloadUser}
                 className="secondary-btn-red2 hover:text-orange-600 text-sm flex gap-2 justify-center items-center"
               >
@@ -269,7 +187,6 @@ export default function VerifyEmail() {
 
           <div className="text-center mt-3">
             <button
-              // to="/auth/user-login"
               onClick={resendVerification}
               className="secondary-btn-red hovertext-orange-600 text-sm flex gap-2 justify-center items-center"
             >

@@ -28,7 +28,7 @@ export default function DefaultLayout() {
   return (
     <div>
       {/* {auth?.access && user.email === 'customer' ? ( */}
-      {auth?.access && user?.email !== null ? (
+      {auth?.access && !!user?.email ? (
 
         <Navigate to="/dashboard" />
       ) :

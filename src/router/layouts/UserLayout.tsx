@@ -46,7 +46,7 @@ export default function UserLayout() {
 
   return (
     <div>
-      {auth?.access && user?.email !== null && user?.verify ? (
+      {auth?.access && !!user?.email && user?.verify ? (
         <div className="">
           <div className="fixed wfit z-50 bottom-5 right-5 ">
             <ScrollButtons />
@@ -101,7 +101,7 @@ export default function UserLayout() {
             </div>
           </div>
         </div>
-      ) : auth?.access && user?.email !== null && !user?.verify ? (
+      ) : auth?.access && !!user?.email && !user?.verify ? (
         <div className="">
           <VerifyEmail />
         </div>

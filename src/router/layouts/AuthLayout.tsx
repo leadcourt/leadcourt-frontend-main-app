@@ -25,7 +25,7 @@ export default function AuthLayout() {
 
   return (
     <div>
-      {auth?.access && user?.email !== null && !user?.verify ? (
+      {auth?.access && !!user?.email && !user?.verify ? (
         <Outlet />
       ) : (
         <Navigate to="/" />
