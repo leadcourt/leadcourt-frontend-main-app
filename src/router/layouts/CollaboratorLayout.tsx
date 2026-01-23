@@ -1,104 +1,54 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useRecoilValue } from "recoil";
-import {
-  accessTokenState,
-  refreshTokenState,
-  userState,
-} from "../../utils/atom/authAtom";
-import { useState } from "react";
-// import Sidebar from "../../component/Sidebar";
-// import Topbar from "../../component/Topbar";
+import { useRecoilValue, useRecoilState } from "recoil";
+import { accessTokenState, refreshTokenState, userState } from "../../utils/atom/authAtom";
 import ScrollButtons from "../../component/ScrollButtons";
 import CollaboratorSidebar from "../../component/collaborator/CollaboratorSidebar";
 import CollaboratorTopbar from "../../component/collaborator/CollaboratorTopbar";
+import { sidebarOpenState } from "../../utils/atom/layoutAtom";
 
 export default function CollaboratorLayout() {
   const accessToken = useRecoilValue(accessTokenState);
   const refreshToken = useRecoilValue(refreshTokenState);
   const user = useRecoilValue(userState);
-  const [sideBar, setSideBar] = useState(false);
 
-  const [displaySide, setDisplaySide] = useState(false);
+  const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
 
-  const handleSideBar = () => {
-    setDisplaySide(!displaySide);
-  };
+  const auth = { access: accessToken, token: refreshToken };
 
-  const updateSidebarFromChild = (childData: boolean) => {
-    setSideBar(childData);
-  };
+  const handleSideBar = () => setDisplaySide((prev) => !prev);
 
-  const auth = {
-    access: accessToken,
-    token: refreshToken,
-  };
+  if (auth?.access && !!user?.email) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-gray-50">
+        <div className="fixed z-50 bottom-5 right-5">
+          <ScrollButtons />
+        </div>
 
-  return (
-    <div>
-      {auth?.access && user?.email !== null ? (
-        <div className="">
-          <div className="fixed wfit z-50 bottom-5 right-5 ">
-            <ScrollButtons />
-          </div>
-          <div className="relative lg:grid grid-cols-[200px,1fr] ">
-            <div
-              className={`${
-                displaySide ? "fixed" : "hidden"
-              } shadow-2xl lg:shadow-none w-fit h-[90vh] lg:h-[100vh] bg-white z-50 lg:block`}
-            >
-              <CollaboratorSidebar updateBar={updateSidebarFromChild} />
-            </div>
-            <div className="">
-              <div
-                className={`top-0 right-0 fixed w-full  ${
-                  sideBar ? "lg:w-[calc(100%-200px)]" : "lg:w-[calc(100%-80px)]"
-                }  z-40`}
-              >
-                <div className="relative border-b-gray-100 border-b items-center justify-between flex bg-white ">
-                  <CollaboratorTopbar />
-                  <div className="lg:hidden">
-                    {displaySide ? (
-                      <i
-                        onClick={handleSideBar}
-                        className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-2xl pi pi-times "
-                      ></i>
-                    ) : (
-                      <i
-                        onClick={handleSideBar}
-                        className="absolute top-1/2 -translate-y-1/2 right-5 text-black text-4xl pi pi-bars "
-                      ></i>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`mt-[10vh] w-full ${
-                  sideBar ? "lg:w-[calc(100%-200px)]" : "lg:w-[calc(100%-80px)]"
-                } absolute top-0 right-0 min-h-50`}
-              >
-                <Outlet />
-              </div>
+        <div className="hidden lg:block h-screen shrink-0">
+          <CollaboratorSidebar />
+        </div>
+
+        {displaySide ? (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/30" onClick={handleSideBar} />
+            <div className="absolute left-0 top-0 h-full">
+              <CollaboratorSidebar forceExpanded onRequestClose={handleSideBar} />
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="">
-          <Navigate to="/" />
-        </div>
-      )}
-    </div>
-  );
-  // return (
-  //   <div className="">
-  //     {auth?.access && user?.email !== null ?
+        ) : null}
 
-  //         <div>
-  //           <Outlet />
-  //         </div>
-  //         :
-  //         <Navigate to=''/>
-  //     }
-  //   </div>
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <div className="shrink-0 bg-white border-b-gray-100 border-b-2">
+            <CollaboratorTopbar onToggleSidebar={handleSideBar} mobileSidebarOpen={displaySide} />
+          </div>
 
-  // )
+          <div className={`flex-1 min-w-0 min-h-0 ${displaySide ? "overflow-hidden" : "overflow-y-auto"}`}>
+            <Outlet />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <Navigate to="/" />;
 }

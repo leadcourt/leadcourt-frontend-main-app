@@ -132,3 +132,20 @@
   padding: 0 8px;
   border-bottom: 1px solid #e5e7eb;
 }
+.brevo-tooltip.p-tooltip .p-tooltip-text {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #111827 !important;
+  padding: 12px 14px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+.brevo-tooltip.p-tooltip .p-tooltip-arrow {
+  display: none !important;
+}
+
+/* extra left spacing from the icon */
+.brevo-tooltip.p-tooltip {
+  margin-left: 12px !important;
+}

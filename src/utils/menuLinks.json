@@ -3,7 +3,7 @@
     "role": "users",
     "links": [
       {
-        "text": "Data",
+        "text": "People",
         "img": "pi-server",
         "link": "/",
         "sub": []
@@ -62,7 +62,7 @@
     "role": "users",
     "links": [
       {
-        "text": "Home",
+        "text": "People",
         "img": "pi-server",
         "link": "dashboard",
         "sub": []

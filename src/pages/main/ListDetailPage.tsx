@@ -1,22 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { toast } from "react-toastify";
+
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { Dialog } from "primereact/dialog";
+import { Skeleton } from "primereact/skeleton";
+
 import {
   exportList,
   getLinkedInUrl,
-  // getDataPhoneAndEmail,
   getSingleListDetail,
+  getAllList,
 } from "../../utils/api/data";
-import { DataTable } from "primereact/datatable";
-import { Column } from "primereact/column";
-import { useNavigate, useParams } from "react-router-dom";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { creditState, userState } from "../../utils/atom/authAtom";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
+import { creditState, userState } from "../../utils/atom/authAtom";
 import TextToCapitalize from "../../component/TextToCapital";
-import { toast } from "react-toastify";
-import { Dialog } from "primereact/dialog";
-import { Skeleton } from "primereact/skeleton";
+
 import hubspotLogo from "../../assets/integrations/hubspot/HubSpot.png";
-import { exportToHubspotApi } from "../../utils/api/crmIntegrations";
+import brevoLogo from "../../assets/integrations/Brevo.png";
+import noDataImg from "../../assets/icons/nodataImage.jpg";
+
+import {
+  checkHubspotConnection,
+  exportToHubspotApi,
+} from "../../utils/api/crmIntegrations";
+import {
+  checkBrevoConnection,
+  exportToBrevoApi,
+} from "../../utils/api/brevoIntegrations";
 
 interface Person {
   City: string;
@@ -28,11 +41,10 @@ interface Person {
   row_id: number;
   Email: any;
   Phone: any;
-}
-
-interface RevealedProfile {
-  phoneLength: number;
-  emailLength: number;
+  ["Org Industry"]?: string;
+  ["Org Size"]?: string;
+  ["Organization Industry"]?: string;
+  ["Organization Size"]?: string;
 }
 
 interface ListDetailPayload {
@@ -41,307 +53,151 @@ interface ListDetailPayload {
   listName: string | undefined;
 }
 
+const hasValue = (v: any) => {
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  if (s.toLowerCase() === "nil") return false;
+  return true;
+};
+
+const isNil = (v: any) =>
+  typeof v === "string" && v.trim().toLowerCase() === "nil";
+
+const PHONE_REVEAL_CREDITS = 5;
+const EMAIL_REVEAL_CREDITS = 1;
+
+const PAGE_SIZE = 50;
+const TABLE_SCROLL_HEIGHT = "clamp(320px, 68vh, 620px)";
+
 export default function ListDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
+
   const user = useRecoilValue(userState);
-  const creditInfo = useSetRecoilState(creditState);
+  const setCreditInfo = useSetRecoilState(creditState);
   const creditInfoValue = useRecoilValue(creditState);
 
   const [pageNumber, setPageNumber] = useState<number>(1);
 
   const [loading, setLoading] = useState(false);
-  const [entries, setEntries] = useState([]);
-  const [rowClick, setRowClick] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState([]);
-  const [loadRow, setLoadRow] = useState<any>();
-  const [visible, setVisible] = useState(false);
-  const [insufficientCredit, setInsufficientCredit] = useState<string>("");
-  const [exportOptions, setExportOptions] = useState<string>("");
-  const [profilesRevealed, setProfileRevealed] = useState<
-    RevealedProfile | any
-  >();
-  const [exportLoading, setExportLoading] = useState(false);
-  const [selectedProfilesRevealed, setSelectedProfileRevealed] = useState<
-    RevealedProfile | any
-  >();
+  const [entries, setEntries] = useState<Person[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<Person[]>([]);
+  const [loadRow, setLoadRow] = useState<any>({});
 
-  const columns = [
-    { field: "Name", header: "Name" },
-    { field: "Designation", header: "Designation" },
-    { field: "Phone", header: "Phone" },
-    { field: "Email", header: "Email" },
-    { field: "", header: "LinkedIn" },
-    { field: "Organization", header: "Organization" },
-    { field: "Org Industry", header: "Organization Industry" },
-    { field: "Org Size", header: "Organization Size" },
-    { field: "City", header: "City" },
-    { field: "State", header: "State" },
-    { field: "Country", header: "Country" },
-  ];
+  const [insufficientVisible, setInsufficientVisible] = useState(false);
 
-  const loadingColumns = [
-    {
-      row_id: "",
-      Name: "",
-      Designation: "",
-      Email: "",
-      Phone: "",
-      LinkedIn: "",
-      Organization: "",
-      City: "",
-      State: "",
-      Country: "",
-      "Organization Size": "",
-      "Organization Industry": "",
-    },
-  ];
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(null);
+  const [brevoConnected, setBrevoConnected] = useState<boolean | null>(null);
+  const [checkingConnections, setCheckingConnections] = useState(false);
+  const [exportingTarget, setExportingTarget] = useState<
+    "hubspot" | "brevo" | "email" | ""
+  >("");
 
-  const fields = columns.map((item) => {
-    return item.field;
-  });
+  const [connectVisible, setConnectVisible] = useState(false);
+  const [connectTarget, setConnectTarget] = useState<"hubspot" | "brevo" | "">(
+    ""
+  );
 
-  const handleShowButton = async (option: any) => {
-    const data = entries.map((person: Person) => person.row_id);
-    const selectedData = selectedProfile.map((person: Person) => person.row_id);
+  const [totalRows, setTotalRows] = useState<number>(0);
+  const [loadingTotal, setLoadingTotal] = useState<boolean>(false);
 
-    setLoadRow({ type: option });
+  const listNamePretty = useMemo(
+    () => (params?.listName || "").replace(/-/g, " "),
+    [params?.listName]
+  );
 
-    const action = [
-      { option: "allPhone", data: data, payload: "phone" },
-      { option: "allEmail", data: data, payload: "email" },
-      { option: "selectedPhone", data: selectedData, payload: "phone" },
-      { option: "selectedEmail", data: selectedData, payload: "email" },
-    ];
+  const columns = useMemo(
+    () => [
+      { field: "Name", header: "NAME" },
+      { field: "Designation", header: "DESIGNATION" },
+      { field: "Phone", header: "PHONE" },
+      { field: "Email", header: "EMAIL" },
+      { field: "LinkedIn", header: "LINKEDIN" },
+      { field: "Organization", header: "ORGANIZATION" },
+      { field: "Org Industry", header: "ORG INDUSTRY" },
+      { field: "Org Size", header: "ORG SIZE" },
+      { field: "City", header: "CITY" },
+      { field: "State", header: "STATE" },
+      { field: "Country", header: "COUNTRY" },
+    ],
+    []
+  );
 
-    action.map((item: any) => {
-      if (item.option === option) {
-        showPhoneAndEmail(item.payload, item.data, user)
-          .then((res) => {
-            const resMap = new Map(
-              res?.data?.results?.map((item: any) => [item.row_id, item])
-            );
+  const headerCellClass =
+    "bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4";
+  const bodyCellClass =
+    "px-6 py-4 text-sm text-gray-600 border-b border-gray-100";
 
-            const updatedEntries: any = entries.map((entry: any) => {
-              const match: any = resMap.get(entry.row_id);
-              return match ? { ...entry, ...match } : entry;
-            });
+  const loadingRows = useMemo(() => {
+    const base: any = { row_id: "" };
+    for (const c of columns) base[c.field] = "";
+    return Array.from({ length: 10 }, (_, i) => ({
+      ...base,
+      row_id: `__sk_${i}`,
+    }));
+  }, [columns]);
 
-            creditInfo({
-              id: user?.id ?? "",
-              credits: res?.data?.remainingCredits,
-              subscriptionType: creditInfoValue?.subscriptionType || "FREE",
-            });
+  const totalPages = useMemo(() => {
+    const pages = Math.ceil((Number(totalRows) || 0) / PAGE_SIZE);
+    return Math.max(1, pages);
+  }, [totalRows]);
 
-            setEntries(updatedEntries);
-            checkPhone(updatedEntries);
+  const canGoPrev = pageNumber > 1;
+  const canGoNext = pageNumber < totalPages;
 
-            const updatedSelectedEntries: any = selectedProfile.map(
-              (entry: any) => {
-                const match: any = resMap.get(entry.row_id);
-                return match ? { ...entry, ...match } : entry;
-              }
-            );
+  const counts = useMemo(() => {
+    const allUnrevealedPhone = entries.filter(
+      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
+    ).length;
 
-            checkSelectedPhone(updatedSelectedEntries);
-          })
-          .catch(() => {});
-      }
-    });
+    const allUnrevealedEmail = entries.filter(
+      (e) => !hasValue(e.Email) && !isNil(e.Email)
+    ).length;
 
-    // } catch (err) {
+    const selUnrevealedPhone = selectedProfile.filter(
+      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
+    ).length;
 
-    // }
+    const selUnrevealedEmail = selectedProfile.filter(
+      (e) => !hasValue(e.Email) && !isNil(e.Email)
+    ).length;
 
-    setLoadRow({});
-  };
+    const useSelected = selectedProfile.length > 0;
 
-  const changeRowClick = (e: any) => {
-    setSelectedProfile(e.value);
-    setRowClick(rowClick);
-    checkSelectedPhone(e.value);
-  };
-
-  const handleShowPhoneOrEmail = async (type: string, id: any) => {
-    setLoadRow({ type: type, row_id: id });
-    await showPhoneAndEmail(type, [id], user)
-      .then((res) => {
-        if (res?.data?.error) {
-          setVisible(true);
-          setInsufficientCredit("Insufficient credit");
-        }
-
-        let prevEntries: any = {};
-
-        prevEntries = entries.map((entry: any) =>
-          entry.row_id === id
-            ? { ...entry, ...res?.data.results[0] } // Update the Phone or Email field
-            : entry
-        );
-
-        checkPhone(prevEntries);
-
-        creditInfo({
-          id: user?.id ?? "",
-          credits: res?.data?.remainingCredits,
-          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
-        });
-        setEntries(prevEntries);
-      })
-      .catch(() => {
-        // console.log("err occured in show phone or email", err);
-      });
-
-    setLoadRow({});
-    // loadData(pageNumber);
-  };
-
-  const openLinkedInPopup = async (id: any) => {
-    setLoadRow({ type: "linkedIn", row_id: id });
-    const payload = {
-      row_id: id,
+    return {
+      useSelected,
+      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
+      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
     };
+  }, [entries, selectedProfile]);
 
-    await getLinkedInUrl(payload).then((res: any) => {
-      window.open(
-        `https://${res?.data?.linkedin_url}`,
-        "popupWindow",
-        "width=600,height=600"
-      );
-      setLoadRow({});
-    });
+
+  const initials = (name?: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(/\s+/).slice(0, 2);
+    return parts.map((p) => p[0]?.toUpperCase()).join("") || "U";
   };
 
-  const showPhone = (rowData: any) => {
-    return (
-      <div className="">
-        {!rowData.Phone ? (
-          <div
-            onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
-            className="button_hover text-xs cursor-pointer w-fit p-2 flex items-center justify-center gap-2  font-bold rounded-lg"
-          >
-            {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              <i className="pi pi-phone text-xs"></i>
-            )}
-            <span>Show Phone</span>
-          </div>
-        ) : rowData.Phone.toLowerCase() === "nil" ? (
-          ""
-        ) : (
-          <div className="">{rowData.Phone}</div>
-        )}
-      </div>
-    );
-  };
+  const fetchTotalRows = async () => {
+    if (!user?.id) return;
 
-  const showEmail = (rowData: any) => {
-    return (
-      <div className="">
-        {!rowData.Email ? (
-          <div
-            onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
-            className="button_hover text-xs cursor-pointer w-fit p-2 flex items-center justify-center gap-2  font-bold rounded-lg"
-          >
-            {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              <i className="pi pi-inbox text-xs"></i>
-            )}
-            <span>Show Email</span>
-          </div>
-        ) : (
-          rowData.Email
-        )}
-      </div>
-    );
-  };
+    setLoadingTotal(true);
+    try {
+      const payload = { userId: user?.id };
+      const res: any = await getAllList(payload);
 
-  const showOrgIndustry = (rowData: any) => {
-    return (
-      <div className="">{TextToCapitalize(rowData?.["Org Industry"])}</div>
-    );
-  };
+      const lists: any[] = res?.data || [];
+      const match = lists.find((l) => l?.name === params?.listName);
 
-  const showName = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.Name)}</div>;
-  };
-
-  const showLinkedIn = (rowData: any) => {
-    return (
-      <div className="">
-        <i
-          onClick={() => openLinkedInPopup(rowData.row_id)}
-          className={`
-      
-            ${
-              loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id
-                ? "pi pi-spinner"
-                : "pi pi-address-book"
-            }
-         font-bold text-2xl cursor-pointer rounded-lg button_hover  p-2 `}
-        ></i>
-      </div>
-    );
-  };
-
-  const showDesignation = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.Designation)}</div>;
-  };
-
-  const showCity = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.City)}</div>;
-  };
-
-  const showState = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.State)}</div>;
-  };
-
-  const showCountry = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.Country)}</div>;
-  };
-
-  const showOrganization = (rowData: any) => {
-    return <div className="">{TextToCapitalize(rowData.Organization)}</div>;
-  };
-
-  const exportCurrentList = async () => {
-    setExportLoading(true);
-
-    const payload: any = {
-      listName: params?.listName,
-    };
-
-    if (exportOptions.toLowerCase() === "hubspot") {
-      await exportToHubspotApi(payload)
-        .then((res) => {
-          console.log("response from hubspot export", res);
-          // data :
-          //   portalId: 242990985
-          //   success: true
-          if (res?.data?.success) {
-            toast.success("Exported to Hubspot successfully");
-            window.open(
-              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
-              "_blank",
-              "noopener,noreferrer"
-            );
-          }
-        })
-        .catch(() => {});
-    } else if (exportOptions.toLowerCase() === "email") {
-      payload["email"] = user?.email;
-      await exportList(payload)
-        .then(() => {
-          toast.success("You will receive a mail shortly");
-        })
-        .catch(() => {
-          toast.error("Unable to send mail, try again!");
-        });
+      const t = Number(match?.total || 0);
+      setTotalRows(Number.isFinite(t) ? t : 0);
+    } catch (e) {
+      setTotalRows(0);
+    } finally {
+      setLoadingTotal(false);
     }
-    setVisible(false);
-    setExportLoading(false);
   };
 
   const listDetail = async (pageNum: number) => {
@@ -353,109 +209,434 @@ export default function ListDetailPage() {
       listName: params?.listName,
     };
 
-    await getSingleListDetail(payload)
-      .then((res) => {
-        const data = res?.data?.sort((a: Person, b: Person): number =>
-          a.Name.localeCompare(b.Name)
+    try {
+      const res: any = await getSingleListDetail(payload);
+      const data: Person[] =
+        res?.data?.sort((a: Person, b: Person) =>
+          (a?.Name || "").localeCompare(b?.Name || "")
+        ) || [];
+      setEntries(data);
+      setSelectedProfile([]);
+    } catch (e) {
+      setEntries([]);
+      setSelectedProfile([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openLinkedInPopup = async (id: any) => {
+    setLoadRow({ type: "linkedIn", row_id: id });
+    try {
+      const res: any = await getLinkedInUrl({ row_id: id });
+      if (res?.data?.linkedin_url) {
+        window.open(
+          `https://${res.data.linkedin_url}`,
+          "popupWindow",
+          "width=600,height=600"
         );
+      }
+    } finally {
+      setLoadRow({});
+    }
+  };
 
-        checkPhone(res?.data);
+  const handleShowPhoneOrEmail = async (type: "phone" | "email", id: any) => {
+    setLoadRow({ type, row_id: id });
 
-        setEntries(data);
-      })
-      .catch(() => {
-        // console.log("Error occurred: ", err);
+    try {
+      const res: any = await showPhoneAndEmail(type, [id], user);
+
+      if (res?.data?.error) {
+        setInsufficientVisible(true);
+        return;
+      }
+
+      const patch = res?.data?.results?.[0] || {};
+
+      const updatedEntries = entries.map((entry: any) =>
+        entry.row_id === id ? { ...entry, ...patch } : entry
+      );
+      setEntries(updatedEntries);
+
+      const updatedSelected = selectedProfile.map((entry: any) =>
+        entry.row_id === id ? { ...entry, ...patch } : entry
+      );
+      setSelectedProfile(updatedSelected);
+
+      setCreditInfo({
+        id: user?.id ?? "",
+        credits: res?.data?.remainingCredits || 0,
+        subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
-
-    setLoading(false);
+    } catch (e) {
+    } finally {
+      setLoadRow({});
+    }
   };
 
-  const openDialog = (option: string) => {
-    setVisible(true);
-    setExportOptions(option);
+  const bulkReveal = async (type: "phone" | "email") => {
+    const useSelected = selectedProfile.length > 0;
+    const source = useSelected ? selectedProfile : entries;
+    const ids = source
+      .filter((p: Person) => {
+        const v = type === "phone" ? p.Phone : p.Email;
+        return !isNil(v) && !hasValue(v);
+      })
+      .map((p: Person) => p.row_id)
+      .filter(Boolean);
+
+    if (!ids.length) return;
+
+    const spinnerKey =
+      (useSelected ? "selected" : "all") + (type === "phone" ? "Phone" : "Email");
+
+    setLoadRow({ type: spinnerKey });
+
+    try {
+      const res: any = await showPhoneAndEmail(type, ids, user);
+
+      if (res?.data?.error) {
+        setInsufficientVisible(true);
+        return;
+      }
+
+      const resMap = new Map(
+        (res?.data?.results || []).map((r: any) => [r.row_id, r])
+      );
+
+      const updatedEntries = entries.map((entry: any) => {
+        const match: any = resMap.get(entry.row_id);
+        return match ? { ...entry, ...match } : entry;
+      });
+      setEntries(updatedEntries);
+
+      const updatedSelected = selectedProfile.map((entry: any) => {
+        const match: any = resMap.get(entry.row_id);
+        return match ? { ...entry, ...match } : entry;
+      });
+      setSelectedProfile(updatedSelected);
+
+      setCreditInfo({
+        id: user?.id ?? "",
+        credits: res?.data?.remainingCredits || 0,
+        subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+      });
+    } catch (e) {
+    } finally {
+      setLoadRow({});
+    }
   };
 
-  // Update the revealed profiles
-  const checkPhone = (dataInfo: any) => {
-    let phone = dataInfo.filter((item: any) => {
-      if (item.Phone !== null) {
-        return item;
-      }
-    });
-    let email = dataInfo.filter((item: any) => {
-      if (item.Email !== null) {
-        return item;
-      }
-    });
+  const refreshConnections = async () => {
+    setCheckingConnections(true);
+    setHubspotConnected(null);
+    setBrevoConnected(null);
 
-    setProfileRevealed({
-      phoneLength: phone?.length,
-      emailLength: email?.length,
-    });
+    const [hs, br] = await Promise.allSettled([
+      checkHubspotConnection(),
+      checkBrevoConnection(false),
+    ]);
+
+    setHubspotConnected(
+      hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false
+    );
+    setBrevoConnected(
+      br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false
+    );
+
+    setCheckingConnections(false);
   };
 
-  // Update the selected revealed profiles
-  const checkSelectedPhone = (dataInfo: any) => {
-    let phone = dataInfo.filter((item: any) => {
-      if (item.Phone !== null) {
-        return item;
-      }
-    });
-    let email = dataInfo.filter((item: any) => {
-      if (item.Email !== null) {
-        return item;
-      }
-    });
+  const openExportModal = async () => {
+    setExportModalVisible(true);
+    await refreshConnections();
+  };
 
-    setSelectedProfileRevealed({
-      phoneLength: phone?.length,
-      emailLength: email?.length,
-    });
+  const openConnectDialog = (target: "hubspot" | "brevo") => {
+    setConnectTarget(target);
+    setConnectVisible(true);
+  };
+
+  const exportCurrentList = async (target: "hubspot" | "brevo" | "email") => {
+    setExportingTarget(target);
+
+    const payload: any = { listName: params?.listName };
+
+    try {
+      if (target === "hubspot") {
+        const res: any = await exportToHubspotApi(payload);
+        if (res?.data?.success) {
+          toast.success("Exported to Hubspot successfully");
+          if (res?.data?.portalId) {
+            window.open(
+              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
+              "_blank",
+              "noopener,noreferrer"
+            );
+          }
+          setExportModalVisible(false);
+        } else {
+          toast.error("Unable to export to Hubspot");
+        }
+      }
+
+      if (target === "brevo") {
+        const res: any = await exportToBrevoApi(payload);
+        if (res?.data?.queued) {
+          const name = res?.data?.targetBrevoListName
+            ? ` (${res?.data?.targetBrevoListName})`
+            : "";
+          toast.success(`Queued export to Brevo${name}`);
+          setExportModalVisible(false);
+        } else if (res?.data?.success) {
+          toast.success("Queued export to Brevo");
+          setExportModalVisible(false);
+        } else {
+          toast.error("Unable to export to Brevo");
+        }
+      }
+
+      if (target === "email") {
+        payload.email = user?.email;
+        await exportList(payload);
+        toast.success("You will receive a mail shortly");
+        setExportModalVisible(false);
+      }
+    } catch (e) {
+      toast.error("Something went wrong. Try again.");
+    } finally {
+      setExportingTarget("");
+    }
+  };
+
+  const skeletonLoad = () => (
+    <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />
+  );
+
+  const emptyMessageTemplate = () => (
+    <div className="h-[60vh] w-full flex items-center justify-center">
+      <img src={noDataImg} className="max-h-[60vh]" alt="" />
+    </div>
+  );
+
+  const showName = (rowData: any) => {
+    const name = TextToCapitalize(rowData?.Name || "");
+    return (
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-white font-semibold shadow-md shadow-orange-500/20">
+          {initials(name)}
+        </div>
+        <div className="font-medium text-gray-900">{name}</div>
+      </div>
+    );
+  };
+
+  const showDesignation = (rowData: any) => (
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Designation || "")}
+    </div>
+  );
+
+  const showPhone = (rowData: any) => {
+    const v = rowData?.Phone;
+
+    if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
+
+    if (!hasValue(v)) {
+      return (
+        <button
+          onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
+          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+        >
+          {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
+            <i className="pi pi-spin pi-spinner text-xs" />
+          ) : (
+            <i className="pi pi-phone text-xs" />
+          )}
+          Reveal
+        </button>
+      );
+    }
+
+    return <span className="text-sm text-gray-900">{v}</span>;
+  };
+
+  const showEmail = (rowData: any) => {
+    const v = rowData?.Email;
+
+    if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
+
+    if (!hasValue(v)) {
+      return (
+        <button
+          onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
+          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+        >
+          {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
+            <i className="pi pi-spin pi-spinner text-xs" />
+          ) : (
+            <i className="pi pi-inbox text-xs" />
+          )}
+          Reveal
+        </button>
+      );
+    }
+
+    return <span className="text-sm text-gray-900">{v}</span>;
+  };
+
+  const showLinkedIn = (rowData: any) => {
+    const loadingThis =
+      loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
+
+    return (
+      <button
+        onClick={() => openLinkedInPopup(rowData.row_id)}
+        className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
+        title="Open LinkedIn"
+      >
+        <i
+          className={`pi ${
+            loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"
+          } text-blue-600`}
+        />
+      </button>
+    );
+  };
+
+  const showOrganization = (rowData: any) => (
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Organization || "")}
+    </div>
+  );
+
+  const showOrgIndustry = (rowData: any) => {
+    const v =
+      rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? "";
+    return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
+  };
+
+  const showOrgSize = (rowData: any) => {
+    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? "";
+    return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
+  };
+
+  const showCity = (rowData: any) => (
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.City || "")}
+    </div>
+  );
+  const showState = (rowData: any) => (
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.State || "")}
+    </div>
+  );
+  const showCountry = (rowData: any) => (
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Country || "")}
+    </div>
+  );
+
+  const goToPage = (next: number) => {
+    const clamped = Math.min(Math.max(1, next), totalPages);
+    setPageNumber(clamped);
+    listDetail(clamped);
   };
 
   const handleChangePageNumber = (e: any) => {
     e.preventDefault();
-
-    setPageNumber(e.target.value);
-    listDetail(e.target.value);
+    const next = Number(e.target.value || 1);
+    goToPage(next);
   };
 
-  const handleChangePageNumber2 = (chk: string) => {
+  const handleChangePageNumber2 = (chk: "increase" | "decrease") => {
     if (chk === "increase") {
-      setPageNumber(pageNumber + 1);
-      listDetail(pageNumber + 1);
-    } else if (chk === "decrease") {
-      setPageNumber(pageNumber - 1);
-      listDetail(pageNumber - 1);
+      if (!canGoNext) return;
+      goToPage(pageNumber + 1);
+    } else {
+      if (!canGoPrev) return;
+      goToPage(pageNumber - 1);
     }
   };
 
-  const skeletonLoad = () => {
-    return <Skeleton height="2rem" className="mb-2 bg-[#f34f1415] "></Skeleton>;
-  };
- 
+  useEffect(() => {
+    fetchTotalRows();
+    listDetail(1);
+    setPageNumber(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.listName, user?.id]);
 
   useEffect(() => {
-    // checkPhone(entries);
-
-    checkSelectedPhone(selectedProfile);
-  }, [creditInfo]);
-
-  useEffect(() => {
-    listDetail(pageNumber);
-  }, []);
+    if (pageNumber > totalPages) {
+      goToPage(totalPages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalPages]);
 
   return (
-    <div className=" h-[90vh]">
+    <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
+      {/* Connect modal */}
       <Dialog
-        header={`Insufficient Credit`}
-        visible={visible && insufficientCredit === "Insufficient credit"}
-        className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-        // style={{ maxWidth: "400px" }}
+        header={`Connect to ${TextToCapitalize(connectTarget)}`}
+        visible={connectVisible && connectTarget.length > 0}
+        className="p-2 bg-white w-fit max-w-[420px] lg:w-1/2 rounded-xl"
         onHide={() => {
-          if (!visible) return;
-          setVisible(false);
-          setInsufficientCredit("");
+          if (!connectVisible) return;
+          setConnectVisible(false);
+          setConnectTarget("");
+        }}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="w-fit m-auto">
+          <div className="flex flex-col gap-3 m-5 text-center">
+            <p className="flex">
+              <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
+              <span className="text-sm">
+                You haven’t connected {TextToCapitalize(connectTarget)} yet.
+                Connect it from the Integrations page first.
+              </span>
+            </p>
+          </div>
+
+          <div className="mt-6 flex mb-3">
+            <div className="cursor-pointer w-fit m-auto">
+              <button
+                onClick={() => {
+                  setConnectVisible(false);
+                  setConnectTarget("");
+                }}
+                className="bg-gray-500 cursor-pointer text-white text-md rounded-lg px-6 py-2"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="cursor-pointer w-fit m-auto">
+              <button
+                onClick={() => {
+                  setConnectVisible(false);
+                  setConnectTarget("");
+                  navigate("/integrations");
+                }}
+                className="bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-lg px-6 py-2 shadow-lg shadow-orange-500/20"
+              >
+                Go to Integrations
+              </button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Insufficient credit */}
+      <Dialog
+        header="Insufficient Credit"
+        visible={insufficientVisible}
+        className="p-2 bg-white w-fit max-w-[420px] lg:w-1/2 rounded-xl"
+        onHide={() => {
+          if (!insufficientVisible) return;
+          setInsufficientVisible(false);
         }}
         draggable={false}
         resizable={false}
@@ -464,17 +645,17 @@ export default function ListDetailPage() {
           <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-              <span className=" text-sm">
+              <span className="text-sm">
                 You have insufficient credits to view this profile(s).
               </span>
             </p>
           </div>
 
           <div className="mt-6 flex items-center pb-2">
-            <div className=" cursor-pointer w-fit m-auto">
+            <div className="cursor-pointer w-fit m-auto">
               <button
                 onClick={() => navigate("/subscription")}
-                className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
+                className="bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-lg px-6 py-2 shadow-lg shadow-orange-500/20"
               >
                 Subscribe Now
               </button>
@@ -483,359 +664,390 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
+      {/* Export modal */}
       <Dialog
-        header={`Export to ${TextToCapitalize(exportOptions)}`}
-        visible={visible && exportOptions.length > 0}
-        className="p-2 bg-white w-fit max-w-[400px] lg:w-1/2"
-        // style={{ maxWidth: "400px" }}
+        header="Export"
+        visible={exportModalVisible}
+        className="p-2 bg-white w-[92vw] max-w-[520px] rounded-xl"
         onHide={() => {
-          if (!visible) return;
-          setVisible(false);
+          if (!exportModalVisible) return;
+          setExportModalVisible(false);
         }}
         draggable={false}
         resizable={false}
       >
-        <div className=" w-fit m-auto">
-          <div className="flex flex-col gap-3 m-5 text-center">
-            <p className="flex">
-              <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-              <span className=" text-sm">
-                Note: Only the rows with revealed email or phone number will be
-                included in your export.
-              </span>
-            </p>
+        <div className="flex items-start gap-2 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <i className="pi pi-exclamation-triangle text-yellow-700 mt-0.5" />
+          <span>
+            Note: Only the rows with revealed email or phone number will be
+            included in your export.
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {/* Hubspot */}
+          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={hubspotLogo}
+                className="w-10 h-10 bg-white rounded"
+                alt=""
+              />
+              <div>
+                <div className="font-semibold text-gray-900">HubSpot</div>
+                <div className="text-xs text-gray-500">
+                  {hubspotConnected === null
+                    ? "Checking..."
+                    : hubspotConnected
+                    ? "Connected"
+                    : "Not connected"}
+                </div>
+              </div>
+            </div>
+
+            <button
+              disabled={checkingConnections || exportingTarget === "hubspot"}
+              onClick={() => {
+                if (hubspotConnected) exportCurrentList("hubspot");
+                else openConnectDialog("hubspot");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                hubspotConnected
+                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {exportingTarget === "hubspot" ? (
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  Exporting
+                </span>
+              ) : hubspotConnected ? (
+                "Export"
+              ) : (
+                "Not connected"
+              )}
+            </button>
           </div>
 
-          <div className="mt-6 flex mb-3">
-            <div className=" cursor-pointer w-fit m-auto">
-              <button
-                onClick={() => {
-                  setVisible(false);
-                  setExportOptions("");
-                }}
-                className="bg-gray-500 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                Cancel
-              </button>
+          {/* Brevo */}
+          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={brevoLogo}
+                className="w-10 h-10 bg-white rounded"
+                alt=""
+              />
+              <div>
+                <div className="font-semibold text-gray-900">Brevo</div>
+                <div className="text-xs text-gray-500">
+                  {brevoConnected === null
+                    ? "Checking..."
+                    : brevoConnected
+                    ? "Connected"
+                    : "Not connected"}
+                </div>
+              </div>
             </div>
 
-            <div className=" cursor-pointer w-fit m-auto">
-              <button
-                onClick={exportCurrentList}
-                className="bg-[#F35114] flex items-center gap-2 cursor-pointer text-white text-md rounded-full px-6 py-2"
-              >
-                {exportLoading ? <i className="pi pi-spinner pi-spin"></i> : ""}
-                Export
-              </button>
+            <button
+              disabled={checkingConnections || exportingTarget === "brevo"}
+              onClick={() => {
+                if (brevoConnected) exportCurrentList("brevo");
+                else openConnectDialog("brevo");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                brevoConnected
+                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {exportingTarget === "brevo" ? (
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  Exporting
+                </span>
+              ) : brevoConnected ? (
+                "Export"
+              ) : (
+                "Not connected"
+              )}
+            </button>
+          </div>
+
+          {/* Email */}
+          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold">
+                @
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Email</div>
+                <div className="text-xs text-gray-500">
+                  Sends export to {user?.email || "your email"}
+                </div>
+              </div>
             </div>
+
+            <button
+              disabled={exportingTarget === "email"}
+              onClick={() => exportCurrentList("email")}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 transition-all"
+            >
+              {exportingTarget === "email" ? (
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  Exporting
+                </span>
+              ) : (
+                "Export"
+              )}
+            </button>
           </div>
         </div>
       </Dialog>
- 
-      <div className="px-10">
-         
-        <div className="p-2 lg:flex flex-wrap gap-10 gap-y-3 items-center justify-between">
-          <p className="">
-            <span className="cursor-pointer" onClick={() => navigate("/list")}>
-              List
-            </span>{" "}
-            /{" "}
-            <span className="text-sm text-gray-500 ">
-              {params?.listName?.replace(/-/g, " ")}
-            </span>
-          </p>
 
-          <div className=" flex items-center gap-5">
+      {/* Section 1: List name */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xl font-semibold text-gray-900 truncate">
+              {listNamePretty || "List"}
+            </div>
+
+            <div className="mt-1 text-xs text-gray-500">
+              {loadingTotal ? (
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  Loading contacts...
+                </span>
+              ) : (
+                <>
+                  Total Contacts: <span className="font-semibold">{totalRows}</span>{" "}
+                </>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate("/list")}
+            className="text-sm font-medium text-gray-600 hover:text-orange-600 shrink-0"
+          >
+            Back to Lists
+          </button>
+        </div>
+      </div>
+
+      {/* Section 2: Actions */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Show phone */}
             <button
-              onClick={() => openDialog("hubspot")}
-              className="transition_hover group text-xs flex items-center gap-2 cursor-pointer border hover:bg-[#F35114] border-[#F35114] font-bold hover:text-white text-[#F35114] px-2 py-1 rounded-lg"
+              disabled={!entries.length}
+              onClick={() => bulkReveal("phone")}
+              className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <img
-                src={hubspotLogo}
-                className="w-5 transition_hover group-hover:p-1 bg-white rounded "
-                alt=""
-              />
-              <span>Hubspot</span>
+              <span className="flex flex-col items-start leading-tight">
+                <span className="inline-flex items-center gap-2">
+                  {loadRow?.type === (counts.useSelected ? "selectedPhone" : "allPhone") ? (
+                    <i className="pi pi-spin pi-spinner text-xs" />
+                  ) : null}
+                  <span>Show {counts.useSelected ? "selected" : "all"} phone</span>
+                </span>
+
+                <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
+                  <i className="pi pi-wallet" />
+                  <span>{counts.phoneCost} credits</span>
+                </span>
+              </span>
             </button>
 
+            {/* Show email */}
             <button
-              onClick={() => openDialog("email")}
-              className="text-xs button_hover font-bold px-6 py-2 rounded-lg"
+              disabled={!entries.length}
+              onClick={() => bulkReveal("email")}
+              className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Export
+              <span className="flex flex-col items-start leading-tight">
+                <span className="inline-flex items-center gap-2">
+                  {loadRow?.type === (counts.useSelected ? "selectedEmail" : "allEmail") ? (
+                    <i className="pi pi-spin pi-spinner text-xs" />
+                  ) : null}
+                  <span>Show {counts.useSelected ? "selected" : "all"} email</span>
+                </span>
+
+                <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
+                  <i className="pi pi-wallet" />
+                  <span>{counts.emailCost} credits</span>
+                </span>
+              </span>
             </button>
           </div>
-        </div>
 
-        <div className="my-2 flex flex-wrap justify-center gap-5 text-gray-600">
           <button
-            className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
-            onClick={() => handleShowButton("allPhone")}
+            onClick={openExportModal}
+            className="w-fit flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/20 transition-all"
           >
-            {loadRow?.type == "allPhone" ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              ""
-            )}
-            <span className="flex items-center gap-1">
-              <i className="pi pi-wallet"></i>
-              <span>
-                {(entries?.length - profilesRevealed?.phoneLength) * 5}
-              </span>
-            </span>
-            Show all phone
-          </button>
-          <button
-            className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
-            onClick={() => handleShowButton("allEmail")}
-          >
-            {loadRow?.type == "allEmail" ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              ""
-            )}
-            <span className="flex items-center gap-1">
-              <i className="pi pi-wallet"></i>
-              <span>
-                {(entries?.length - profilesRevealed?.emailLength) * 1}
-              </span>
-            </span>
-            Show all email
-          </button>
-          <button
-            className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
-            onClick={() => handleShowButton("selectedPhone")}
-          >
-            {loadRow?.type == "selectedPhone" ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              ""
-            )}
-            {selectedProfile?.length ? (
-              <span className="flex items-center gap-1">
-                <i className="pi pi-wallet"></i>
-                <span>
-                  {(selectedProfile?.length -
-                    selectedProfilesRevealed?.phoneLength) *
-                    5}
-                </span>
-              </span>
-            ) : (
-              ""
-            )}
-            Show selected phone{" "}
-          </button>
-          <button
-            className="text-xs cursor-pointer w-fit p-2 px-4 flex items-center justify-center gap-2  font-bold button_hover rounded-lg"
-            onClick={() => handleShowButton("selectedEmail")}
-          >
-            {loadRow?.type == "selectedEmail" ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              ""
-            )}
-            {selectedProfile?.length ? (
-              <span className="flex items-center gap-1">
-                <i className="pi pi-wallet"></i>
-                <span>
-                  {(selectedProfile?.length -
-                    selectedProfilesRevealed?.emailLength) *
-                    1}
-                </span>
-              </span>
-            ) : (
-              ""
-            )}
-            Show selected email
+            Export
           </button>
         </div>
+      </div>
 
-<div className=" overflow-hidden overflow-y-auto scrollbar-hide h-[70vh] ">
-        {loading ? (
-          <DataTable
-            value={Array(10).fill(loadingColumns)}
-            // filters={filters}
-            globalFilterFields={fields}
-            tableStyle={{ minWidth: "100%" }}
-            dataKey="row_id"
-                  scrollable 
-                  scrollHeight="70vh"
-            // paginator
-            className="text-sm rounded-lg overflow-hidden"
-            rows={50}
-            selectionMode={rowClick ? null : "checkbox"}
-            onSelectionChange={(e: any) => setSelectedProfile(e.value)}
-            selection={selectedProfile}
-            paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
-          >
-            <Column
-              selectionMode="multiple"
-              headerClassName={"bg-[#F35114] p-3 "}
-              className="bg-[#f34f146c] text-center"
-              headerStyle={{ width: "3rem" }}
-            ></Column>
+      {/* Section 3: Table */}
+      <div className="p-3 sm:p-4 lg:p-6">
+        <style>{`
+          .lc-table .p-checkbox .p-checkbox-box {
+            border: 1.5px solid #9ca3af !important;
+            border-radius: 6px !important;
+            background: #fff !important;
+          }
 
-            {columns.map((col) => (
-              <Column
-                key={col.field}
-                field={col.field}
-                className={`text-sm py-3 border-b border-gray-100 p-5 ${
-                  col.header === "User"
-                    ? "font-bold text-gray-700"
-                    : "text-gray-500"
-                }  `}
-                // body={col.field}
-                body={
-                  col.field === "Phone"
-                    ? skeletonLoad
-                    : col.field === "Email"
-                    ? skeletonLoad
-                    : col.field === "Name"
-                    ? skeletonLoad
-                    : col.field === "Designation"
-                    ? skeletonLoad
-                    : col.field === "City"
-                    ? skeletonLoad
-                    : col.field === "State"
-                    ? skeletonLoad
-                    : col.field === "Country"
-                    ? skeletonLoad
-                    : col.field === ""
-                    ? skeletonLoad
-                    : col.field === "Organization"
-                    ? skeletonLoad
-                    : col.field === "Org Industry"
-                    ? skeletonLoad
-                    : col.field === "Org Size"
-                    ? skeletonLoad
-                    : null
-                }
-                // body={col.field === "Phone" ? showPhone : ''}
-                header={col.header}
-                headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
-              />
-            ))}
-          </DataTable>
-        ) : (
-          <div className=" max-w-full my10 ">
-            <DataTable
-              value={entries}
-              globalFilterFields={fields}
-              tableStyle={{ minWidth: "100%" }}
-              dataKey="row_id"
-                  scrollable 
-                  scrollHeight="70vh" 
-              // paginator
-              className="text-sm rounded-lg overflow-hidden"
-              rows={50}
-              selectionMode={rowClick ? null : "checkbox"}
-              onSelectionChange={(e: any) => changeRowClick(e)}
-              selection={selectedProfile}
-              paginatorTemplate="RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport"
-            >
-              <Column
-                selectionMode="multiple"
-                headerClassName={"bg-[#F35114] p-3 "}
-                className="bg-[#f34f146c] text-center"
-                headerStyle={{ width: "3rem" }}
-              ></Column>
+          .lc-table .p-checkbox .p-checkbox-box.p-highlight,
+          .lc-table .p-checkbox.p-highlight .p-checkbox-box {
+            background: #F35114 !important;
+            border-color: #F35114 !important;
+          }
 
-              {columns.map((col) => (
+          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
+          .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
+          .lc-table .p-checkbox.p-highlight .p-icon {
+            color: #fff !important;
+          }
+        `}</style>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="w-full overflow-x-auto overflow-y-hidden lc-table">
+            {loading ? (
+              <DataTable
+                key="dt-loading"
+                value={loadingRows}
+                tableStyle={{ minWidth: "100%" }}
+                dataKey="row_id"
+                scrollable
+                scrollHeight={TABLE_SCROLL_HEIGHT}
+                className="text-sm"
+                rows={PAGE_SIZE}
+                selectionMode="checkbox"
+                selection={selectedProfile}
+                onSelectionChange={(e: any) => setSelectedProfile(e.value)}
+              >
                 <Column
-                  key={col.field}
-                  field={col.field}
-                  className={`text-sm py-3 border-b border-gray-100 p-5 ${
-                    col.header === "User"
-                      ? "font-bold text-gray-700"
-                      : "text-gray-500"
-                  }  `}
-                  // body={col.field}
-                  body={
-                    col.field === "Phone"
-                      ? showPhone
-                      : col.field === "Email"
-                      ? showEmail
-                      : col.field === "Name"
-                      ? showName
-                      : col.field === ""
-                      ? showLinkedIn
-                      : col.field === "Designation"
-                      ? showDesignation
-                      : col.field === "City"
-                      ? showCity
-                      : col.field === "State"
-                      ? showState
-                      : col.field === "Country"
-                      ? showCountry
-                      : col.field === "Organization"
-                      ? showOrganization
-                      : col.field === "Org Industry"
-                      ? showOrgIndustry
-                      : null
-                  }
-                  // body={col.field === "Phone" ? showPhone : ''}
-                  header={col.header}
-                  headerClassName={"bg-[#F35114] text-white p-3 min-w-50"}
+                  selectionMode="multiple"
+                  headerClassName={headerCellClass}
+                  className={bodyCellClass}
+                  headerStyle={{ width: "3.25rem" }}
                 />
-              ))}
-              {/* <Column
-                    body={actionBodyTemplate}
-                    className="border-b"
-                    header="Actions"
-                  /> */}
-            </DataTable>
+                {columns.map((col) => (
+                  <Column
+                    key={col.field}
+                    field={col.field === "LinkedIn" ? "" : col.field}
+                    header={col.header}
+                    headerClassName={headerCellClass}
+                    className={bodyCellClass}
+                    body={() => skeletonLoad()}
+                  />
+                ))}
+              </DataTable>
+            ) : (
+              <DataTable
+                key="dt-data"
+                value={entries}
+                tableStyle={{ minWidth: "100%" }}
+                dataKey="row_id"
+                emptyMessage={emptyMessageTemplate}
+                scrollable
+                scrollHeight={TABLE_SCROLL_HEIGHT}
+                className="text-sm"
+                rows={PAGE_SIZE}
+                selectionMode="checkbox"
+                selection={selectedProfile}
+                onSelectionChange={(e: any) => setSelectedProfile(e.value)}
+              >
+                <Column
+                  selectionMode="multiple"
+                  headerClassName={headerCellClass}
+                  className={bodyCellClass}
+                  headerStyle={{ width: "3.25rem" }}
+                />
+                {columns.map((col) => (
+                  <Column
+                    key={col.field}
+                    field={col.field === "LinkedIn" ? "" : col.field}
+                    header={col.header}
+                    headerClassName={headerCellClass}
+                    className={bodyCellClass}
+                    body={
+                      col.field === "Name"
+                        ? showName
+                        : col.field === "Designation"
+                        ? showDesignation
+                        : col.field === "Phone"
+                        ? showPhone
+                        : col.field === "Email"
+                        ? showEmail
+                        : col.field === "LinkedIn"
+                        ? showLinkedIn
+                        : col.field === "Organization"
+                        ? showOrganization
+                        : col.field === "Org Industry"
+                        ? showOrgIndustry
+                        : col.field === "Org Size"
+                        ? showOrgSize
+                        : col.field === "City"
+                        ? showCity
+                        : col.field === "State"
+                        ? showState
+                        : col.field === "Country"
+                        ? showCountry
+                        : undefined
+                    }
+                  />
+                ))}
+              </DataTable>
+            )}
           </div>
-        )}
-</div>
+        </div>
 
-        {/* pagination */}
-        <div className="px-10 py-5 flex items-center m-auto">
-          <div className="text-xs w-full m-auto  flex items-center justify-center gap-5">
-            <div className="text-gray-500">Rows 50</div>
+        {/* Pagination */}
+        <div className="px-2 sm:px-6 py-3 flex items-center m-auto">
+          <div className="text-xs w-full m-auto flex items-center justify-center gap-5">
+            <div className="text-gray-500">Rows {PAGE_SIZE}</div>
+
             <i
-              className="pi pi-angle-left text-2xl text-gray-300 p-3 cursor-pointer"
+              className={`pi pi-angle-left text-2xl p-3 ${
+                canGoPrev
+                  ? "text-gray-500 cursor-pointer hover:text-orange-600"
+                  : "text-gray-300 cursor-not-allowed"
+              }`}
               onClick={() => handleChangePageNumber2("decrease")}
             ></i>
 
             <input
               type="number"
               value={pageNumber}
+              min={1}
+              max={totalPages}
               disabled
-              className="w-fit text-center order border-gray-300"
+              className="w-fit text-center border border-gray-300 rounded px-3 py-1 bg-white"
               onChange={(e) => handleChangePageNumber(e)}
             />
 
+            <div className="text-gray-400">
+              / {totalPages}
+            </div>
+
             <i
-              className="pi pi-angle-right text-2xl text-gray-300 p-3 cursor-pointer"
+              className={`pi pi-angle-right text-2xl p-3 ${
+                canGoNext
+                  ? "text-gray-500 cursor-pointer hover:text-orange-600"
+                  : "text-gray-300 cursor-not-allowed"
+              }`}
               onClick={() => handleChangePageNumber2("increase")}
             ></i>
-            {/* <div className="text-gray-500">
-            {" "}
-            {Math.round(totalDataCount / 50).toLocaleString()} pages
-          </div> */}
           </div>
         </div>
-
-        {/* <div className="flex gap-2 items-center justify-start">
-          <div
-            onClick={deleteList}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 bg-amber-300 text-gray-600 text-xs w-fit rounded"
-          >
-            {loadingDeletePage ? (
-              <i className="pi pi-spin pi-spinner"></i>
-            ) : (
-              <i className="pi pi-trash"></i>
-            )}
-            Delete List
-          </div>
-          <div
-            onClick={() => setRenameListAction(true)}
-            className="flex items-center cursor-pointer gap-2 px-10 py-2 text-white bg-gray-400 text-xs w-fit rounded"
-          >
-            <i className="pi pi-pencil"></i>
-            <span>Rename List</span>
-          </div>
-        </div> */}
       </div>
     </div>
   );
