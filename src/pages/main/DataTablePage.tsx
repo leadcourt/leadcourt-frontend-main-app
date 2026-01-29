@@ -4,7 +4,6 @@ import { Column } from "primereact/column";
 import { FilterMatchMode } from "primereact/api";
 import { Dialog } from "primereact/dialog";
 import { Skeleton } from "primereact/skeleton";
-import { Dropdown } from "primereact/dropdown";
 import { MultiSelect } from "primereact/multiselect";
 import { debounce } from "lodash";
 import { useNavigate } from "react-router-dom";
@@ -60,13 +59,14 @@ interface Person {
 }
 
 interface LoadDataOptions {
-  rowLimit?: number;
   filter?: any;
 }
 
 const dedupe = (arr: string[]) => Array.from(new Set(arr));
 
 export default function DataTablePage() {
+  const PAGE_SIZE = 25;
+
   const setCreditInfo = useSetRecoilState(creditState);
   const creditInfoValue = useRecoilValue(creditState);
   const user = useRecoilValue(userState);
@@ -89,11 +89,8 @@ export default function DataTablePage() {
   const [loading, setLoading] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedRowLimit, setSelectedRowLimit] = useState<number>(25);
   const [loadRow, setLoadRow] = useState<any>({});
   const [visible, setVisible] = useState<boolean>(false);
-
-  const r_Limit: number[] = [25, 50, 100];
 
   const [selectedFilters, setSelectedFilters] = useState<any>({});
   const [draftFilters, setDraftFilters] = useState<any>({});
@@ -123,6 +120,16 @@ export default function DataTablePage() {
     orgIndustry: [],
   });
 
+  const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
+  const [bulkRows, setBulkRows] = useState<number>(PAGE_SIZE);
+  const [bulkPages, setBulkPages] = useState<number>(1);
+  const [bulkStartRowId, setBulkStartRowId] = useState<number>(0);
+  const [addMode, setAddMode] = useState<"selected" | "bulk">("selected");
+  const [bulkPayload, setBulkPayload] = useState<any>(null);
+
+  const [addResultVisible, setAddResultVisible] = useState(false);
+  const [addResult, setAddResult] = useState<any>(null);
+
   const columns = [
     { field: "Name", header: "NAME" },
     { field: "Designation", header: "DESIGNATION" },
@@ -140,16 +147,15 @@ export default function DataTablePage() {
   const fields = columns.map((c) => c.field);
 
   const totalPages = useMemo(() => {
-    const perPage = selectedRowLimit || 25;
-    const total = Math.ceil((totalDataCount || 0) / perPage);
+    const total = Math.ceil((totalDataCount || 0) / PAGE_SIZE);
     return Math.max(total, 1);
-  }, [totalDataCount, selectedRowLimit]);
+  }, [totalDataCount]);
 
   const showingRange = useMemo(() => {
-    const start = Math.max(1, (pageNumber - 1) * selectedRowLimit + 1);
-    const end = Math.min(pageNumber * selectedRowLimit, totalDataCount || 0);
+    const start = Math.max(1, (pageNumber - 1) * PAGE_SIZE + 1);
+    const end = Math.min(pageNumber * PAGE_SIZE, totalDataCount || 0);
     return { start, end };
-  }, [pageNumber, selectedRowLimit, totalDataCount]);
+  }, [pageNumber, totalDataCount]);
 
   const loadingRow = useMemo(() => {
     const base: any = { row_id: "" };
@@ -186,7 +192,7 @@ export default function DataTablePage() {
   const fetchIdRef = useRef(0);
 
   const loadData = useCallback(
-    async (pageNo: number, { rowLimit, filter }: LoadDataOptions = {}) => {
+    async (pageNo: number, { filter }: LoadDataOptions = {}) => {
       const fetchId = ++fetchIdRef.current;
 
       setLoading(true);
@@ -195,7 +201,7 @@ export default function DataTablePage() {
         const payload = {
           filters: buildFilterPayload(filter ?? selectedFilters),
           page: pageNo,
-          limit: rowLimit ?? selectedRowLimit,
+          limit: PAGE_SIZE,
         };
 
         const res = await getAllData(payload);
@@ -217,8 +223,31 @@ export default function DataTablePage() {
         if (fetchId === fetchIdRef.current) setLoading(false);
       }
     },
-    [selectedFilters, selectedRowLimit, selectAllDesignation, selectedFilterValue]
+    [selectedFilters, selectAllDesignation, selectedFilterValue]
   );
+
+  const selectedFiltersRef = useRef<any>(selectedFilters);
+  const loadDataRef = useRef(loadData);
+
+  useEffect(() => {
+    selectedFiltersRef.current = selectedFilters;
+  }, [selectedFilters]);
+
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
+  const debouncedGoToPage = useRef(
+    debounce((num: number) => {
+      loadDataRef.current(num, { filter: selectedFiltersRef.current });
+    }, 600)
+  ).current;
+
+  useEffect(() => {
+    return () => {
+      debouncedGoToPage.cancel();
+    };
+  }, [debouncedGoToPage]);
 
   const updateDraft = (key: string, value: any) => {
     setDraftFilters((prev: any) => ({ ...prev, [key]: value }));
@@ -227,14 +256,16 @@ export default function DataTablePage() {
   };
 
   const runSearch = () => {
+    debouncedGoToPage.cancel();
     const payload = buildFilterPayload(draftFilters);
     setSelectedFilters(payload);
     setIsDirtyFilters(false);
     setPageNumber(1);
-    loadData(1, { filter: payload, rowLimit: selectedRowLimit });
+    loadData(1, { filter: payload });
   };
 
   const clearAllFilters = () => {
+    debouncedGoToPage.cancel();
     setDraftFilters({});
     setSelectedFilters({});
     setIsDirtyFilters(false);
@@ -250,7 +281,7 @@ export default function DataTablePage() {
     setOrgIndustryOptions(baseRef.current.orgIndustry);
 
     setPageNumber(1);
-    loadData(1, { filter: {}, rowLimit: selectedRowLimit });
+    loadData(1, { filter: {} });
   };
 
   const onGlobalFilterChange = (e: any) => {
@@ -261,21 +292,15 @@ export default function DataTablePage() {
     setGlobalFilterValue(value);
   };
 
-  const changeRowLimit = (value: number) => {
-    setSelectedRowLimit(value);
-    setPageNumber(1);
-    loadData(1, { rowLimit: value, filter: selectedFilters });
-  };
-
   const handleChangePageNumber = (e: any) => {
-    e.preventDefault();
     const raw = parseInt(e.target.value || "1", 10);
     const num = Math.min(Math.max(raw, 1), totalPages);
     setPageNumber(num);
-    loadData(num, { filter: selectedFilters });
+    debouncedGoToPage(num);
   };
 
   const handleChangePageNumber2 = (dir: "increase" | "decrease") => {
+    debouncedGoToPage.cancel();
     setPageNumber((prev) => {
       const next = dir === "increase" ? prev + 1 : prev - 1;
       const clamped = Math.min(Math.max(next, 1), totalPages);
@@ -528,10 +553,16 @@ export default function DataTablePage() {
               onChange={(e) => {
                 filterOptions.filter(e);
                 const value = e.target.value;
+
                 setSelectedFilterValue((prev: any) => ({
                   ...prev,
                   [placeholder]: value,
                 }));
+
+                if (placeholder === "Designation" && !String(value || "").trim()) {
+                  setSelectAllDesignation(false);
+                }
+
                 handleFilterSearch(placeholder, value);
               }}
               className="w-full m-auto focus:outline-none bg-white text-xs px-3 py-1 my-2 rounded-full"
@@ -615,12 +646,103 @@ export default function DataTablePage() {
 
     return () => {
       debouncedFetchOptions.cancel();
+      debouncedGoToPage.cancel();
     };
   }, []);
 
   const headerCellClass =
     "bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4";
   const bodyCellClass = "px-6 py-4 text-sm text-gray-600 border-b border-gray-100";
+
+  const designationSearchValue = String(selectedFilterValue?.Designation || "").trim();
+  const showDesignationSelectAll = Boolean(designationSearchValue);
+  const designationSelectedItemsLabel = selectAllDesignation ? "Designation (All)" : "Designation ({0})";
+
+  const filterSummary = useMemo(() => {
+    const f = selectedFilters || {};
+    const pairs: { k: string; v: any[] }[] = [];
+
+    const addArr = (k: string, arr: any[]) => {
+      if (Array.isArray(arr) && arr.length) pairs.push({ k, v: arr });
+    };
+
+    const selectAll = Boolean(f.selectAll);
+    const keyword = String(f.searchQuery || "").trim();
+
+    addArr("Country", f.Country || []);
+    addArr("State", f.State || []);
+    addArr("City", f.City || []);
+    addArr("Organization", f.Organization || []);
+
+    if (selectAll) {
+      pairs.push({
+        k: "Designation",
+        v: [keyword ? `Selected all (keyword: ${keyword})` : "Selected all"],
+      });
+    } else {
+      addArr("Designation", f.Designation || []);
+    }
+
+    addArr("Org Size", f.orgSize || []);
+    addArr("Org Industry", f.orgIndustry || []);
+
+    if (keyword && !selectAll) pairs.push({ k: "Keyword", v: [keyword] });
+
+    return pairs;
+  }, [selectedFilters]);
+
+  const openAddToList = () => {
+    if (selectedProfile.length > 0) {
+      setAddMode("selected");
+      setModalVisible(true);
+      return;
+    }
+
+    const ids = (entries || [])
+      .map((e: any) => Number(e?.row_id))
+      .filter((n: any) => Number.isFinite(n) && n > 0);
+
+    const startId = ids.length ? Math.min(...ids) : 0;
+    setBulkStartRowId(startId);
+
+    const maxRows = 500;
+
+    setBulkRows(Math.min(PAGE_SIZE, maxRows));
+    setBulkPages(1);
+
+    setBulkPayload(null);
+    setBulkConfigVisible(true);
+  };
+
+  const maxRows = 500;
+  const maxPages = Math.max(1, Math.floor(maxRows / PAGE_SIZE));
+
+  const handleBulkRowsChange = (val: number) => {
+    const n = Math.min(Math.max(Number(val) || 1, 1), maxRows);
+    setBulkRows(n);
+    setBulkPages(Math.min(maxPages, Math.max(1, Math.ceil(n / PAGE_SIZE))));
+  };
+
+  const handleBulkPagesChange = (val: number) => {
+    const p = Math.min(Math.max(Number(val) || 1, 1), maxPages);
+    setBulkPages(p);
+    const rows = Math.min(p * PAGE_SIZE, maxRows);
+    setBulkRows(rows);
+  };
+
+  const proceedBulk = () => {
+    if (!bulkRows || bulkRows < 1) return;
+    setAddMode("bulk");
+    setBulkPayload({
+      filters: selectedFilters,
+      take: bulkRows,
+      startRowId: bulkStartRowId,
+    });
+    setBulkConfigVisible(false);
+    setModalVisible(true);
+  };
+
+  const bulkRowsExactPages = bulkRows > 0 && bulkRows % PAGE_SIZE === 0;
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
@@ -656,18 +778,160 @@ export default function DataTablePage() {
         </div>
       </Dialog>
 
+      <Dialog
+        header="Added to List"
+        visible={addResultVisible}
+        className="p-2 bg-white w-[92vw] max-w-[520px] rounded-xl"
+        onHide={() => setAddResultVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="p-2">
+          <div className="text-sm text-gray-800">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">List</span>
+              <span className="font-semibold">{addResult?.listName || "-"}</span>
+            </div>
+
+            {"matched" in (addResult || {}) && (
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Matched</span>
+                <span className="font-semibold">{Number(addResult?.matched || 0).toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Inserted</span>
+              <span className="font-semibold">{Number(addResult?.inserted || 0).toLocaleString()}</span>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Skipped (duplicates)</span>
+              <span className="font-semibold">{Number(addResult?.duplicates || 0).toLocaleString()}</span>
+            </div>
+
+            {"lastRowId" in (addResult || {}) && (
+              <div className="flex items-center justify-between py-2">
+                <span className="text-gray-500">Last row_id</span>
+                <span className="font-semibold">{Number(addResult?.lastRowId || 0).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setAddResultVisible(false)}
+              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        header="Add multiple pages to list"
+        visible={bulkConfigVisible}
+        className="p-2 bg-white w-[92vw] max-w-[640px] rounded-xl"
+        onHide={() => setBulkConfigVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+              <div className="text-xs text-gray-500 mb-1">Rows to add (max {maxRows})</div>
+              <input
+                type="number"
+                value={bulkRows}
+                min={1}
+                max={maxRows}
+                onChange={(e) => handleBulkRowsChange(Number(e.target.value))}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <div className="text-xs text-gray-500 mt-2">
+                {bulkRowsExactPages ? "=" : "≈"}{" "}
+                <span className="font-semibold">{bulkPages}</span> page(s) (page size {PAGE_SIZE})
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+              <div className="text-xs text-gray-500 mb-1">Pages to add (max {maxPages})</div>
+              <input
+                type="number"
+                value={bulkPages}
+                min={1}
+                max={maxPages}
+                onChange={(e) => handleBulkPagesChange(Number(e.target.value))}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <div className="text-xs text-gray-500 mt-2">
+                = <span className="font-semibold">{bulkPages * PAGE_SIZE}</span> rows
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 border border-gray-200 rounded-xl p-3">
+            <div className="text-xs text-gray-500 mb-2">Starting from</div>
+            <div className="text-sm text-gray-800">
+              row_id: <span className="font-semibold">{bulkStartRowId || 0}</span>
+            </div>
+          </div>
+
+          <div className="mt-3 border border-gray-200 rounded-xl p-3">
+            <div className="text-xs text-gray-500 mb-2">Selected filters</div>
+            {filterSummary.length ? (
+              <div className="flex flex-col gap-2">
+                {filterSummary.map((p) => {
+                  const vals = (p.v || []).slice(0, 6);
+                  const more = (p.v || []).length - vals.length;
+                  return (
+                    <div key={p.k} className="text-sm">
+                      <span className="text-gray-600 font-semibold">{p.k}:</span>{" "}
+                      <span className="text-gray-800">
+                        {vals.map((x: any) => String(x)).join(", ")}
+                        {more > 0 ? ` +${more} more` : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600">No filters applied</div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-end gap-3">
+            <button
+              onClick={() => setBulkConfigVisible(false)}
+              className="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={proceedBulk}
+              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+            >
+              Proceed
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-20 flex items-center shadow-sm">
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
-            {selectedProfile.length > 0 && (
-              <button
-                onClick={() => setModalVisible(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/30 transition-all"
-              >
-                <List className="w-4 h-4" />
-                <span>Add to List ({selectedProfile.length})</span>
-              </button>
-            )}
+            <button
+              onClick={openAddToList}
+              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/30 transition-all"
+            >
+              <List className="w-4 h-4" />
+              <span>
+                {selectedProfile.length > 0
+                  ? `Add to List (${selectedProfile.length})`
+                  : "Add multiple pages to list"}
+              </span>
+            </button>
 
             <div className="relative w-full sm:w-[380px] min-w-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -752,18 +1016,6 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={loadingDataKey === "Country" ? "Data Loading..." : "Search for more..."}
-                emptyFilterMessage={
-                  loadingDataKey === "Country" ? (
-                    <div className="text-xs text-center p-2 flex items-center gap-2 justify-center">
-                      <i className="pi pi-spin pi-refresh"></i> Data Loading...
-                    </div>
-                  ) : (
-                    <div className="text-xs text-center p-2 flex justify-center items-center gap-2">
-                      No result
-                    </div>
-                  )
-                }
               />
             </div>
 
@@ -786,18 +1038,6 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={loadingDataKey === "State" ? "Data Loading..." : "Search for more..."}
-                emptyFilterMessage={
-                  loadingDataKey === "State" ? (
-                    <div className="text-xs text-center p-2 flex items-center gap-2 justify-center">
-                      <i className="pi pi-spin pi-refresh"></i> Data Loading...
-                    </div>
-                  ) : (
-                    <div className="text-xs text-center p-2 flex justify-center items-center gap-2">
-                      No result
-                    </div>
-                  )
-                }
               />
             </div>
 
@@ -820,22 +1060,10 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={loadingDataKey === "City" ? "Data Loading..." : "Search for more..."}
-                emptyFilterMessage={
-                  loadingDataKey === "City" ? (
-                    <div className="text-xs text-center p-2 flex items-center gap-2 justify-center">
-                      <i className="pi pi-spin pi-refresh"></i> Data Loading...
-                    </div>
-                  ) : (
-                    <div className="text-xs text-center p-2 flex justify-center items-center gap-2">
-                      No result
-                    </div>
-                  )
-                }
               />
             </div>
 
-            <div className="relative min-w-[170px]">
+            <div className="relative min-w-[180px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Briefcase className="w-4 h-4 text-gray-500" />
               </div>
@@ -844,34 +1072,21 @@ export default function DataTablePage() {
                 options={designationOptions}
                 onChange={(e) => updateDraft("Designation", e.value)}
                 filter
-                resetFilterOnHide={false}
                 filterTemplate={getFilterTemplate("Designation")}
                 loading={msLoading("Designation")}
-                showSelectAll
-                onSelectAll={handleSelectAllDesignation}
                 placeholder="Designation"
                 maxSelectedLabels={0}
-                selectedItemsLabel="Designation ({0})"
+                selectedItemsLabel={designationSelectedItemsLabel}
                 className="lc-pill w-full"
                 panelClassName="lc-panel rounded-xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={loadingDataKey === "Designation" ? "Data Loading..." : "Search for more..."}
-                emptyFilterMessage={
-                  loadingDataKey === "Designation" ? (
-                    <div className="text-xs text-center p-2 flex items-center gap-2 justify-center">
-                      <i className="pi pi-spin pi-refresh"></i> Data Loading...
-                    </div>
-                  ) : (
-                    <div className="text-xs text-center p-2 flex justify-center items-center gap-2">
-                      No result
-                    </div>
-                  )
-                }
+                showSelectAll={showDesignationSelectAll}
+                onSelectAll={handleSelectAllDesignation}
               />
             </div>
 
-            <div className="relative min-w-[190px]">
+            <div className="relative min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Building2 className="w-4 h-4 text-gray-500" />
               </div>
@@ -890,66 +1105,56 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={loadingDataKey === "Organization" ? "Data Loading..." : "Search for more..."}
-                emptyFilterMessage={
-                  loadingDataKey === "Organization" ? (
-                    <div className="text-xs text-center p-2 flex items-center gap-2 justify-center">
-                      <i className="pi pi-spin pi-refresh"></i> Data Loading...
-                    </div>
-                  ) : (
-                    <div className="text-xs text-center p-2 flex justify-center items-center gap-2">
-                      No result
-                    </div>
-                  )
-                }
               />
             </div>
 
-            <div className="relative min-w-[190px]">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                <Users className="w-4 h-4 text-gray-500" />
-              </div>
-              <MultiSelect
-                value={draftFilters.orgSize || []}
-                options={orgSizeOptions}
-                onChange={(e) => updateDraft("orgSize", e.value)}
-                filter
-                filterTemplate={getFilterTemplate("orgSize")}
-                loading={msLoading("orgSize")}
-                showSelectAll
-                disabled={isFree}
-                placeholder={isFree ? "Upgrade Account" : "Org Size"}
-                maxSelectedLabels={0}
-                selectedItemsLabel="Org Size ({0})"
-                className={`lc-pill w-full ${isFree ? "opacity-70" : ""}`}
-                panelClassName="lc-panel rounded-xl"
-                dropdownIcon="pi pi-chevron-down"
-                itemClassName={dropdownItemClass}
-              />
-            </div>
+            {!isFree && (
+              <>
+                <div className="relative min-w-[160px]">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                    <Layers className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <MultiSelect
+                    value={draftFilters.orgIndustry || []}
+                    options={orgIndustryOptions}
+                    onChange={(e) => updateDraft("orgIndustry", e.value)}
+                    filter
+                    filterTemplate={getFilterTemplate("orgIndustry")}
+                    loading={msLoading("orgIndustry")}
+                    showSelectAll
+                    placeholder="Org Industry"
+                    maxSelectedLabels={0}
+                    selectedItemsLabel="Org Industry ({0})"
+                    className="lc-pill w-full"
+                    panelClassName="lc-panel rounded-xl"
+                    dropdownIcon="pi pi-chevron-down"
+                    itemClassName={dropdownItemClass}
+                  />
+                </div>
 
-            <div className="relative min-w-[190px]">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                <Layers className="w-4 h-4 text-gray-500" />
-              </div>
-              <MultiSelect
-                value={draftFilters.orgIndustry || []}
-                options={orgIndustryOptions}
-                onChange={(e) => updateDraft("orgIndustry", e.value)}
-                filter
-                filterTemplate={getFilterTemplate("orgIndustry")}
-                loading={msLoading("orgIndustry")}
-                showSelectAll
-                disabled={isFree}
-                placeholder={isFree ? "Upgrade Account" : "Industry"}
-                maxSelectedLabels={0}
-                selectedItemsLabel="Industry ({0})"
-                className={`lc-pill w-full ${isFree ? "opacity-70" : ""}`}
-                panelClassName="lc-panel rounded-xl"
-                dropdownIcon="pi pi-chevron-down"
-                itemClassName={dropdownItemClass}
-              />
-            </div>
+                <div className="relative min-w-[160px]">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                    <Users className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <MultiSelect
+                    value={draftFilters.orgSize || []}
+                    options={orgSizeOptions}
+                    onChange={(e) => updateDraft("orgSize", e.value)}
+                    filter
+                    filterTemplate={getFilterTemplate("orgSize")}
+                    loading={msLoading("orgSize")}
+                    showSelectAll
+                    placeholder="Org Size"
+                    maxSelectedLabels={0}
+                    selectedItemsLabel="Org Size ({0})"
+                    className="lc-pill w-full"
+                    panelClassName="lc-panel rounded-xl"
+                    dropdownIcon="pi pi-chevron-down"
+                    itemClassName={dropdownItemClass}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -985,14 +1190,25 @@ export default function DataTablePage() {
       <div className="p-6 lg:p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <Dialog
-            header="Add Profiles to list"
+            header={addMode === "bulk" ? "Add filtered rows to list" : "Add selected profiles to list"}
             visible={modalVisible}
             className="p-2 bg-white w-[92vw] lg:w-1/2 rounded-xl"
             onHide={() => setModalVisible(false)}
             draggable={false}
             resizable={false}
           >
-            <AddToListComponent onClose={() => setModalVisible(false)} people={selectedProfile} />
+            <AddToListComponent
+              mode={addMode}
+              people={addMode === "selected" ? selectedProfile : []}
+              bulk={addMode === "bulk" ? bulkPayload : null}
+              onClose={() => setModalVisible(false)}
+              onComplete={(result) => {
+                setAddResult(result);
+                setAddResultVisible(true);
+                setSelectedProfile([]);
+                setBulkPayload(null);
+              }}
+            />
           </Dialog>
 
           <div className="w-full overflow-x-auto overflow-y-hidden lc-table">
@@ -1007,15 +1223,15 @@ export default function DataTablePage() {
                 scrollable
                 scrollHeight="calc(100vh - 360px)"
                 className="text-sm"
-                rows={selectedRowLimit}
+                rows={PAGE_SIZE}
                 selectionMode={rowClick ? null : "checkbox"}
                 onSelectionChange={(e: any) => setSelectedProfile(e.value)}
                 selection={selectedProfile}
               >
                 <Column
                   selectionMode="multiple"
-                  headerClassName={headerCellClass}
-                  className={bodyCellClass}
+                  headerClassName="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4"
+                  className="px-6 py-4 text-sm text-gray-600 border-b border-gray-100"
                   headerStyle={{ width: "3.25rem" }}
                 />
                 {columns.map((col) => (
@@ -1023,8 +1239,8 @@ export default function DataTablePage() {
                     key={col.field}
                     field={col.field === "LinkedIn" ? "" : col.field}
                     header={col.header}
-                    headerClassName={headerCellClass}
-                    className={bodyCellClass}
+                    headerClassName="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4"
+                    className="px-6 py-4 text-sm text-gray-600 border-b border-gray-100"
                     body={() => skeletonLoad()}
                   />
                 ))}
@@ -1041,7 +1257,7 @@ export default function DataTablePage() {
                 scrollable
                 scrollHeight="calc(100vh - 360px)"
                 className="text-sm"
-                rows={selectedRowLimit}
+                rows={PAGE_SIZE}
                 selectionMode={rowClick ? null : "checkbox"}
                 onSelectionChange={(e: any) => setSelectedProfile(e.value)}
                 selection={selectedProfile}
@@ -1104,20 +1320,7 @@ export default function DataTablePage() {
             results
           </div>
 
-          {/* Desktop controls */}
           <div className="hidden sm:flex items-center gap-3">
-            <div className="text-gray-500 flex items-center gap-2 text-sm">
-              Rows / page
-              <Dropdown
-                value={selectedRowLimit}
-                onChange={(e) => changeRowLimit(e.value)}
-                options={r_Limit}
-                panelClassName="rounded !w-fit"
-                dropdownIcon=""
-                className="w-fit rounded border border-gray-200 focus:outline-none text-sm px-2"
-              />
-            </div>
-
             <button
               className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("decrease")}
@@ -1145,7 +1348,6 @@ export default function DataTablePage() {
             </div>
           </div>
 
-          {/* Mobile controls */}
           <div className="sm:hidden flex items-center justify-between gap-3">
             <button
               className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"

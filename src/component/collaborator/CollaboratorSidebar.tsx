@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import menu from "../../utils/menuLinks.json";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import logo from "../../assets/logo/logo.png";
 import logoSmall from "../../assets/logo/logoSmall.png";
 
@@ -13,39 +13,12 @@ type CollaboratorSidebarProps = {
   className?: string;
 };
 
-const pathsForLink = (l?: string | null) => {
-  if (!l || l === "#") return [];
-  const raw = l;
-  const abs = l.startsWith("/") ? l : `/${l}`;
-  return Array.from(new Set([raw, abs]));
-};
+const stripTrailing = (p: string) => (p.length > 1 ? p.replace(/\/+$/, "") : p);
 
-const findActiveParent = (links: MenuLink[], path: string) => {
-  let best:
-    | {
-        text: string;
-        matchLen: number;
-        hasSub: boolean;
-      }
-    | null = null;
-
-  for (const m of links) {
-    const candidates: string[] = [];
-
-    for (const p of pathsForLink(m.link ?? null)) candidates.push(p);
-    for (const s of m.sub ?? []) for (const p of pathsForLink(s.link ?? null)) candidates.push(p);
-
-    for (const l of candidates) {
-      const isMatch = path === l || path.startsWith(`${l}/`);
-      if (isMatch) {
-        const len = l.length;
-        if (!best || len > best.matchLen) best = { text: m.text, matchLen: len, hasSub: (m.sub ?? []).length > 0 };
-      }
-    }
-  }
-
-  if (path.startsWith("/user/setting")) return { text: "Settings", matchLen: 999, hasSub: false };
-  return best;
+const join = (a: string, b: string) => {
+  const A = stripTrailing(a);
+  const B = b.replace(/^\/+/, "");
+  return stripTrailing(`${A}/${B}`);
 };
 
 export default function CollaboratorSidebar({
@@ -53,12 +26,63 @@ export default function CollaboratorSidebar({
   onRequestClose,
   className = "",
 }: CollaboratorSidebarProps) {
-  const [menuItem, setMenuItem] = useState<string | null>(menu[1]?.links?.[0]?.text ?? null);
+  const { collaborationId } = useParams();
+  const location = useLocation();
+
+  const base = collaborationId ? `/collaboration/${collaborationId}` : "/collaboration";
+
+  const resolveTo = (l?: string | null) => {
+    if (!l || l === "#") return null;
+    // already absolute
+    if (l.startsWith("/")) return stripTrailing(l);
+    // relative -> under collaboration base
+    return join(base, l);
+  };
+
+  const findActiveParent = (links: MenuLink[], path: string) => {
+    let best:
+      | {
+          text: string;
+          matchLen: number;
+          hasSub: boolean;
+        }
+      | null = null;
+
+    const p = stripTrailing(path);
+
+    for (const m of links) {
+      const candidates: string[] = [];
+
+      const parent = resolveTo(m.link ?? null);
+      if (parent) candidates.push(parent);
+
+      for (const s of m.sub ?? []) {
+        const sub = resolveTo(s.link ?? null);
+        if (sub) candidates.push(sub);
+      }
+
+      for (const l of candidates) {
+        const isMatch = p === l || p.startsWith(`${l}/`);
+        if (isMatch) {
+          const len = l.length;
+          if (!best || len > best.matchLen) {
+            best = { text: m.text, matchLen: len, hasSub: (m.sub ?? []).length > 0 };
+          }
+        }
+      }
+    }
+
+    // keep this if you ever show settings in collab routes
+    if (p.startsWith("/user/setting")) return { text: "Settings", matchLen: 999, hasSub: false };
+
+    return best;
+  };
+
+  const [menuItem, setMenuItem] = useState<string | null>(null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const location = useLocation();
 
   const menuList = useMemo(() => menu[1] as { role: string; links: MenuLink[] }, []);
   const expanded = forceExpanded ? true : sidebarExpanded;
@@ -103,8 +127,11 @@ export default function CollaboratorSidebar({
     if (active) {
       setMenuItem(active.text);
       setMenuItemDrop(active.hasSub);
+    } else {
+      setMenuItem(menuList.links[0]?.text ?? null);
+      setMenuItemDrop(false);
     }
-  }, [location.pathname, menuList.links]);
+  }, [location.pathname, menuList.links, base]);
 
   const headerH = "h-20";
 
@@ -117,13 +144,11 @@ export default function CollaboratorSidebar({
       onMouseLeave={handleLeave}
     >
       <div className={`${headerH} flex items-center justify-center border-b border-gray-200`}>
-        <Link to={"/"} className="flex items-center justify-center w-full" onClick={maybeCloseDrawer}>
+        <Link to={base} className="flex items-center justify-center w-full" onClick={maybeCloseDrawer}>
           <img
             src={expanded ? logo : logoSmall}
             alt="LeadCourt"
-            className={`object-contain transition-all ${
-              expanded ? "h-12 w-auto" : "h-8 w-10"
-            }`}
+            className={`object-contain transition-all ${expanded ? "h-12 w-auto" : "h-8 w-10"}`}
           />
         </Link>
       </div>
@@ -133,12 +158,12 @@ export default function CollaboratorSidebar({
           const active = menuItem === item.text;
           const hasSub = !!item.sub?.length;
 
-          const to = (item.link as any) ?? "#";
+          const to = resolveTo(item.link ?? null) ?? "#";
 
           return (
             <div key={`${item.text}-${index}`} className="mb-2">
               <Link
-                to={to}
+                to={to as any}
                 onClick={() => {
                   dropMenuItem(item.text, hasSub);
                   if (!hasSub) maybeCloseDrawer();
@@ -167,17 +192,16 @@ export default function CollaboratorSidebar({
               {expanded && hasSub && active && menuItemDrop && (
                 <div className="mt-2 pl-12 flex flex-col gap-2">
                   {item.sub!.map((s, sIdx) => {
-                    const subTo = (s.link as any) ?? "#";
+                    const subTo = resolveTo(s.link ?? null) ?? "#";
                     const isSubActive =
-                      location.pathname === subTo ||
-                      location.pathname.startsWith(`${subTo}/`) ||
-                      (!String(subTo || "").startsWith("/") &&
-                        (location.pathname === `/${subTo}` || location.pathname.startsWith(`/${subTo}/`)));
+                      subTo !== "#" &&
+                      (stripTrailing(location.pathname) === subTo ||
+                        stripTrailing(location.pathname).startsWith(`${subTo}/`));
 
                     return (
                       <Link
                         key={`${s.text}-${sIdx}`}
-                        to={subTo}
+                        to={subTo as any}
                         onClick={maybeCloseDrawer}
                         className={`text-sm transition-colors ${
                           isSubActive ? "text-orange-600 font-semibold" : "text-gray-500 hover:text-gray-900"

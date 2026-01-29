@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "react-toastify";
@@ -13,7 +13,10 @@ import {
   getLinkedInUrl,
   getSingleListDetail,
   getAllList,
+  getListRevealEstimate,
+  revealAllFromList,
 } from "../../utils/api/data";
+import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
 import { creditState, userState } from "../../utils/atom/authAtom";
 import TextToCapitalize from "../../component/TextToCapital";
@@ -78,6 +81,8 @@ export default function ListDetailPage() {
   const setCreditInfo = useSetRecoilState(creditState);
   const creditInfoValue = useRecoilValue(creditState);
 
+  const listName = params?.listName;
+
   const [pageNumber, setPageNumber] = useState<number>(1);
 
   const [loading, setLoading] = useState(false);
@@ -103,9 +108,17 @@ export default function ListDetailPage() {
   const [totalRows, setTotalRows] = useState<number>(0);
   const [loadingTotal, setLoadingTotal] = useState<boolean>(false);
 
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [listEstimate, setListEstimate] = useState<{
+    phoneCredits: number;
+    emailCredits: number;
+    phoneCount: number;
+    emailCount: number;
+  }>({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
+
   const listNamePretty = useMemo(
-    () => (params?.listName || "").replace(/-/g, " "),
-    [params?.listName]
+    () => (listName || "").replace(/-/g, " "),
+    [listName]
   );
 
   const columns = useMemo(
@@ -168,11 +181,66 @@ export default function ListDetailPage() {
 
     return {
       useSelected,
-      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
-      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
+      phoneCost:
+        (useSelected ? selUnrevealedPhone : allUnrevealedPhone) *
+        PHONE_REVEAL_CREDITS,
+      emailCost:
+        (useSelected ? selUnrevealedEmail : allUnrevealedEmail) *
+        EMAIL_REVEAL_CREDITS,
     };
   }, [entries, selectedProfile]);
 
+  const userCredits = useMemo(
+    () => Number(creditInfoValue?.credits || 0),
+    [creditInfoValue?.credits]
+  );
+
+  const parseEstimate = (raw: any) => {
+    const d = raw?.data ?? raw ?? {};
+    const phoneCredits = Number(
+      d?.phoneCredits ??
+        d?.phoneCost ??
+        d?.creditsPhone ??
+        d?.phone?.credits ??
+        d?.phone?.cost ??
+        d?.estimate?.phoneCredits ??
+        d?.estimate?.phoneCost ??
+        0
+    );
+    const emailCredits = Number(
+      d?.emailCredits ??
+        d?.emailCost ??
+        d?.creditsEmail ??
+        d?.email?.credits ??
+        d?.email?.cost ??
+        d?.estimate?.emailCredits ??
+        d?.estimate?.emailCost ??
+        0
+    );
+    const phoneCount = Number(
+      d?.phoneCount ??
+        d?.unrevealedPhone ??
+        d?.phoneUnrevealed ??
+        d?.phone?.count ??
+        d?.estimate?.phoneCount ??
+        0
+    );
+    const emailCount = Number(
+      d?.emailCount ??
+        d?.unrevealedEmail ??
+        d?.emailUnrevealed ??
+        d?.email?.count ??
+        d?.estimate?.emailCount ??
+        0
+    );
+
+    return {
+      phoneCredits: Number.isFinite(phoneCredits) ? phoneCredits : 0,
+      emailCredits: Number.isFinite(emailCredits) ? emailCredits : 0,
+      phoneCount: Number.isFinite(phoneCount) ? phoneCount : 0,
+      emailCount: Number.isFinite(emailCount) ? emailCount : 0,
+    };
+  };
 
   const initials = (name?: string) => {
     if (!name) return "U";
@@ -180,7 +248,18 @@ export default function ListDetailPage() {
     return parts.map((p) => p[0]?.toUpperCase()).join("") || "U";
   };
 
-  const fetchTotalRows = async () => {
+  const fetchCredits = useCallback(async () => {
+    try {
+      const res: any = await getCreditBalance();
+      setCreditInfo({
+        id: user?.id ?? "",
+        credits: res?.data?.credits ?? 0,
+        subscriptionType: res?.data?.subscriptionType ?? "FREE",
+      });
+    } catch (e) {}
+  }, [setCreditInfo, user?.id]);
+
+  const fetchTotalRows = useCallback(async () => {
     if (!user?.id) return;
 
     setLoadingTotal(true);
@@ -189,7 +268,7 @@ export default function ListDetailPage() {
       const res: any = await getAllList(payload);
 
       const lists: any[] = res?.data || [];
-      const match = lists.find((l) => l?.name === params?.listName);
+      const match = lists.find((l) => l?.name === listName);
 
       const t = Number(match?.total || 0);
       setTotalRows(Number.isFinite(t) ? t : 0);
@@ -198,32 +277,48 @@ export default function ListDetailPage() {
     } finally {
       setLoadingTotal(false);
     }
-  };
+  }, [user?.id, listName]);
 
-  const listDetail = async (pageNum: number) => {
-    setLoading(true);
-
-    const payload: ListDetailPayload = {
-      userId: user?.id,
-      page: pageNum,
-      listName: params?.listName,
-    };
-
+  const fetchRevealEstimate = useCallback(async () => {
+    if (!listName) return;
+    setEstimateLoading(true);
     try {
-      const res: any = await getSingleListDetail(payload);
-      const data: Person[] =
-        res?.data?.sort((a: Person, b: Person) =>
-          (a?.Name || "").localeCompare(b?.Name || "")
-        ) || [];
-      setEntries(data);
-      setSelectedProfile([]);
+      const res: any = await getListRevealEstimate({ listName, userId: user?.id });
+      setListEstimate(parseEstimate(res));
     } catch (e) {
-      setEntries([]);
-      setSelectedProfile([]);
+      setListEstimate({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
     } finally {
-      setLoading(false);
+      setEstimateLoading(false);
     }
-  };
+  }, [listName, user?.id]);
+
+  const listDetail = useCallback(
+    async (pageNum: number) => {
+      setLoading(true);
+
+      const payload: ListDetailPayload = {
+        userId: user?.id,
+        page: pageNum,
+        listName: listName,
+      };
+
+      try {
+        const res: any = await getSingleListDetail(payload);
+        const data: Person[] =
+          res?.data?.sort((a: Person, b: Person) =>
+            (a?.Name || "").localeCompare(b?.Name || "")
+          ) || [];
+        setEntries(data);
+        setSelectedProfile([]);
+      } catch (e) {
+        setEntries([]);
+        setSelectedProfile([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user?.id, listName]
+  );
 
   const openLinkedInPopup = async (id: any) => {
     setLoadRow({ type: "linkedIn", row_id: id });
@@ -269,6 +364,8 @@ export default function ListDetailPage() {
         credits: res?.data?.remainingCredits || 0,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
+
+      fetchRevealEstimate();
     } catch (e) {
     } finally {
       setLoadRow({});
@@ -289,7 +386,7 @@ export default function ListDetailPage() {
     if (!ids.length) return;
 
     const spinnerKey =
-      (useSelected ? "selected" : "all") + (type === "phone" ? "Phone" : "Email");
+      (useSelected ? "selected" : "page") + (type === "phone" ? "Phone" : "Email");
 
     setLoadRow({ type: spinnerKey });
 
@@ -322,7 +419,52 @@ export default function ListDetailPage() {
         credits: res?.data?.remainingCredits || 0,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
+
+      fetchRevealEstimate();
     } catch (e) {
+    } finally {
+      setLoadRow({});
+    }
+  };
+
+  const revealAll = async (type: "phone" | "email") => {
+    const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
+    setLoadRow({ type: spinnerKey });
+
+    try {
+      const res: any = await revealAllFromList({
+        listName,
+        type,
+        userId: user?.id,
+      });
+
+      if (res?.data?.error) {
+        setInsufficientVisible(true);
+        return;
+      }
+      if (res?.data?.stoppedDueToCredits) { setInsufficientVisible(true); toast.warning("Partially revealed — ran out of credits"); }
+      else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
+        toast.success(
+          type === "phone" ? "Revealed all phones" : "Revealed all emails"
+        );
+      } else {
+        toast.success("Reveal queued");
+      }
+
+      if (typeof res?.data?.remainingCredits !== "undefined") {
+        setCreditInfo({
+          id: user?.id ?? "",
+          credits: res?.data?.remainingCredits || 0,
+          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+        });
+      } else {
+        fetchCredits();
+      }
+
+      await fetchRevealEstimate();
+      await listDetail(pageNumber);
+    } catch (e) {
+      toast.error("Something went wrong. Try again.");
     } finally {
       setLoadRow({});
     }
@@ -361,7 +503,7 @@ export default function ListDetailPage() {
   const exportCurrentList = async (target: "hubspot" | "brevo" | "email") => {
     setExportingTarget(target);
 
-    const payload: any = { listName: params?.listName };
+    const payload: any = { listName: listName };
 
     try {
       if (target === "hubspot") {
@@ -538,11 +680,14 @@ export default function ListDetailPage() {
     </div>
   );
 
-  const goToPage = (next: number) => {
-    const clamped = Math.min(Math.max(1, next), totalPages);
-    setPageNumber(clamped);
-    listDetail(clamped);
-  };
+  const goToPage = useCallback(
+    (next: number) => {
+      const clamped = Math.min(Math.max(1, next), totalPages);
+      setPageNumber(clamped);
+      listDetail(clamped);
+    },
+    [listDetail, totalPages]
+  );
 
   const handleChangePageNumber = (e: any) => {
     e.preventDefault();
@@ -560,23 +705,57 @@ export default function ListDetailPage() {
     }
   };
 
-  useEffect(() => {
-    fetchTotalRows();
-    listDetail(1);
-    setPageNumber(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.listName, user?.id]);
+  const phoneCostToShow = counts.useSelected ? counts.phoneCost : listEstimate.phoneCredits;
+  const emailCostToShow = counts.useSelected ? counts.emailCost : listEstimate.emailCredits;
+
+  const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
+  const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
+
+  const phoneBusy = loadRow?.type === phoneSpinnerKey || loadRow?.type === "pagePhone";
+  const emailBusy = loadRow?.type === emailSpinnerKey || loadRow?.type === "pageEmail";
+
+  const phoneDisabledReason = useMemo(() => {
+    if (!listName) return "No list";
+    if (estimateLoading && !counts.useSelected) return "Calculating cost...";
+    if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
+    if (phoneCostToShow <= 0) return "Nothing to reveal";
+    if (userCredits < phoneCostToShow)
+      return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
+    return "";
+  }, [counts.useSelected, entries.length, estimateLoading, listName, phoneCostToShow, totalRows, userCredits]);
+
+  const emailDisabledReason = useMemo(() => {
+    if (!listName) return "No list";
+    if (estimateLoading && !counts.useSelected) return "Calculating cost...";
+    if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
+    if (emailCostToShow <= 0) return "Nothing to reveal";
+    if (userCredits < emailCostToShow)
+      return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
+    return "";
+  }, [counts.useSelected, entries.length, estimateLoading, listName, emailCostToShow, totalRows, userCredits]);
+
+  const phoneDisabled = !!phoneDisabledReason || phoneBusy;
+  const emailDisabled = !!emailDisabledReason || emailBusy;
 
   useEffect(() => {
+    if (!user?.id || !listName) return;
+    fetchCredits();
+    fetchTotalRows();
+    fetchRevealEstimate();
+    listDetail(1);
+    setPageNumber(1);
+  }, [fetchCredits, fetchRevealEstimate, fetchTotalRows, listDetail, listName, user?.id]);
+
+  useEffect(() => {
+    if (!listName) return;
     if (pageNumber > totalPages) {
-      goToPage(totalPages);
+      setPageNumber(totalPages);
+      listDetail(totalPages);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalPages]);
+  }, [listDetail, listName, pageNumber, totalPages]);
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
-      {/* Connect modal */}
       <Dialog
         header={`Connect to ${TextToCapitalize(connectTarget)}`}
         visible={connectVisible && connectTarget.length > 0}
@@ -629,7 +808,6 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
-      {/* Insufficient credit */}
       <Dialog
         header="Insufficient Credit"
         visible={insufficientVisible}
@@ -664,7 +842,6 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
-      {/* Export modal */}
       <Dialog
         header="Export"
         visible={exportModalVisible}
@@ -685,7 +862,6 @@ export default function ListDetailPage() {
         </div>
 
         <div className="mt-4 space-y-3">
-          {/* Hubspot */}
           <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
             <div className="flex items-center gap-3">
               <img
@@ -730,7 +906,6 @@ export default function ListDetailPage() {
             </button>
           </div>
 
-          {/* Brevo */}
           <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
             <div className="flex items-center gap-3">
               <img
@@ -775,7 +950,6 @@ export default function ListDetailPage() {
             </button>
           </div>
 
-          {/* Email */}
           <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold">
@@ -807,7 +981,6 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
-      {/* Section 1: List name */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -823,7 +996,8 @@ export default function ListDetailPage() {
                 </span>
               ) : (
                 <>
-                  Total Contacts: <span className="font-semibold">{totalRows}</span>{" "}
+                  Total Contacts:{" "}
+                  <span className="font-semibold">{totalRows}</span>
                 </>
               )}
             </div>
@@ -838,48 +1012,53 @@ export default function ListDetailPage() {
         </div>
       </div>
 
-      {/* Section 2: Actions */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Show phone */}
             <button
-              disabled={!entries.length}
-              onClick={() => bulkReveal("phone")}
+              disabled={phoneDisabled}
+              title={phoneDisabledReason || ""}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("phone");
+                else revealAll("phone");
+              }}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
-                  {loadRow?.type === (counts.useSelected ? "selectedPhone" : "allPhone") ? (
-                    <i className="pi pi-spin pi-spinner text-xs" />
-                  ) : null}
+                  {phoneBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
                   <span>Show {counts.useSelected ? "selected" : "all"} phone</span>
                 </span>
 
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
-                  <span>{counts.phoneCost} credits</span>
+                  <span>
+                    {estimateLoading && !counts.useSelected ? "..." : phoneCostToShow} credits
+                  </span>
                 </span>
               </span>
             </button>
 
-            {/* Show email */}
             <button
-              disabled={!entries.length}
-              onClick={() => bulkReveal("email")}
+              disabled={emailDisabled}
+              title={emailDisabledReason || ""}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("email");
+                else revealAll("email");
+              }}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
-                  {loadRow?.type === (counts.useSelected ? "selectedEmail" : "allEmail") ? (
-                    <i className="pi pi-spin pi-spinner text-xs" />
-                  ) : null}
+                  {emailBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
                   <span>Show {counts.useSelected ? "selected" : "all"} email</span>
                 </span>
 
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
-                  <span>{counts.emailCost} credits</span>
+                  <span>
+                    {estimateLoading && !counts.useSelected ? "..." : emailCostToShow} credits
+                  </span>
                 </span>
               </span>
             </button>
@@ -894,7 +1073,6 @@ export default function ListDetailPage() {
         </div>
       </div>
 
-      {/* Section 3: Table */}
       <div className="p-3 sm:p-4 lg:p-6">
         <style>{`
           .lc-table .p-checkbox .p-checkbox-box {
@@ -1010,7 +1188,6 @@ export default function ListDetailPage() {
           </div>
         </div>
 
-        {/* Pagination */}
         <div className="px-2 sm:px-6 py-3 flex items-center m-auto">
           <div className="text-xs w-full m-auto flex items-center justify-center gap-5">
             <div className="text-gray-500">Rows {PAGE_SIZE}</div>
@@ -1034,9 +1211,7 @@ export default function ListDetailPage() {
               onChange={(e) => handleChangePageNumber(e)}
             />
 
-            <div className="text-gray-400">
-              / {totalPages}
-            </div>
+            <div className="text-gray-400">/ {totalPages}</div>
 
             <i
               className={`pi pi-angle-right text-2xl p-3 ${
