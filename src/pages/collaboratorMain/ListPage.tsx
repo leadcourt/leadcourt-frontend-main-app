@@ -1,152 +1,185 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { TieredMenu } from "primereact/tieredmenu";
 import { useRecoilValue } from "recoil";
-import { userState } from "../../utils/atom/authAtom";
 import { Skeleton } from "primereact/skeleton";
+import { userState } from "../../utils/atom/authAtom";
 import { collaboration_getAllList_api } from "../../utils/api/collaborationData";
-// import { getAllDash } from "../../utils/api/collaborationAPI";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
-// interface ListType {
-//   name: string;
-//   total: number;
-// }
 export default function Collab_ListPage() {
   const navigate = useNavigate();
   const user = useRecoilValue(userState);
+  const collabProject = useRecoilValue(collabProjectState);
+
   const [loading, setLoading] = useState(false);
   const [existingList, setExistingList] = useState<any>([]);
-  // const [existingList, setExistingList] = useState<ListType[]>([]);
-  const collabProject = useRecoilValue(collabProjectState);
- 
+  const [searchTerm, setSearchTerm] = useState("");
+
   const allList = async () => {
     setLoading(true);
-    const payload = {
-      userId: user?.id,
-    };
+    const payload = { userId: user?.id };
 
     await collaboration_getAllList_api(payload)
       .then((res) => {
-        
         setExistingList(res?.data);
       })
       .catch(() => {});
 
     setLoading(false);
   };
- 
-  
-  // const getDash = async () => {
-  //   console.log("Collab Project:", collabProject);
-  //       await getAllDash().then((res) => {
-  //         console.log("Dashboard Data:", res?.data);
-  //       })
-  // }
- 
+
   useEffect(() => {
     allList();
-    // console.log(collabProject);
-    
-
   }, []);
-  
+
+  const filteredLists = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return existingList || [];
+    return (existingList || []).filter((l: any) =>
+      (l?.name || "").toLowerCase().includes(q)
+    );
+  }, [existingList, searchTerm]);
+
   return (
-    <div>
-
-      {loading ? (
-        <div className="p-10"> 
-          <div className="mt-3">
-      <div className="p-10">
-        <div className="p-5 my-5 rounded-2xl text-gray-500 bg-gray-50">
-          <p>Loading your lists...</p>
-        </div>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3,4,5,6].map((item) => (
-            <div
-              key={item} 
-              className="  cursor-pointer transition-transform ease-in-out  rounded-lg"
-            >
-               <Skeleton height="7rem" className="mb-2 py-5"></Skeleton>
-            </div>
-          ))}
-        </div>
-      </div>
-          </div>
-        </div>
-      ) : existingList.length ? (
-      // ) : allListDisplay.length ? (
-        
-      <div className="p-10 border border-gray-200 ">
-      <div className="p-5 my-5 rounded-2xl text-gray-500 bg-gray-50">
-        <p>You have {existingList.length} list<span>{existingList.length > 1 ? 's': ''}</span> created</p>
-      </div>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {existingList?.map((item: any, index: any) => (
-          <div
-            key={index}
-            onClick={() =>
-              // navigate(`/list/${item.name.replace(/\s+/g, "-")}/details`)
-              navigate(`/collaboration/${collabProject?._id}/list/${item?.name}/details`)
-            }
-                            // className="border border-gray-200 cursor-pointer transition-all ease-in-out duration-300 hover:shadow-2xl shadow-gray-200 bg-gray-200 hover:bg-gray-300  rounded-lg"
-
-                  className="border-2 border-gray-200  cursor-pointer transition-all ease-in-out duration-300 hover:shadow-2xl shadow-gray-200 bg-gray-100  rounded-lg"
-            // className="p-5 hover:p-[1.3rem] cursor-pointer transition-transform ease-in-out border bg-red-50 hover:bg-red-100 border-red-100 rounded-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div 
-              // className=""
-                    className="border-dashed border-r2 border-r-gray-200 hover:p-[1.3rem] p-5 w-[75%]"
-              >
-                <p>
-                  <span className="text-gray-400 uppercase text-sm font-bold">
-                    List :
-                  </span>{" "}
-                  <span>{item?.name?.toUpperCase()}</span>
-                </p>
-                <p>
-                  <span className="text-gray-400 uppercase text-xs font-bold">
-                    Contacts :
-                  </span>{" "}
-                  <span>{item?.total}</span>
-                </p>
-              </div>
-              
-                  <div 
-                    className="relative  w-[25%] h-full flex items-center justify-center"
-                  >
-                    <i className=" pi pi-angle-right text-xl text-gray-400 p-2"></i>
-                  </div>
-
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-      ) : (
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <div className="text-center max-w-[400px] ">
-            <h2 className="textsm font-bold">
-              Your created list will be displayed here..
-            </h2>
-            <p className="my-3 text-xs text-gray-500">
-              Lists help you organize your prospects and start targeted
-              campaigns. Pick a template below to get started
+    <div className="px-6 sm:px-10 py-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="text-2xl font-bold text-gray-900">Lists</div>
+          <div className="mt-3 p-4 rounded-2xl text-gray-500 bg-gray-50 w-fit">
+            <p>
+              You have {existingList?.length} list
+              <span>{existingList?.length > 1 ? "s" : ""}</span> created
             </p>
-            <div className="w-fit m-auto">
-              {/* collaboration/689109db5c6e6916efe21cf0/list/new-list */}
-              <button
-                onClick={() => navigate(`/collaboration/${collabProjectState}/list/new-list`)}
-                className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-1"
-              >
-                {" "}
-                <i className="pi pi-user-edit"></i>Create new list
-              </button>
-            </div>
           </div>
         </div>
-      )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-[320px]">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search lists..."
+              className="w-full rounded-full border-2 border-gray-200 bg-white py-2 px-4 pr-10 text-sm outline-none focus:border-gray-300"
+            />
+            <i className="pi pi-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          </div>
+
+          <button
+            onClick={() =>
+              navigate(`/collaboration/${collabProjectState}/list/new-list`)
+            }
+            className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center justify-center gap-2 w-full sm:w-auto"
+          >
+            <i className="pi pi-user-edit text-sm" />
+            Create new list
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 border-t border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed min-w-[640px]">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="w-[55%] text-left text-sm font-medium text-gray-600 py-3">
+                  Name
+                </th>
+                <th className="w-[35%] text-left text-sm font-medium text-gray-600 py-3">
+                  Contacts
+                </th>
+                <th className="w-[10%] text-left text-sm font-medium text-gray-600 py-3">
+                  Open
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <>
+                  {[1, 2, 3].map((k) => (
+                    <tr key={k} className="border-b border-gray-100">
+                      <td className="py-3">
+                        <Skeleton width="10rem" height="1rem" className="mb-2" />
+                        <Skeleton width="6rem" height="0.85rem" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton width="8rem" height="1rem" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton width="2rem" height="1rem" />
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              ) : filteredLists.length ? (
+                filteredLists.map((item: any, index: any) => {
+                  const name = item?.name || "";
+                  const total = Number(item?.total || 0);
+
+                  return (
+                    <tr
+                      key={`${name}-${index}`}
+                      className="border-b border-gray-100"
+                    >
+                      <td className="py-3">
+                        <div
+                          className="cursor-pointer"
+                          onClick={() =>
+                            navigate(
+                              `/collaboration/${collabProject?._id}/list/${item?.name}/details`
+                            )
+                          }
+                        >
+                          <div className="text-sm font-semibold text-gray-900 truncate">
+                            {name}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <i className="pi pi-users text-gray-400" />
+                          <span>
+                            {total} contact{total === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="py-3">
+                        <div className="flex items-center justify-start">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/collaboration/${collabProject?._id}/list/${item?.name}/details`
+                              )
+                            }
+                            className="h-9 w-9 rounded-full hover:bg-gray-50 flex items-center justify-center"
+                            aria-label="Open list"
+                          >
+                            <i className="pi pi-angle-right text-gray-500 text-sm" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="py-10 text-center text-sm text-gray-500"
+                  >
+                    {searchTerm.trim()
+                      ? "No lists found."
+                      : "Your created list will be displayed here.."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

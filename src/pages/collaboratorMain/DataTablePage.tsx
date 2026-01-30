@@ -29,7 +29,10 @@ import {
   collaboration_showPhoneAndEmail_api,
 } from "../../utils/api/collaborationData";
 
-import { collabCreditState, collabProjectState } from "../../utils/atom/collabAuthAtom";
+import {
+  collabCreditState,
+  collabProjectState,
+} from "../../utils/atom/collabAuthAtom";
 import CollaboratorAddToListComponent from "../../component/collaborator/CollaboratorAddToListComponent";
 import TextToCapitalize from "../../component/TextToCapital";
 import noDataImg from "../../assets/icons/nodataImage.jpg";
@@ -72,6 +75,8 @@ const dedupe = (arr: string[]) => Array.from(new Set(arr));
 
 export default function Collab_DataTablePage() {
   const PAGE_SIZE = 25;
+  const MAX_BULK_PAGES = 20;
+  const ORANGE = "#F35114";
 
   const setCreditInfo = useSetRecoilState(collabCreditState);
   const creditInfoValue = useRecoilValue(collabCreditState);
@@ -93,16 +98,6 @@ export default function Collab_DataTablePage() {
 
   const [totalDataCount, setTotalDataCount] = useState(0);
   const [loading, setLoading] = useState(false);
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [addMode, setAddMode] = useState<Mode>("selected");
-  const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
-  const [bulkRows, setBulkRows] = useState<number>(PAGE_SIZE);
-  const [bulkPages, setBulkPages] = useState<number>(1);
-  const [bulkStartRowId, setBulkStartRowId] = useState<number>(0);
-  const [bulkConfig, setBulkConfig] = useState<BulkConfig | null>(null);
-  const [addResultVisible, setAddResultVisible] = useState(false);
-  const [addResult, setAddResult] = useState<any>(null);
 
   const [loadRow, setLoadRow] = useState<any>({});
   const [visible, setVisible] = useState<boolean>(false);
@@ -134,6 +129,20 @@ export default function Collab_DataTablePage() {
     orgSize: [],
     orgIndustry: [],
   });
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [addMode, setAddMode] = useState<Mode>("selected");
+  const [bulkPayload, setBulkPayload] = useState<BulkConfig | null>(null);
+
+  const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
+  const [bulkStartPage, setBulkStartPage] = useState(1);
+  const [bulkEndPage, setBulkEndPage] = useState(1);
+  const [startRowId, setStartRowId] = useState(0);
+  const [resolvingStartId, setResolvingStartId] = useState(false);
+  const [bulkPageTyping, setBulkPageTyping] = useState(false);
+
+  const [addResultVisible, setAddResultVisible] = useState(false);
+  const [addResult, setAddResult] = useState<any>(null);
 
   const columns = [
     { field: "Name", header: "NAME" },
@@ -177,15 +186,20 @@ export default function Collab_DataTablePage() {
 
   const buildFilterPayload = (raw: any) => {
     const payload = { ...(raw || {}) };
+
     const designationData = payload["Designation"]?.map((item: any) => {
       if (typeof item === "string" && item.includes(" - ")) return item.split(" - ", 2)[1];
       return item;
     });
+
     if (designationData) payload["Designation"] = designationData;
+
     payload.selectAll = selectedFilterValue["Designation"]?.length ? selectAllDesignation : false;
+
     if (selectAllDesignation) {
       payload.searchQuery = selectedFilterValue["Designation"] ?? "";
     }
+
     return payload;
   };
 
@@ -195,6 +209,7 @@ export default function Collab_DataTablePage() {
     async (pageNo: number, { filter }: LoadDataOptions = {}) => {
       const fetchId = ++fetchIdRef.current;
       setLoading(true);
+
       try {
         const payload = {
           filters: buildFilterPayload(filter ?? selectedFilters),
@@ -202,12 +217,16 @@ export default function Collab_DataTablePage() {
           userId: user?._id,
           limit: PAGE_SIZE,
         };
+
         const res = await collaboration_getAllData_api(payload);
+
         if (fetchId !== fetchIdRef.current) return;
+
         const data =
           res?.data?.cleaned?.sort((a: Person, b: Person) =>
             (a?.Name || "").localeCompare(b?.Name || "")
           ) || [];
+
         setTotalDataCount(res?.data?.count || 0);
         setEntries(data);
       } catch (err) {
@@ -261,11 +280,13 @@ export default function Collab_DataTablePage() {
 
   const clearAllFilters = () => {
     debouncedGoToPage.cancel();
+
     setDraftFilters({});
     setSelectedFilters({});
     setIsDirtyFilters(false);
     setSelectAllDesignation(false);
     setSelectedFilterValue((prev: any) => ({ ...prev, Designation: "" }));
+
     setCountryOptions(baseRef.current.Country);
     setStateOptions(baseRef.current.State);
     setCityOptions(baseRef.current.City);
@@ -273,6 +294,7 @@ export default function Collab_DataTablePage() {
     setOrganizationOptions(baseRef.current.Organization);
     setOrgSizeOptions(baseRef.current.orgSize);
     setOrgIndustryOptions(baseRef.current.orgIndustry);
+
     setPageNumber(1);
     loadData(1, { filter: {} });
   };
@@ -318,14 +340,17 @@ export default function Collab_DataTablePage() {
     try {
       const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
       if (res?.data?.error) setVisible(true);
+
       const updated = entries.map((entry: any) =>
         entry.row_id === id ? { ...entry, ...(res?.data?.results?.[0] || {}) } : entry
       );
+
       setCreditInfo({
         id: user?._id ?? "",
         credits: res?.data?.remainingCredits || 0,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
+
       setEntries(updated);
     } catch (err) {
       setLoadRow({});
@@ -356,7 +381,13 @@ export default function Collab_DataTablePage() {
     const name = TextToCapitalize(rowData?.Name || "");
     return (
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-white font-semibold shadow-md shadow-orange-500/20">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold shadow-md"
+          style={{
+            background: "linear-gradient(135deg, #FF6A00 0%, #F35114 100%)",
+            boxShadow: "0 10px 25px rgba(243,81,20,0.22)",
+          }}
+        >
           {initials(name)}
         </div>
         <div className="font-medium text-gray-900">{name}</div>
@@ -368,12 +399,18 @@ export default function Collab_DataTablePage() {
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Designation || "")}</div>
   );
 
+  const revealBtn =
+    "px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-2 text-white transition-colors";
+  const revealBtnStyle = { background: ORANGE as any };
+  const revealBtnHover = "hover:brightness-95";
+
   const showPhone = (rowData: any) => (
     <div>
       {!rowData?.Phone ? (
         <button
           onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          className={`${revealBtn} ${revealBtnHover}`}
+          style={revealBtnStyle}
         >
           {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -393,7 +430,8 @@ export default function Collab_DataTablePage() {
       {!rowData?.Email ? (
         <button
           onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          className={`${revealBtn} ${revealBtnHover}`}
+          style={revealBtnStyle}
         >
           {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -413,10 +451,14 @@ export default function Collab_DataTablePage() {
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
-        className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
+        className="inline-flex items-center justify-center w-9 h-9 rounded-xl"
+        style={{ background: "rgba(59,130,246,0.10)" }}
         title="Open LinkedIn"
       >
-        <i className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`} />
+        <i
+          className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"}`}
+          style={{ color: "#2563EB" }}
+        />
       </button>
     );
   };
@@ -438,11 +480,9 @@ export default function Collab_DataTablePage() {
   const showCity = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.City || "")}</div>
   );
-
   const showState = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.State || "")}</div>
   );
-
   const showCountry = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Country || "")}</div>
   );
@@ -462,10 +502,12 @@ export default function Collab_DataTablePage() {
           field: field === "Designation" ? "designation" : field,
           query,
         };
+
         if (query.length >= 3 && field !== "Designation") {
           const res: any = await searchOption(payload);
           const dataInfo = res?.data?.map((item: string) => TextToCapitalize(item));
           if (!dataInfo) return;
+
           if (field === "Country") {
             const unique = dedupe([...(baseRef.current.Country || []), ...dataInfo]);
             baseRef.current.Country = unique;
@@ -509,6 +551,7 @@ export default function Collab_DataTablePage() {
 
   const handleFilterSearch = (field: string, query: string) => {
     const value = query || "";
+
     if (!value || value.length === 0) {
       if (field === "Country") setCountryOptions(baseRef.current.Country);
       else if (field === "State") setStateOptions(baseRef.current.State);
@@ -517,10 +560,12 @@ export default function Collab_DataTablePage() {
       else if (field === "Designation") setDesignationOptions(baseRef.current.Designation);
       else if (field === "orgSize") setOrgSizeOptions(baseRef.current.orgSize);
       else if (field === "orgIndustry") setOrgIndustryOptions(baseRef.current.orgIndustry);
+
       setLoadingDataKey("");
       setLoadingOptions(false);
       return;
     }
+
     if (value.length >= 3) {
       setLoadingOptions(true);
       setLoadingDataKey(field);
@@ -530,6 +575,7 @@ export default function Collab_DataTablePage() {
 
   const getFilterTemplate = (placeholder: string) => (options: any) => {
     const { filterOptions } = options;
+
     return (
       <div className="px-5 p-multiselect-filter-container">
         <div className="p-input-icon-right w-full flex items-center gap-2">
@@ -539,13 +585,16 @@ export default function Collab_DataTablePage() {
               onChange={(e) => {
                 filterOptions.filter(e);
                 const value = e.target.value;
+
                 setSelectedFilterValue((prev: any) => ({
                   ...prev,
                   [placeholder]: value,
                 }));
+
                 if (placeholder === "Designation" && !String(value || "").trim()) {
                   setSelectAllDesignation(false);
                 }
+
                 handleFilterSearch(placeholder, value);
               }}
               className="w-full m-auto focus:outline-none bg-white text-xs px-3 py-1 my-2 rounded-full"
@@ -569,15 +618,19 @@ export default function Collab_DataTablePage() {
       setSelectedFilterValue((prev: any) => ({ ...prev, Designation: "" }));
       searchQuery = "";
     }
+
     const filterValues = (designationOptions || []).filter((opt: any) =>
       String(opt || "").toLowerCase().includes(searchQuery)
     );
+
     const current = draftFilters["Designation"] ?? [];
+
     if (selectAllDesignation) {
       updateDraft("Designation", []);
     } else {
       updateDraft("Designation", dedupe([...(current || []), ...(filterValues || [])]));
     }
+
     setSelectAllDesignation(!selectAllDesignation);
   };
 
@@ -593,15 +646,19 @@ export default function Collab_DataTablePage() {
   const filterSummary = useMemo(() => {
     const f = selectedFilters || {};
     const pairs: { k: string; v: any[] }[] = [];
+
     const addArr = (k: string, arr: any[]) => {
       if (Array.isArray(arr) && arr.length) pairs.push({ k, v: arr });
     };
+
     const selectAll = Boolean(f.selectAll);
     const keyword = String(f.searchQuery || "").trim();
+
     addArr("Country", f.Country || []);
     addArr("State", f.State || []);
     addArr("City", f.City || []);
     addArr("Organization", f.Organization || []);
+
     if (selectAll) {
       pairs.push({
         k: "Designation",
@@ -610,77 +667,152 @@ export default function Collab_DataTablePage() {
     } else {
       addArr("Designation", f.Designation || []);
     }
+
     addArr("Org Size", f.orgSize || []);
     addArr("Org Industry", f.orgIndustry || []);
+
     if (keyword && !selectAll) pairs.push({ k: "Keyword", v: [keyword] });
+
     return pairs;
   }, [selectedFilters]);
+
+  const getStartRowIdForPage = useCallback(
+    async (page: number) => {
+      try {
+        const res = await collaboration_getAllData_api({
+          filters: selectedFilters,
+          page,
+          userId: user?._id,
+          limit: PAGE_SIZE,
+        });
+
+        const ids = (res?.data?.cleaned || [])
+          .map((r: any) => Number(r?.row_id))
+          .filter((n: number) => Number.isFinite(n) && n > 0);
+
+        return ids.length ? Math.min(...ids) : 0;
+      } catch {
+        return 0;
+      }
+    },
+    [selectedFilters, user?._id]
+  );
+
+  const resolveStartRowIdForPage = useCallback(
+    async (page: number) => {
+      setResolvingStartId(true);
+      try {
+        const id = await getStartRowIdForPage(page);
+        setStartRowId(id);
+      } finally {
+        setResolvingStartId(false);
+      }
+    },
+    [getStartRowIdForPage]
+  );
+
+  const resolveStartRowIdForPageRef = useRef(resolveStartRowIdForPage);
+  useEffect(() => {
+    resolveStartRowIdForPageRef.current = resolveStartRowIdForPage;
+  }, [resolveStartRowIdForPage]);
+
+  const debouncedResolveStartRowIdForPage = useRef(
+    debounce((page: number) => {
+      resolveStartRowIdForPageRef.current(page);
+    }, 300)
+  ).current;
+
+  useEffect(() => {
+    return () => debouncedResolveStartRowIdForPage.cancel();
+  }, [debouncedResolveStartRowIdForPage]);
+
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+
+    setBulkStartPage(pageNumber);
+    setBulkEndPage(pageNumber);
+
+    setResolvingStartId(true);
+    debouncedResolveStartRowIdForPage.cancel();
+    debouncedResolveStartRowIdForPage(pageNumber);
+  }, [bulkConfigVisible, pageNumber, selectedFilters]);
+
+  const handleBulkStartPageChange = (e: any) => {
+    setBulkPageTyping(true);
+
+    const rawStr = String(e.target.value ?? "");
+    const raw = Number(rawStr);
+    const val = Number.isFinite(raw) ? raw : 1;
+
+    const clamped = Math.max(1, Math.min(val, totalPages));
+    setBulkStartPage(clamped);
+    setBulkEndPage((prev) => Math.max(clamped, prev));
+
+    setResolvingStartId(true);
+    debouncedResolveStartRowIdForPage.cancel();
+    debouncedResolveStartRowIdForPage(clamped);
+
+    window.clearTimeout((handleBulkStartPageChange as any)._t);
+    (handleBulkStartPageChange as any)._t = window.setTimeout(() => {
+      setBulkPageTyping(false);
+    }, 350);
+  };
+
+  const handleBulkEndPageChange = (e: any) => {
+    const raw = Number(e.target.value);
+    const val = Number.isFinite(raw) ? raw : bulkStartPage;
+    const maxEnd = Math.min(bulkStartPage + MAX_BULK_PAGES - 1, totalPages);
+    const clamped = Math.max(bulkStartPage, Math.min(val, maxEnd));
+    setBulkEndPage(clamped);
+  };
+
+  const pagesToAdd = bulkEndPage - bulkStartPage + 1;
+  const rowsToAdd = pagesToAdd * PAGE_SIZE;
 
   const openAddToList = () => {
     if (selectedProfile.length > 0) {
       setAddMode("selected");
-      setBulkConfig(null);
       setModalVisible(true);
       return;
     }
-    const ids = (entries || [])
-      .map((e: any) => Number(e?.row_id))
-      .filter((n: any) => Number.isFinite(n) && n > 0);
-    const startId = ids.length ? Math.min(...ids) : 0;
-    setBulkStartRowId(startId);
-    const maxRows = 500;
-    setBulkRows(Math.min(PAGE_SIZE, maxRows));
-    setBulkPages(1);
-    setBulkConfig(null);
     setBulkConfigVisible(true);
   };
 
-  const maxRows = 500;
-  const maxPages = Math.max(1, Math.floor(maxRows / PAGE_SIZE));
-
-  const handleBulkRowsChange = (val: number) => {
-    const n = Math.min(Math.max(Number(val) || 1, 1), maxRows);
-    setBulkRows(n);
-    setBulkPages(Math.min(maxPages, Math.max(1, Math.ceil(n / PAGE_SIZE))));
-  };
-
-  const handleBulkPagesChange = (val: number) => {
-    const p = Math.min(Math.max(Number(val) || 1, 1), maxPages);
-    setBulkPages(p);
-    const rows = Math.min(p * PAGE_SIZE, maxRows);
-    setBulkRows(rows);
-  };
-
   const proceedBulk = () => {
-    if (!bulkRows || bulkRows < 1) return;
-    setBulkConfig({
+    if (bulkEndPage < bulkStartPage || pagesToAdd > MAX_BULK_PAGES) return;
+
+    const take = pagesToAdd * PAGE_SIZE;
+
+    setBulkPayload({
       filters: selectedFilters,
-      take: bulkRows,
-      startRowId: bulkStartRowId,
+      take,
+      startRowId,
     });
-    setAddMode("bulk");
+
     setBulkConfigVisible(false);
+    setAddMode("bulk");
     setModalVisible(true);
   };
 
-  const bulkRowsExactPages = bulkRows > 0 && bulkRows % PAGE_SIZE === 0;
+  const matchedValue = useMemo(() => {
+    const m = Number(addResult?.matched);
+    if (Number.isFinite(m) && m > 0) return m;
 
-  const handleAddedToList = (result: any) => {
-    setAddResult(result);
-    setAddResultVisible(true);
-    setSelectedProfile([]);
-  };
+    const inserted = Number(addResult?.inserted || 0);
+    const dup = Number(addResult?.duplicates || 0);
+    const fallback = inserted + dup;
+    return fallback || inserted || 0;
+  }, [addResult]);
 
   useEffect(() => {
     const initialCountries = (countries_data?.Country || []).map((x: string) => TextToCapitalize(x));
     const initialStates = (state_data?.State || []).map((x: string) => TextToCapitalize(x));
     const initialCities = (cities_data?.City || []).map((x: string) => TextToCapitalize(x));
     const initialDesignations =
-      (designation_groups_data?.Designation_Groups || []).map((x: string) => TextToCapitalize(x)) ||
-      [];
-    const initialOrgIndustry =
-      (org_industry?.org_industry || []).map((x: string) => TextToCapitalize(x)) || [];
+      (designation_groups_data?.Designation_Groups || []).map((x: string) => TextToCapitalize(x)) || [];
+    const initialOrgIndustry = (org_industry?.org_industry || []).map((x: string) => TextToCapitalize(x)) || [];
     const initialOrgSize = (org_size?.org_size || []).map((x: string) => TextToCapitalize(x)) || [];
+
     baseRef.current.Country = initialCountries;
     baseRef.current.State = initialStates;
     baseRef.current.City = initialCities;
@@ -688,6 +820,7 @@ export default function Collab_DataTablePage() {
     baseRef.current.Organization = [];
     baseRef.current.orgIndustry = initialOrgIndustry;
     baseRef.current.orgSize = initialOrgSize;
+
     setCountryOptions(initialCountries);
     setStateOptions(initialStates);
     setCityOptions(initialCities);
@@ -695,16 +828,25 @@ export default function Collab_DataTablePage() {
     setOrganizationOptions([]);
     setOrgIndustryOptions(initialOrgIndustry);
     setOrgSizeOptions(initialOrgSize);
+
     getCredit();
+
     setDraftFilters({});
     setSelectedFilters({});
     setIsDirtyFilters(false);
     setSelectAllDesignation(false);
     setRowClick(false);
+
+    setSelectedProfile([]);
+    setBulkPayload(null);
+    setAddMode("selected");
+
     loadData(1, { filter: {} });
+
     return () => {
       debouncedFetchOptions.cancel();
       debouncedGoToPage.cancel();
+      debouncedResolveStartRowIdForPage.cancel();
     };
   }, [user?._id]);
 
@@ -714,10 +856,53 @@ export default function Collab_DataTablePage() {
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
+      <style>{`
+        .lc-pill.p-multiselect { border-radius: 14px; border: 1px solid #e5e7eb; background: #fff; height: 44px; }
+        .lc-pill.p-multiselect:not(.p-disabled):hover { border-color: #d1d5db; }
+        .lc-pill.p-multiselect.p-focus { box-shadow: 0 0 0 3px rgba(243,81,20,0.18); border-color: #F35114; }
+        .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 600; }
+        .lc-pill .p-multiselect-trigger { width: 2.6rem; }
+        .lc-pill .p-placeholder { color: #6b7280; font-weight: 500; }
+
+        .lc-panel .p-multiselect-header { padding: 10px 10px; border-bottom: 1px solid #f3f4f6; }
+        .lc-panel .p-multiselect-items-wrapper { padding: 6px; }
+        .lc-panel .p-multiselect-items { padding: 4px; }
+        .lc-panel .p-multiselect-item { border-radius: 12px; }
+        .lc-panel .p-multiselect-item:hover { background: rgba(243,81,20,0.08); }
+
+        .lc-table .p-checkbox .p-checkbox-box {
+          border: 1.5px solid #9ca3af !important;
+          border-radius: 8px !important;
+          background: #fff !important;
+        }
+
+        .lc-table .p-checkbox .p-checkbox-box.p-highlight,
+        .lc-table .p-checkbox.p-highlight .p-checkbox-box {
+          background: #F35114 !important;
+          border-color: #F35114 !important;
+        }
+
+        .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+        .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
+        .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
+        .lc-table .p-checkbox.p-highlight .p-icon {
+          color: #fff !important;
+        }
+
+        .lc-modal.p-dialog { border-radius: 26px; overflow: hidden; box-shadow: 0 22px 70px rgba(0,0,0,0.20); }
+        .lc-modal .p-dialog-header { padding: 18px 18px 12px; border-bottom: 1px solid #f1f5f9; }
+        .lc-modal .p-dialog-content { padding: 18px; }
+        .lc-modal .p-dialog-header-icons .p-dialog-header-icon {
+          width: 40px; height: 40px; border-radius: 14px;
+          background: #f3f4f6; color: #111827;
+        }
+        .lc-modal .p-dialog-header-icons .p-dialog-header-icon:hover { background: #e5e7eb; }
+      `}</style>
+
       <Dialog
         header="Insufficient Credit"
         visible={visible}
-        className="p-2 bg-white w-fit max-w-[420px] lg:w-1/2 rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => {
           if (!visible) return;
           setVisible(false);
@@ -732,11 +917,13 @@ export default function Collab_DataTablePage() {
               <span className="text-sm">You have insufficient credits to view this profile(s).</span>
             </p>
           </div>
+
           <div className="mt-6 flex items-center pb-2">
             <div className="cursor-pointer w-fit m-auto">
               <button
                 onClick={() => navigate("/subscription")}
-                className="bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-lg px-6 py-2 shadow-lg shadow-orange-500/20"
+                className="transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-xl px-6 py-2.5 shadow-lg"
+                style={{ background: ORANGE, boxShadow: "0 14px 35px rgba(243,81,20,0.25)" }}
               >
                 Subscribe Now
               </button>
@@ -746,44 +933,69 @@ export default function Collab_DataTablePage() {
       </Dialog>
 
       <Dialog
-        header="Added to List"
+        header={
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ background: ORANGE }}>
+              <i className="pi pi-check text-sm" />
+            </div>
+            <div className="text-lg font-extrabold text-gray-900">Added to List</div>
+          </div>
+        }
         visible={addResultVisible}
-        className="p-2 bg-white w-[92vw] max-w-[520px] rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => setAddResultVisible(false)}
         draggable={false}
         resizable={false}
       >
-        <div className="p-2">
-          <div className="text-sm text-gray-800">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">List</span>
-              <span className="font-semibold">{addResult?.listName || "-"}</span>
+        <div className="space-y-4">
+          <div
+            className="rounded-2xl border p-4"
+            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+          >
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">LIST</div>
+            <div className="mt-1 font-extrabold uppercase" style={{ color: ORANGE }}>
+              {addResult?.listName || "-"}
             </div>
-            {"matched" in (addResult || {}) && (
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Matched</span>
-                <span className="font-semibold">{Number(addResult?.matched || 0).toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Inserted</span>
-              <span className="font-semibold">{Number(addResult?.inserted || 0).toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Skipped (duplicates)</span>
-              <span className="font-semibold">{Number(addResult?.duplicates || 0).toLocaleString()}</span>
-            </div>
-            {"lastRowId" in (addResult || {}) && (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-gray-500">Last row_id</span>
-                <span className="font-semibold">{Number(addResult?.lastRowId || 0).toLocaleString()}</span>
-              </div>
-            )}
           </div>
-          <div className="mt-4 flex justify-end">
+
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                <i className="pi pi-check text-sm" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-800">Successfully added</div>
+                <div className="text-xs text-gray-500">Contacts inserted</div>
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-green-700">{Number(addResult?.inserted || 0)}</div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Matched</span>
+              </div>
+              <div className="text-sm font-semibold text-gray-900">{matchedValue.toLocaleString()}</div>
+            </div>
+
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Inserted</span>
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {Number(addResult?.inserted || 0).toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end">
             <button
               onClick={() => setAddResultVisible(false)}
-              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="px-8 py-3 rounded-xl text-white font-semibold shadow-lg"
+              style={{ background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
             >
               Done
             </button>
@@ -794,59 +1006,84 @@ export default function Collab_DataTablePage() {
       <Dialog
         header="Add multiple pages to list"
         visible={bulkConfigVisible}
-        className="p-2 bg-white w-[92vw] max-w-[640px] rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => setBulkConfigVisible(false)}
         draggable={false}
         resizable={false}
       >
-        <div className="p-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-              <div className="text-xs text-gray-500 mb-1">Rows to add (max {maxRows})</div>
-              <input
-                type="number"
-                value={bulkRows}
-                min={1}
-                max={maxRows}
-                onChange={(e) => handleBulkRowsChange(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <div className="text-xs text-gray-500 mt-2">
-                {bulkRowsExactPages ? "=" : "≈"}{" "}
-                <span className="font-semibold">{bulkPages}</span> page(s) (page size {PAGE_SIZE})
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">PAGE RANGE</div>
+
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm font-medium text-gray-800">Start page</div>
+                <input
+                  type="number"
+                  min={1}
+                  onFocus={(e) => e.target.select()}
+                  max={totalPages}
+                  value={bulkStartPage}
+                  onChange={handleBulkStartPageChange}
+                  className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
               </div>
-            </div>
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-              <div className="text-xs text-gray-500 mb-1">Pages to add (max {maxPages})</div>
-              <input
-                type="number"
-                value={bulkPages}
-                min={1}
-                max={maxPages}
-                onChange={(e) => handleBulkPagesChange(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <div className="text-xs text-gray-500 mt-2">
-                = <span className="font-semibold">{bulkPages * PAGE_SIZE}</span> rows
+
+              <div>
+                <div className="text-sm font-medium text-gray-800">End page</div>
+                <input
+                  type="number"
+                  min={bulkStartPage}
+                  onFocus={(e) => e.target.select()}
+                  max={Math.min(bulkStartPage + MAX_BULK_PAGES - 1, totalPages)}
+                  value={bulkEndPage}
+                  onChange={handleBulkEndPageChange}
+                  className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <div className="text-xs text-gray-400 mt-2">Max {MAX_BULK_PAGES} pages</div>
               </div>
             </div>
           </div>
-          <div className="mt-3 border border-gray-200 rounded-xl p-3">
-            <div className="text-xs text-gray-500 mb-2">Starting from</div>
+
+          <div
+            className="rounded-2xl border p-4 flex items-center gap-3"
+            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+          >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ background: ORANGE }}>
+              <i className="pi pi-arrow-right text-xs" />
+            </div>
             <div className="text-sm text-gray-800">
-              row_id: <span className="font-semibold">{bulkStartRowId || 0}</span>
+              Adding{" "}
+              <span className="font-semibold" style={{ color: ORANGE }}>
+                {pagesToAdd} page(s)
+              </span>{" "}
+              →{" "}
+              <span className="font-semibold" style={{ color: ORANGE }}>
+                {rowsToAdd} rows
+              </span>
             </div>
           </div>
-          <div className="mt-3 border border-gray-200 rounded-xl p-3">
-            <div className="text-xs text-gray-500 mb-2">Selected filters</div>
+
+          <div className="rounded-2xl border border-gray-200 p-4 bg-white">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] text-gray-500 font-semibold tracking-wider">SELECTED FILTERS</div>
+
+              {!filterSummary.length && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span className="w-2 h-2 bg-gray-300 rounded-full" />
+                  <span>No filters applied</span>
+                </div>
+              )}
+            </div>
+
             {filterSummary.length ? (
-              <div className="flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2">
                 {filterSummary.map((p) => {
                   const vals = (p.v || []).slice(0, 6);
                   const more = (p.v || []).length - vals.length;
                   return (
                     <div key={p.k} className="text-sm">
-                      <span className="text-gray-600 font-semibold">{p.k}:</span>{" "}
+                      <span className="text-gray-600 font-semibold">{p.k}</span>{" "}
                       <span className="text-gray-800">
                         {vals.map((x: any) => String(x)).join(", ")}
                         {more > 0 ? ` +${more} more` : ""}
@@ -855,22 +1092,31 @@ export default function Collab_DataTablePage() {
                   );
                 })}
               </div>
-            ) : (
-              <div className="text-sm text-gray-600">No filters applied</div>
-            )}
+            ) : null}
           </div>
-          <div className="mt-4 flex items-center justify-end gap-3">
+
+          <div className="pt-2 flex items-center justify-end gap-3">
             <button
               onClick={() => setBulkConfigVisible(false)}
-              className="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
+              className="px-6 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
             >
               Cancel
             </button>
             <button
               onClick={proceedBulk}
-              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              disabled={
+                bulkPageTyping ||
+                resolvingStartId ||
+                !startRowId ||
+                pagesToAdd < 1 ||
+                pagesToAdd > MAX_BULK_PAGES ||
+                bulkStartPage < 1 ||
+                bulkEndPage < 1
+              }
+              className="px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: ORANGE }}
             >
-              Proceed
+              {resolvingStartId ? "Calculating..." : "Proceed"}
             </button>
           </div>
         </div>
@@ -881,28 +1127,32 @@ export default function Collab_DataTablePage() {
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button
               onClick={openAddToList}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/30 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+              style={{ background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
             >
               <List className="w-4 h-4" />
               <span>
-                {selectedProfile.length > 0
-                  ? `Add to List (${selectedProfile.length})`
-                  : "Add multiple pages to list"}
+                {selectedProfile.length > 0 ? `Add to List (${selectedProfile.length})` : "Add multiple pages to list"}
               </span>
             </button>
+
             <div className="relative w-full sm:w-[380px] min-w-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
                 placeholder="Search leads by name, company, or role..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
+
           <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-            <div className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap">
-              <span className="text-orange-600 font-semibold">
+            <div
+              className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
+              style={{ background: "rgba(243,81,20,0.06)", border: "1px solid rgba(243,81,20,0.20)" }}
+            >
+              <span className="font-semibold" style={{ color: ORANGE }}>
                 {totalDataCount?.toLocaleString()}
               </span>{" "}
               people
@@ -912,40 +1162,12 @@ export default function Collab_DataTablePage() {
       </div>
 
       <div className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 shadow-sm">
-        <style>{`
-          .lc-pill.p-multiselect { border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; height: 44px; }
-          .lc-pill.p-multiselect:not(.p-disabled):hover { border-color: #d1d5db; }
-          .lc-pill.p-multiselect.p-focus { box-shadow: 0 0 0 3px rgba(249,115,22,0.18); border-color: rgb(249,115,22); }
-          .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 500; }
-          .lc-pill .p-multiselect-trigger { width: 2.6rem; }
-          .lc-pill .p-placeholder { color: #6b7280; }
-          .lc-panel .p-multiselect-header { padding: 10px 10px; border-bottom: 1px solid #f3f4f6; }
-          .lc-panel .p-multiselect-items-wrapper { padding: 6px; }
-          .lc-panel .p-multiselect-items { padding: 4px; }
-          .lc-panel .p-multiselect-item { border-radius: 10px; }
-          .lc-panel .p-multiselect-item:hover { background: #fff7ed; }
-          .lc-table .p-checkbox .p-checkbox-box {
-            border: 1.5px solid #9ca3af !important;
-            border-radius: 6px !important;
-            background: #fff !important;
-          }
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight,
-          .lc-table .p-checkbox.p-highlight .p-checkbox-box {
-            background: #F35114 !important;
-            border-color: #F35114 !important;
-          }
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
-          .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
-          .lc-table .p-checkbox.p-highlight .p-icon {
-            color: #fff !important;
-          }
-        `}</style>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700 text-sm font-medium whitespace-nowrap">
             <FilterIcon className="w-4 h-4 text-gray-600" />
             <span>Filters:</span>
           </div>
+
           <div className="flex items-center gap-3 overflow-x-auto flex-1 pb-1">
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
@@ -963,12 +1185,13 @@ export default function Collab_DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="Country ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={loadingDataKey === "Country" ? "Data Loading..." : "Search for more..."}
               />
             </div>
+
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <MapPin className="w-4 h-4 text-gray-500" />
@@ -985,12 +1208,13 @@ export default function Collab_DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="State ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={loadingDataKey === "State" ? "Data Loading..." : "Search for more..."}
               />
             </div>
+
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <MapPin className="w-4 h-4 text-gray-500" />
@@ -1007,12 +1231,13 @@ export default function Collab_DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="City ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={loadingDataKey === "City" ? "Data Loading..." : "Search for more..."}
               />
             </div>
+
             <div className="relative min-w-[180px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Briefcase className="w-4 h-4 text-gray-500" />
@@ -1028,7 +1253,7 @@ export default function Collab_DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel={designationSelectedItemsLabel}
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 showSelectAll={showDesignationSelectAll}
@@ -1036,6 +1261,7 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "Designation" ? "Data Loading..." : "Search for more..."}
               />
             </div>
+
             <div className="relative min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Building2 className="w-4 h-4 text-gray-500" />
@@ -1052,12 +1278,13 @@ export default function Collab_DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="Organization ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={loadingDataKey === "Organization" ? "Data Loading..." : "Search for more..."}
               />
             </div>
+
             {!isFree && (
               <>
                 <div className="relative min-w-[160px]">
@@ -1076,12 +1303,13 @@ export default function Collab_DataTablePage() {
                     maxSelectedLabels={0}
                     selectedItemsLabel="Org Industry ({0})"
                     className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-xl"
+                    panelClassName="lc-panel rounded-2xl"
                     dropdownIcon="pi pi-chevron-down"
                     itemClassName={dropdownItemClass}
                     emptyMessage={loadingDataKey === "orgIndustry" ? "Data Loading..." : "Search for more..."}
                   />
                 </div>
+
                 <div className="relative min-w-[160px]">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                     <Users className="w-4 h-4 text-gray-500" />
@@ -1098,7 +1326,7 @@ export default function Collab_DataTablePage() {
                     maxSelectedLabels={0}
                     selectedItemsLabel="Org Size ({0})"
                     className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-xl"
+                    panelClassName="lc-panel rounded-2xl"
                     dropdownIcon="pi pi-chevron-down"
                     itemClassName={dropdownItemClass}
                     emptyMessage={loadingDataKey === "orgSize" ? "Data Loading..." : "Search for more..."}
@@ -1107,15 +1335,19 @@ export default function Collab_DataTablePage() {
               </>
             )}
           </div>
+
           <div className="flex items-center gap-3">
             <button
               onClick={runSearch}
               disabled={!isDirtyFilters || loading}
-              className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm ${
-                !isDirtyFilters || loading
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20"
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
+                !isDirtyFilters || loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "text-white"
               }`}
+              style={
+                !isDirtyFilters || loading
+                  ? {}
+                  : { background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.18)" }
+              }
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -1126,6 +1358,7 @@ export default function Collab_DataTablePage() {
                 "Search"
               )}
             </button>
+
             <button
               onClick={clearAllFilters}
               className="text-sm font-medium text-gray-700 hover:text-orange-600 whitespace-nowrap"
@@ -1137,11 +1370,11 @@ export default function Collab_DataTablePage() {
       </div>
 
       <div className="p-6 lg:p-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <Dialog
-            header={addMode === "bulk" ? "Add filtered rows to list" : "Add selected profiles to list"}
+            header="Add contacts to list"
             visible={modalVisible}
-            className="p-2 bg-white w-[92vw] lg:w-1/2 rounded-xl"
+            className="lc-modal w-[92vw] max-w-[520px]"
             onHide={() => setModalVisible(false)}
             draggable={false}
             resizable={false}
@@ -1149,9 +1382,14 @@ export default function Collab_DataTablePage() {
             <CollaboratorAddToListComponent
               mode={addMode}
               people={addMode === "selected" ? selectedProfile : []}
-              bulk={addMode === "bulk" ? bulkConfig : null}
+              bulk={addMode === "bulk" ? bulkPayload : null}
               onClose={() => setModalVisible(false)}
-              onComplete={handleAddedToList}
+              onComplete={(result) => {
+                setAddResult(result);
+                setAddResultVisible(true);
+                setSelectedProfile([]);
+                setBulkPayload(null);
+              }}
             />
           </Dialog>
 
@@ -1250,60 +1488,66 @@ export default function Collab_DataTablePage() {
             )}
           </div>
         </div>
+
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="text-sm text-gray-600 hidden sm:flex gap-1">
             Showing{" "}
-            <span className="text-orange-600 font-semibold">
+            <span style={{ color: ORANGE }} className="font-semibold">
               {totalDataCount ? `${showingRange.start}-${showingRange.end}` : "0"}
             </span>{" "}
             of{" "}
-            <span className="text-orange-600 font-semibold">
+            <span style={{ color: ORANGE }} className="font-semibold">
               {totalDataCount?.toLocaleString()}
             </span>{" "}
             results
           </div>
+
           <div className="hidden sm:flex items-center gap-3">
             <button
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("decrease")}
             >
               Previous
             </button>
+
             <input
               type="number"
               value={pageNumber}
               max={totalPages}
-              className="w-[90px] text-center py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-[90px] text-center py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
               onChange={(e) => handleChangePageNumber(e)}
             />
+
             <button
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}
             >
               Next
             </button>
-            <div className="text-sm text-gray-500 min-w-[90px] text-right">
-              {totalPages.toLocaleString()} pages
-            </div>
+
+            <div className="text-sm text-gray-500 min-w-[90px] text-right">{totalPages.toLocaleString()} pages</div>
           </div>
+
           <div className="sm:hidden flex items-center justify-between gap-3">
             <button
-              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("decrease")}
             >
               Previous
             </button>
+
             <div className="w-[90px]">
               <input
                 type="number"
                 value={pageNumber}
                 max={totalPages}
-                className="w-full text-center py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full text-center py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
                 onChange={(e) => handleChangePageNumber(e)}
               />
             </div>
+
             <button
-              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}
             >
               Next

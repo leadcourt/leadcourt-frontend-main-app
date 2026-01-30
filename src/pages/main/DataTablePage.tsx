@@ -66,6 +66,7 @@ const dedupe = (arr: string[]) => Array.from(new Set(arr));
 
 export default function DataTablePage() {
   const PAGE_SIZE = 25;
+  const MAX_BULK_PAGES = 20;
 
   const setCreditInfo = useSetRecoilState(creditState);
   const creditInfoValue = useRecoilValue(creditState);
@@ -88,7 +89,6 @@ export default function DataTablePage() {
   const [totalDataCount, setTotalDataCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const [modalVisible, setModalVisible] = useState(false);
   const [loadRow, setLoadRow] = useState<any>({});
   const [visible, setVisible] = useState<boolean>(false);
 
@@ -121,12 +121,15 @@ export default function DataTablePage() {
   });
 
   const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
-  const [bulkRows, setBulkRows] = useState<number>(PAGE_SIZE);
-  const [bulkPages, setBulkPages] = useState<number>(1);
-  const [bulkStartRowId, setBulkStartRowId] = useState<number>(0);
+  const [bulkStartPage, setBulkStartPage] = useState(1);
+  const [bulkEndPage, setBulkEndPage] = useState(1);
+  const [startRowId, setStartRowId] = useState(0);
+  const [resolvingStartId, setResolvingStartId] = useState(false);
+  const [bulkPageTyping, setBulkPageTyping] = useState(false);
   const [addMode, setAddMode] = useState<"selected" | "bulk">("selected");
   const [bulkPayload, setBulkPayload] = useState<any>(null);
 
+  const [modalVisible, setModalVisible] = useState(false);
   const [addResultVisible, setAddResultVisible] = useState(false);
   const [addResult, setAddResult] = useState<any>(null);
 
@@ -174,13 +177,16 @@ export default function DataTablePage() {
     const payload = { ...(raw || {}) };
 
     const designationData = payload["Designation"]?.map((item: any) => {
-      if (typeof item === "string" && item.includes(" - ")) return item.split(" - ", 2)[1];
+      if (typeof item === "string" && item.includes(" - "))
+        return item.split(" - ", 2)[1];
       return item;
     });
 
     if (designationData) payload["Designation"] = designationData;
 
-    payload.selectAll = selectedFilterValue["Designation"]?.length ? selectAllDesignation : false;
+    payload.selectAll = selectedFilterValue["Designation"]?.length
+      ? selectAllDesignation
+      : false;
 
     if (selectAllDesignation) {
       payload.searchQuery = selectedFilterValue["Designation"] ?? "";
@@ -199,7 +205,7 @@ export default function DataTablePage() {
 
       try {
         const payload = {
-          filters: buildFilterPayload(filter ?? selectedFilters),
+          filters: filter ?? selectedFilters,
           page: pageNo,
           limit: PAGE_SIZE,
         };
@@ -349,7 +355,11 @@ export default function DataTablePage() {
     try {
       const res: any = await getLinkedInUrl({ row_id: id });
       if (res?.data?.linkedin_url) {
-        window.open(`https://${res.data.linkedin_url}`, "popupWindow", "width=600,height=600");
+        window.open(
+          `https://${res.data.linkedin_url}`,
+          "popupWindow",
+          "width=600,height=600"
+        );
       }
     } finally {
       setLoadRow({});
@@ -366,7 +376,12 @@ export default function DataTablePage() {
     const name = TextToCapitalize(rowData?.Name || "");
     return (
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-white font-semibold shadow-md shadow-orange-500/20">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold shadow-md"
+          style={{
+            background: "linear-gradient(135deg, #FF6A00 0%, #F35114 100%)",
+            boxShadow: "0 10px 25px rgba(243,81,20,0.22)",
+          }}
+        >
           {initials(name)}
         </div>
         <div className="font-medium text-gray-900">{name}</div>
@@ -375,15 +390,23 @@ export default function DataTablePage() {
   };
 
   const showDesignation = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Designation || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Designation || "")}
+    </div>
   );
+
+  const revealBtn =
+    "px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-2 text-white transition-colors";
+  const revealBtnStyle = { background: "#F35114" as any };
+  const revealBtnHover = "hover:brightness-95";
 
   const showPhone = (rowData: any) => (
     <div>
       {!rowData?.Phone ? (
         <button
           onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          className={`${revealBtn} ${revealBtnHover}`}
+          style={revealBtnStyle}
         >
           {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -403,7 +426,8 @@ export default function DataTablePage() {
       {!rowData?.Email ? (
         <button
           onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          className={`${revealBtn} ${revealBtnHover}`}
+          style={revealBtnStyle}
         >
           {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -423,16 +447,22 @@ export default function DataTablePage() {
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
-        className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
+        className="inline-flex items-center justify-center w-9 h-9 rounded-xl"
+        style={{ background: "rgba(59,130,246,0.10)" }}
         title="Open LinkedIn"
       >
-        <i className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`} />
+        <i
+          className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"}`}
+          style={{ color: "#2563EB" }}
+        />
       </button>
     );
   };
 
   const showOrganization = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Organization || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Organization || "")}
+    </div>
   );
 
   const showOrgIndustry = (rowData: any) => {
@@ -656,7 +686,9 @@ export default function DataTablePage() {
 
   const designationSearchValue = String(selectedFilterValue?.Designation || "").trim();
   const showDesignationSelectAll = Boolean(designationSearchValue);
-  const designationSelectedItemsLabel = selectAllDesignation ? "Designation (All)" : "Designation ({0})";
+  const designationSelectedItemsLabel = selectAllDesignation
+    ? "Designation (All)"
+    : "Designation ({0})";
 
   const filterSummary = useMemo(() => {
     const f = selectedFilters || {};
@@ -691,65 +723,139 @@ export default function DataTablePage() {
     return pairs;
   }, [selectedFilters]);
 
+  const getStartRowIdForPage = useCallback(
+    async (page: number) => {
+      try {
+        const res = await getAllData({
+          filters: selectedFilters,
+          page,
+          limit: PAGE_SIZE,
+        });
+
+        const ids = (res?.data?.cleaned || [])
+          .map((r: any) => Number(r?.row_id))
+          .filter((n: number) => Number.isFinite(n) && n > 0);
+
+        return ids.length ? Math.min(...ids) : 0;
+      } catch {
+        return 0;
+      }
+    },
+    [selectedFilters]
+  );
+
+  const resolveStartRowIdForPage = useCallback(
+    async (page: number) => {
+      setResolvingStartId(true);
+      try {
+        const id = await getStartRowIdForPage(page);
+        setStartRowId(id);
+      } finally {
+        setResolvingStartId(false);
+      }
+    },
+    [getStartRowIdForPage]
+  );
+
+  const resolveStartRowIdForPageRef = useRef(resolveStartRowIdForPage);
+  useEffect(() => {
+    resolveStartRowIdForPageRef.current = resolveStartRowIdForPage;
+  }, [resolveStartRowIdForPage]);
+
+  const debouncedResolveStartRowIdForPage = useRef(
+    debounce((page: number) => {
+      resolveStartRowIdForPageRef.current(page);
+    }, 300)
+  ).current;
+
+  useEffect(() => {
+    return () => debouncedResolveStartRowIdForPage.cancel();
+  }, [debouncedResolveStartRowIdForPage]);
+
+
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+
+    setBulkStartPage(pageNumber);
+    setBulkEndPage(pageNumber);
+
+    setResolvingStartId(true);
+    debouncedResolveStartRowIdForPage.cancel();
+    debouncedResolveStartRowIdForPage(pageNumber);
+  }, [bulkConfigVisible, pageNumber, selectedFilters]);
+
+  const handleBulkStartPageChange = (e: any) => {
+    setBulkPageTyping(true);
+
+    const rawStr = String(e.target.value ?? "");
+    const raw = Number(rawStr);
+    const val = Number.isFinite(raw) ? raw : 1;
+
+    const clamped = Math.max(1, Math.min(val, totalPages));
+    setBulkStartPage(clamped);
+    setBulkEndPage((prev) => Math.max(clamped, prev));
+
+    setResolvingStartId(true);
+    debouncedResolveStartRowIdForPage.cancel();
+    debouncedResolveStartRowIdForPage(clamped);
+
+    window.clearTimeout((handleBulkStartPageChange as any)._t);
+    (handleBulkStartPageChange as any)._t = window.setTimeout(() => {
+      setBulkPageTyping(false);
+    }, 350);
+  };
+
+  const handleBulkEndPageChange = (e: any) => {
+    const raw = Number(e.target.value);
+    const val = Number.isFinite(raw) ? raw : bulkStartPage;
+    const maxEnd = Math.min(bulkStartPage + MAX_BULK_PAGES - 1, totalPages);
+    const clamped = Math.max(bulkStartPage, Math.min(val, maxEnd));
+    setBulkEndPage(clamped);
+  };
+
+  const pagesToAdd = bulkEndPage - bulkStartPage + 1;
+  const rowsToAdd = pagesToAdd * PAGE_SIZE;
+
   const openAddToList = () => {
     if (selectedProfile.length > 0) {
       setAddMode("selected");
       setModalVisible(true);
       return;
     }
-
-    const ids = (entries || [])
-      .map((e: any) => Number(e?.row_id))
-      .filter((n: any) => Number.isFinite(n) && n > 0);
-
-    const startId = ids.length ? Math.min(...ids) : 0;
-    setBulkStartRowId(startId);
-
-    const maxRows = 500;
-
-    setBulkRows(Math.min(PAGE_SIZE, maxRows));
-    setBulkPages(1);
-
-    setBulkPayload(null);
     setBulkConfigVisible(true);
   };
 
-  const maxRows = 500;
-  const maxPages = Math.max(1, Math.floor(maxRows / PAGE_SIZE));
-
-  const handleBulkRowsChange = (val: number) => {
-    const n = Math.min(Math.max(Number(val) || 1, 1), maxRows);
-    setBulkRows(n);
-    setBulkPages(Math.min(maxPages, Math.max(1, Math.ceil(n / PAGE_SIZE))));
-  };
-
-  const handleBulkPagesChange = (val: number) => {
-    const p = Math.min(Math.max(Number(val) || 1, 1), maxPages);
-    setBulkPages(p);
-    const rows = Math.min(p * PAGE_SIZE, maxRows);
-    setBulkRows(rows);
-  };
-
   const proceedBulk = () => {
-    if (!bulkRows || bulkRows < 1) return;
-    setAddMode("bulk");
+    if (bulkEndPage < bulkStartPage || pagesToAdd > MAX_BULK_PAGES) return;
+
+    const take = pagesToAdd * PAGE_SIZE;
+
     setBulkPayload({
       filters: selectedFilters,
-      take: bulkRows,
-      startRowId: bulkStartRowId,
+      take,
+      startRowId,
     });
     setBulkConfigVisible(false);
+    setAddMode("bulk");
     setModalVisible(true);
   };
 
-  const bulkRowsExactPages = bulkRows > 0 && bulkRows % PAGE_SIZE === 0;
+  const matchedValue = useMemo(() => {
+    const m = Number(addResult?.matched);
+    if (Number.isFinite(m) && m > 0) return m;
+
+    const inserted = Number(addResult?.inserted || 0);
+    const dup = Number(addResult?.duplicates || 0);
+    const fallback = inserted + dup;
+    return fallback || inserted || 0;
+  }, [addResult]);
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
       <Dialog
         header="Insufficient Credit"
         visible={visible}
-        className="p-2 bg-white w-fit max-w-[420px] lg:w-1/2 rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => {
           if (!visible) return;
           setVisible(false);
@@ -769,7 +875,8 @@ export default function DataTablePage() {
             <div className="cursor-pointer w-fit m-auto">
               <button
                 onClick={() => navigate("/subscription")}
-                className="bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-lg px-6 py-2 shadow-lg shadow-orange-500/20"
+                className="transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-xl px-6 py-2.5 shadow-lg"
+                style={{ background: "#F35114", boxShadow: "0 14px 35px rgba(243,81,20,0.25)" }}
               >
                 Subscribe Now
               </button>
@@ -779,49 +886,76 @@ export default function DataTablePage() {
       </Dialog>
 
       <Dialog
-        header="Added to List"
+        header={
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+              style={{ background: "#F35114" }}
+            >
+              <i className="pi pi-check text-sm" />
+            </div>
+            <div className="text-lg font-extrabold text-gray-900">Added to List</div>
+          </div>
+        }
         visible={addResultVisible}
-        className="p-2 bg-white w-[92vw] max-w-[520px] rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => setAddResultVisible(false)}
         draggable={false}
         resizable={false}
       >
-        <div className="p-2">
-          <div className="text-sm text-gray-800">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">List</span>
-              <span className="font-semibold">{addResult?.listName || "-"}</span>
+        <div className="space-y-4">
+          <div
+            className="rounded-2xl border p-4"
+            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+          >
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">LIST</div>
+            <div className="mt-1 font-extrabold uppercase" style={{ color: "#F35114" }}>
+              {addResult?.listName || "-"}
             </div>
-
-            {"matched" in (addResult || {}) && (
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Matched</span>
-                <span className="font-semibold">{Number(addResult?.matched || 0).toLocaleString()}</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Inserted</span>
-              <span className="font-semibold">{Number(addResult?.inserted || 0).toLocaleString()}</span>
-            </div>
-
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Skipped (duplicates)</span>
-              <span className="font-semibold">{Number(addResult?.duplicates || 0).toLocaleString()}</span>
-            </div>
-
-            {"lastRowId" in (addResult || {}) && (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-gray-500">Last row_id</span>
-                <span className="font-semibold">{Number(addResult?.lastRowId || 0).toLocaleString()}</span>
-              </div>
-            )}
           </div>
 
-          <div className="mt-4 flex justify-end">
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                <i className="pi pi-check text-sm" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-800">Successfully added</div>
+                <div className="text-xs text-gray-500">Contacts inserted</div>
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-green-700">
+              {Number(addResult?.inserted || 0)}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Matched</span>
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {matchedValue.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Inserted</span>
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {Number(addResult?.inserted || 0).toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end">
             <button
               onClick={() => setAddResultVisible(false)}
-              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="px-8 py-3 rounded-xl text-white font-semibold shadow-lg"
+              style={{ background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
             >
               Done
             </button>
@@ -832,62 +966,91 @@ export default function DataTablePage() {
       <Dialog
         header="Add multiple pages to list"
         visible={bulkConfigVisible}
-        className="p-2 bg-white w-[92vw] max-w-[640px] rounded-xl"
+        className="lc-modal w-[92vw] max-w-[520px]"
         onHide={() => setBulkConfigVisible(false)}
         draggable={false}
         resizable={false}
       >
-        <div className="p-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-              <div className="text-xs text-gray-500 mb-1">Rows to add (max {maxRows})</div>
-              <input
-                type="number"
-                value={bulkRows}
-                min={1}
-                max={maxRows}
-                onChange={(e) => handleBulkRowsChange(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <div className="text-xs text-gray-500 mt-2">
-                {bulkRowsExactPages ? "=" : "≈"}{" "}
-                <span className="font-semibold">{bulkPages}</span> page(s) (page size {PAGE_SIZE})
-              </div>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">
+              PAGE RANGE
             </div>
 
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-              <div className="text-xs text-gray-500 mb-1">Pages to add (max {maxPages})</div>
-              <input
-                type="number"
-                value={bulkPages}
-                min={1}
-                max={maxPages}
-                onChange={(e) => handleBulkPagesChange(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <div className="text-xs text-gray-500 mt-2">
-                = <span className="font-semibold">{bulkPages * PAGE_SIZE}</span> rows
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm font-medium text-gray-800">Start page</div>
+                <input
+                  type="number"
+                  min={1}
+                  onFocus={(e) => e.target.select()}
+                  max={totalPages}
+                  value={bulkStartPage}
+                  onChange={handleBulkStartPageChange}
+                  className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-gray-800">End page</div>
+                <input
+                  type="number"
+                  min={bulkStartPage}
+                  onFocus={(e) => e.target.select()}
+                  max={Math.min(bulkStartPage + MAX_BULK_PAGES - 1, totalPages)}
+                  value={bulkEndPage}
+                  onChange={handleBulkEndPageChange}
+                  className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <div className="text-xs text-gray-400 mt-2">Max {MAX_BULK_PAGES} pages</div>
               </div>
             </div>
           </div>
 
-          <div className="mt-3 border border-gray-200 rounded-xl p-3">
-            <div className="text-xs text-gray-500 mb-2">Starting from</div>
+          <div
+            className="rounded-2xl border p-4 flex items-center gap-3"
+            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white"
+              style={{ background: "#F35114" }}
+            >
+              <i className="pi pi-arrow-right text-xs" />
+            </div>
             <div className="text-sm text-gray-800">
-              row_id: <span className="font-semibold">{bulkStartRowId || 0}</span>
+              Adding{" "}
+              <span className="font-semibold" style={{ color: "#F35114" }}>
+                {pagesToAdd} page(s)
+              </span>{" "}
+              →{" "}
+              <span className="font-semibold" style={{ color: "#F35114" }}>
+                {rowsToAdd} rows
+              </span>
             </div>
           </div>
 
-          <div className="mt-3 border border-gray-200 rounded-xl p-3">
-            <div className="text-xs text-gray-500 mb-2">Selected filters</div>
+          <div className="rounded-2xl border border-gray-200 p-4 bg-white">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] text-gray-500 font-semibold tracking-wider">
+                SELECTED FILTERS
+              </div>
+
+              {!filterSummary.length && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span className="w-2 h-2 bg-gray-300 rounded-full" />
+                  <span>No filters applied</span>
+                </div>
+              )}
+            </div>
+
             {filterSummary.length ? (
-              <div className="flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2">
                 {filterSummary.map((p) => {
                   const vals = (p.v || []).slice(0, 6);
                   const more = (p.v || []).length - vals.length;
                   return (
                     <div key={p.k} className="text-sm">
-                      <span className="text-gray-600 font-semibold">{p.k}:</span>{" "}
+                      <span className="text-gray-600 font-semibold">{p.k}</span>{" "}
                       <span className="text-gray-800">
                         {vals.map((x: any) => String(x)).join(", ")}
                         {more > 0 ? ` +${more} more` : ""}
@@ -896,23 +1059,31 @@ export default function DataTablePage() {
                   );
                 })}
               </div>
-            ) : (
-              <div className="text-sm text-gray-600">No filters applied</div>
-            )}
+            ) : null}
           </div>
 
-          <div className="mt-4 flex items-center justify-end gap-3">
+          <div className="pt-2 flex items-center justify-end gap-3">
             <button
               onClick={() => setBulkConfigVisible(false)}
-              className="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
+              className="px-6 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
             >
               Cancel
             </button>
             <button
               onClick={proceedBulk}
-              className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              disabled={
+                bulkPageTyping ||
+                resolvingStartId ||
+                !startRowId ||
+                pagesToAdd < 1 ||
+                pagesToAdd > MAX_BULK_PAGES ||
+                bulkStartPage < 1 ||
+                bulkEndPage < 1
+              }
+              className="px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "#F35114" }}
             >
-              Proceed
+              {resolvingStartId ? "Calculating..." : "Proceed"}
             </button>
           </div>
         </div>
@@ -923,7 +1094,8 @@ export default function DataTablePage() {
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button
               onClick={openAddToList}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/30 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+              style={{ background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
             >
               <List className="w-4 h-4" />
               <span>
@@ -939,14 +1111,17 @@ export default function DataTablePage() {
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
                 placeholder="Search leads by name, company, or role..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-            <div className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap">
-              <span className="text-orange-600 font-semibold">
+            <div
+              className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
+              style={{ background: "rgba(243,81,20,0.06)", border: "1px solid rgba(243,81,20,0.20)" }}
+            >
+              <span className="font-semibold" style={{ color: "#F35114" }}>
                 {totalDataCount?.toLocaleString()}
               </span>{" "}
               people
@@ -957,22 +1132,22 @@ export default function DataTablePage() {
 
       <div className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 shadow-sm">
         <style>{`
-          .lc-pill.p-multiselect { border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; height: 44px; }
+          .lc-pill.p-multiselect { border-radius: 14px; border: 1px solid #e5e7eb; background: #fff; height: 44px; }
           .lc-pill.p-multiselect:not(.p-disabled):hover { border-color: #d1d5db; }
-          .lc-pill.p-multiselect.p-focus { box-shadow: 0 0 0 3px rgba(249,115,22,0.18); border-color: rgb(249,115,22); }
-          .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 500; }
+          .lc-pill.p-multiselect.p-focus { box-shadow: 0 0 0 3px rgba(243,81,20,0.18); border-color: #F35114; }
+          .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 600; }
           .lc-pill .p-multiselect-trigger { width: 2.6rem; }
-          .lc-pill .p-placeholder { color: #6b7280; }
+          .lc-pill .p-placeholder { color: #6b7280; font-weight: 500; }
 
           .lc-panel .p-multiselect-header { padding: 10px 10px; border-bottom: 1px solid #f3f4f6; }
           .lc-panel .p-multiselect-items-wrapper { padding: 6px; }
           .lc-panel .p-multiselect-items { padding: 4px; }
-          .lc-panel .p-multiselect-item { border-radius: 10px; }
-          .lc-panel .p-multiselect-item:hover { background: #fff7ed; }
+          .lc-panel .p-multiselect-item { border-radius: 12px; }
+          .lc-panel .p-multiselect-item:hover { background: rgba(243,81,20,0.08); }
 
           .lc-table .p-checkbox .p-checkbox-box {
             border: 1.5px solid #9ca3af !important;
-            border-radius: 6px !important;
+            border-radius: 8px !important;
             background: #fff !important;
           }
 
@@ -988,6 +1163,15 @@ export default function DataTablePage() {
           .lc-table .p-checkbox.p-highlight .p-icon {
             color: #fff !important;
           }
+
+          .lc-modal.p-dialog { border-radius: 26px; overflow: hidden; box-shadow: 0 22px 70px rgba(0,0,0,0.20); }
+          .lc-modal .p-dialog-header { padding: 18px 18px 12px; border-bottom: 1px solid #f1f5f9; }
+          .lc-modal .p-dialog-content { padding: 18px; }
+          .lc-modal .p-dialog-header-icons .p-dialog-header-icon {
+            width: 40px; height: 40px; border-radius: 14px;
+            background: #f3f4f6; color: #111827;
+          }
+          .lc-modal .p-dialog-header-icons .p-dialog-header-icon:hover { background: #e5e7eb; }
         `}</style>
 
         <div className="flex items-center gap-4">
@@ -1013,7 +1197,7 @@ export default function DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="Country ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
               />
@@ -1035,7 +1219,7 @@ export default function DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="State ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
               />
@@ -1057,7 +1241,7 @@ export default function DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="City ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
               />
@@ -1078,7 +1262,7 @@ export default function DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel={designationSelectedItemsLabel}
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 showSelectAll={showDesignationSelectAll}
@@ -1102,7 +1286,7 @@ export default function DataTablePage() {
                 maxSelectedLabels={0}
                 selectedItemsLabel="Organization ({0})"
                 className="lc-pill w-full"
-                panelClassName="lc-panel rounded-xl"
+                panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
               />
@@ -1126,7 +1310,7 @@ export default function DataTablePage() {
                     maxSelectedLabels={0}
                     selectedItemsLabel="Org Industry ({0})"
                     className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-xl"
+                    panelClassName="lc-panel rounded-2xl"
                     dropdownIcon="pi pi-chevron-down"
                     itemClassName={dropdownItemClass}
                   />
@@ -1148,7 +1332,7 @@ export default function DataTablePage() {
                     maxSelectedLabels={0}
                     selectedItemsLabel="Org Size ({0})"
                     className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-xl"
+                    panelClassName="lc-panel rounded-2xl"
                     dropdownIcon="pi pi-chevron-down"
                     itemClassName={dropdownItemClass}
                   />
@@ -1161,11 +1345,12 @@ export default function DataTablePage() {
             <button
               onClick={runSearch}
               disabled={!isDirtyFilters || loading}
-              className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm ${
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
                 !isDirtyFilters || loading
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20"
+                  : "text-white"
               }`}
+              style={!isDirtyFilters || loading ? {} : { background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.18)" }}
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -1188,11 +1373,11 @@ export default function DataTablePage() {
       </div>
 
       <div className="p-6 lg:p-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <Dialog
-            header={addMode === "bulk" ? "Add filtered rows to list" : "Add selected profiles to list"}
+            header="Add contacts to list"
             visible={modalVisible}
-            className="p-2 bg-white w-[92vw] lg:w-1/2 rounded-xl"
+            className="lc-modal w-[92vw] max-w-[520px]"
             onHide={() => setModalVisible(false)}
             draggable={false}
             resizable={false}
@@ -1310,11 +1495,11 @@ export default function DataTablePage() {
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="text-sm text-gray-600 hidden sm:flex gap-1">
             Showing{" "}
-            <span className="text-orange-600 font-semibold">
+            <span style={{ color: "#F35114" }} className="font-semibold">
               {totalDataCount ? `${showingRange.start}-${showingRange.end}` : "0"}
             </span>{" "}
             of{" "}
-            <span className="text-orange-600 font-semibold">
+            <span style={{ color: "#F35114" }} className="font-semibold">
               {totalDataCount?.toLocaleString()}
             </span>{" "}
             results
@@ -1322,7 +1507,7 @@ export default function DataTablePage() {
 
           <div className="hidden sm:flex items-center gap-3">
             <button
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("decrease")}
             >
               Previous
@@ -1332,12 +1517,12 @@ export default function DataTablePage() {
               type="number"
               value={pageNumber}
               max={totalPages}
-              className="w-[90px] text-center py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-[90px] text-center py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
               onChange={(e) => handleChangePageNumber(e)}
             />
 
             <button
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}
             >
               Next
@@ -1350,7 +1535,7 @@ export default function DataTablePage() {
 
           <div className="sm:hidden flex items-center justify-between gap-3">
             <button
-              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("decrease")}
             >
               Previous
@@ -1361,13 +1546,13 @@ export default function DataTablePage() {
                 type="number"
                 value={pageNumber}
                 max={totalPages}
-                className="w-full text-center py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full text-center py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
                 onChange={(e) => handleChangePageNumber(e)}
               />
             </div>
 
             <button
-              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-700 text-sm font-medium"
+              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}
             >
               Next
