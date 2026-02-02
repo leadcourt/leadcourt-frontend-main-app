@@ -20,7 +20,6 @@ import {
   List,
   Users,
 } from "lucide-react";
-
 import { searchOption, searchOptionDesignation } from "../../utils/api/data";
 import { getCollabCreditBalance } from "../../utils/api/collaborationAPI";
 import {
@@ -28,7 +27,6 @@ import {
   collaboration_getLinkedInUrl_api,
   collaboration_showPhoneAndEmail_api,
 } from "../../utils/api/collaborationData";
-
 import {
   collabCreditState,
   collabProjectState,
@@ -36,7 +34,6 @@ import {
 import CollaboratorAddToListComponent from "../../component/collaborator/CollaboratorAddToListComponent";
 import TextToCapitalize from "../../component/TextToCapital";
 import noDataImg from "../../assets/icons/nodataImage.jpg";
-
 import { countries_data } from "../../utils/data/countries";
 import { cities_data } from "../../utils/data/city";
 import { state_data } from "../../utils/data/states";
@@ -137,12 +134,28 @@ export default function Collab_DataTablePage() {
   const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
   const [bulkStartPage, setBulkStartPage] = useState(1);
   const [bulkEndPage, setBulkEndPage] = useState(1);
+
   const [startRowId, setStartRowId] = useState(0);
+  const [startRowIdPage, setStartRowIdPage] = useState<number | null>(null);
   const [resolvingStartId, setResolvingStartId] = useState(false);
+
   const [bulkPageTyping, setBulkPageTyping] = useState(false);
+  const bulkTypingTimerRef = useRef<number | null>(null);
 
   const [addResultVisible, setAddResultVisible] = useState(false);
   const [addResult, setAddResult] = useState<any>(null);
+
+  // startRowId resolver safety
+  const startIdReqRef = useRef(0);
+  const startIdCacheRef = useRef<Record<string, number>>({});
+
+  const invalidateStartIdResolver = useCallback(() => {
+    startIdReqRef.current += 1; // makes any in-flight response stale
+  }, []);
+
+  const clearStartIdCache = useCallback(() => {
+    startIdCacheRef.current = {};
+  }, []);
 
   const columns = [
     { field: "Name", header: "NAME" },
@@ -186,20 +199,15 @@ export default function Collab_DataTablePage() {
 
   const buildFilterPayload = (raw: any) => {
     const payload = { ...(raw || {}) };
-
     const designationData = payload["Designation"]?.map((item: any) => {
       if (typeof item === "string" && item.includes(" - ")) return item.split(" - ", 2)[1];
       return item;
     });
-
     if (designationData) payload["Designation"] = designationData;
-
     payload.selectAll = selectedFilterValue["Designation"]?.length ? selectAllDesignation : false;
-
     if (selectAllDesignation) {
       payload.searchQuery = selectedFilterValue["Designation"] ?? "";
     }
-
     return payload;
   };
 
@@ -209,7 +217,6 @@ export default function Collab_DataTablePage() {
     async (pageNo: number, { filter }: LoadDataOptions = {}) => {
       const fetchId = ++fetchIdRef.current;
       setLoading(true);
-
       try {
         const payload = {
           filters: buildFilterPayload(filter ?? selectedFilters),
@@ -217,16 +224,12 @@ export default function Collab_DataTablePage() {
           userId: user?._id,
           limit: PAGE_SIZE,
         };
-
         const res = await collaboration_getAllData_api(payload);
-
         if (fetchId !== fetchIdRef.current) return;
-
         const data =
           res?.data?.cleaned?.sort((a: Person, b: Person) =>
             (a?.Name || "").localeCompare(b?.Name || "")
           ) || [];
-
         setTotalDataCount(res?.data?.count || 0);
         setEntries(data);
       } catch (err) {
@@ -237,7 +240,7 @@ export default function Collab_DataTablePage() {
         if (fetchId === fetchIdRef.current) setLoading(false);
       }
     },
-    [selectedFilters, selectAllDesignation, selectedFilterValue, user?._id]
+    [selectedFilters, user?._id]
   );
 
   const selectedFiltersRef = useRef<any>(selectedFilters);
@@ -271,6 +274,9 @@ export default function Collab_DataTablePage() {
 
   const runSearch = () => {
     debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
     const payload = buildFilterPayload(draftFilters);
     setSelectedFilters(payload);
     setIsDirtyFilters(false);
@@ -280,6 +286,8 @@ export default function Collab_DataTablePage() {
 
   const clearAllFilters = () => {
     debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
 
     setDraftFilters({});
     setSelectedFilters({});
@@ -340,17 +348,14 @@ export default function Collab_DataTablePage() {
     try {
       const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
       if (res?.data?.error) setVisible(true);
-
       const updated = entries.map((entry: any) =>
         entry.row_id === id ? { ...entry, ...(res?.data?.results?.[0] || {}) } : entry
       );
-
       setCreditInfo({
         id: user?._id ?? "",
         credits: res?.data?.remainingCredits || 0,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
-
       setEntries(updated);
     } catch (err) {
       setLoadRow({});
@@ -480,9 +485,11 @@ export default function Collab_DataTablePage() {
   const showCity = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.City || "")}</div>
   );
+
   const showState = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.State || "")}</div>
   );
+
   const showCountry = (rowData: any) => (
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Country || "")}</div>
   );
@@ -502,12 +509,10 @@ export default function Collab_DataTablePage() {
           field: field === "Designation" ? "designation" : field,
           query,
         };
-
         if (query.length >= 3 && field !== "Designation") {
           const res: any = await searchOption(payload);
           const dataInfo = res?.data?.map((item: string) => TextToCapitalize(item));
           if (!dataInfo) return;
-
           if (field === "Country") {
             const unique = dedupe([...(baseRef.current.Country || []), ...dataInfo]);
             baseRef.current.Country = unique;
@@ -551,7 +556,6 @@ export default function Collab_DataTablePage() {
 
   const handleFilterSearch = (field: string, query: string) => {
     const value = query || "";
-
     if (!value || value.length === 0) {
       if (field === "Country") setCountryOptions(baseRef.current.Country);
       else if (field === "State") setStateOptions(baseRef.current.State);
@@ -560,12 +564,10 @@ export default function Collab_DataTablePage() {
       else if (field === "Designation") setDesignationOptions(baseRef.current.Designation);
       else if (field === "orgSize") setOrgSizeOptions(baseRef.current.orgSize);
       else if (field === "orgIndustry") setOrgIndustryOptions(baseRef.current.orgIndustry);
-
       setLoadingDataKey("");
       setLoadingOptions(false);
       return;
     }
-
     if (value.length >= 3) {
       setLoadingOptions(true);
       setLoadingDataKey(field);
@@ -575,7 +577,6 @@ export default function Collab_DataTablePage() {
 
   const getFilterTemplate = (placeholder: string) => (options: any) => {
     const { filterOptions } = options;
-
     return (
       <div className="px-5 p-multiselect-filter-container">
         <div className="p-input-icon-right w-full flex items-center gap-2">
@@ -585,16 +586,13 @@ export default function Collab_DataTablePage() {
               onChange={(e) => {
                 filterOptions.filter(e);
                 const value = e.target.value;
-
                 setSelectedFilterValue((prev: any) => ({
                   ...prev,
                   [placeholder]: value,
                 }));
-
                 if (placeholder === "Designation" && !String(value || "").trim()) {
                   setSelectAllDesignation(false);
                 }
-
                 handleFilterSearch(placeholder, value);
               }}
               className="w-full m-auto focus:outline-none bg-white text-xs px-3 py-1 my-2 rounded-full"
@@ -618,19 +616,15 @@ export default function Collab_DataTablePage() {
       setSelectedFilterValue((prev: any) => ({ ...prev, Designation: "" }));
       searchQuery = "";
     }
-
     const filterValues = (designationOptions || []).filter((opt: any) =>
       String(opt || "").toLowerCase().includes(searchQuery)
     );
-
     const current = draftFilters["Designation"] ?? [];
-
     if (selectAllDesignation) {
       updateDraft("Designation", []);
     } else {
       updateDraft("Designation", dedupe([...(current || []), ...(filterValues || [])]));
     }
-
     setSelectAllDesignation(!selectAllDesignation);
   };
 
@@ -646,19 +640,15 @@ export default function Collab_DataTablePage() {
   const filterSummary = useMemo(() => {
     const f = selectedFilters || {};
     const pairs: { k: string; v: any[] }[] = [];
-
     const addArr = (k: string, arr: any[]) => {
       if (Array.isArray(arr) && arr.length) pairs.push({ k, v: arr });
     };
-
     const selectAll = Boolean(f.selectAll);
     const keyword = String(f.searchQuery || "").trim();
-
     addArr("Country", f.Country || []);
     addArr("State", f.State || []);
     addArr("City", f.City || []);
     addArr("Organization", f.Organization || []);
-
     if (selectAll) {
       pairs.push({
         k: "Designation",
@@ -667,17 +657,48 @@ export default function Collab_DataTablePage() {
     } else {
       addArr("Designation", f.Designation || []);
     }
-
     addArr("Org Size", f.orgSize || []);
     addArr("Org Industry", f.orgIndustry || []);
-
     if (keyword && !selectAll) pairs.push({ k: "Keyword", v: [keyword] });
-
     return pairs;
   }, [selectedFilters]);
 
-  const getStartRowIdForPage = useCallback(
+  // ---------- BULK START ROW ID RESOLVER (FIXED) ----------
+
+  const filtersKey = useMemo(() => {
+    try {
+      return JSON.stringify(selectedFilters || {});
+    } catch {
+      return String(Date.now());
+    }
+  }, [selectedFilters]);
+
+  const minRowIdFromRows = useCallback((rows: any[]) => {
+    const ids = (rows || [])
+      .map((r: any) => Number(r?.row_id))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+    return ids.length ? Math.min(...ids) : 0;
+  }, []);
+
+  const resolveStartRowIdForPage = useCallback(
     async (page: number) => {
+      const reqId = ++startIdReqRef.current;
+
+      setResolvingStartId(true);
+      setStartRowId(0);
+      setStartRowIdPage(page);
+
+      const cacheKey = `${filtersKey}::${page}`;
+      const hasCache = Object.prototype.hasOwnProperty.call(startIdCacheRef.current, cacheKey);
+      if (hasCache) {
+        const cached = startIdCacheRef.current[cacheKey] || 0;
+        if (reqId === startIdReqRef.current) {
+          setStartRowId(cached);
+          setResolvingStartId(false);
+        }
+        return;
+      }
+
       try {
         const res = await collaboration_getAllData_api({
           filters: selectedFilters,
@@ -686,29 +707,22 @@ export default function Collab_DataTablePage() {
           limit: PAGE_SIZE,
         });
 
-        const ids = (res?.data?.cleaned || [])
-          .map((r: any) => Number(r?.row_id))
-          .filter((n: number) => Number.isFinite(n) && n > 0);
+        const id = minRowIdFromRows(res?.data?.cleaned || []);
 
-        return ids.length ? Math.min(...ids) : 0;
-      } catch {
-        return 0;
-      }
-    },
-    [selectedFilters, user?._id]
-  );
+        // stale response guard
+        if (reqId !== startIdReqRef.current) return;
 
-  const resolveStartRowIdForPage = useCallback(
-    async (page: number) => {
-      setResolvingStartId(true);
-      try {
-        const id = await getStartRowIdForPage(page);
+        startIdCacheRef.current[cacheKey] = id;
         setStartRowId(id);
+      } catch {
+        if (reqId !== startIdReqRef.current) return;
+        startIdCacheRef.current[cacheKey] = 0;
+        setStartRowId(0);
       } finally {
-        setResolvingStartId(false);
+        if (reqId === startIdReqRef.current) setResolvingStartId(false);
       }
     },
-    [getStartRowIdForPage]
+    [filtersKey, minRowIdFromRows, selectedFilters, user?._id]
   );
 
   const resolveStartRowIdForPageRef = useRef(resolveStartRowIdForPage);
@@ -719,23 +733,86 @@ export default function Collab_DataTablePage() {
   const debouncedResolveStartRowIdForPage = useRef(
     debounce((page: number) => {
       resolveStartRowIdForPageRef.current(page);
-    }, 300)
+    }, 450)
   ).current;
 
   useEffect(() => {
     return () => debouncedResolveStartRowIdForPage.cancel();
   }, [debouncedResolveStartRowIdForPage]);
 
+  const kickResolveStartId = useCallback(
+    (page: number, preferLocal: boolean) => {
+      debouncedResolveStartRowIdForPage.cancel();
+
+      // if we can compute from current table page, do it instantly and invalidate in-flight resolver
+      if (preferLocal && page === pageNumber && !loading) {
+        const localId = minRowIdFromRows(entries);
+        if (localId > 0) {
+          invalidateStartIdResolver();
+          setResolvingStartId(false);
+          setStartRowId(localId);
+          setStartRowIdPage(page);
+
+          const cacheKey = `${filtersKey}::${page}`;
+          startIdCacheRef.current[cacheKey] = localId;
+          return;
+        }
+      }
+
+      setResolvingStartId(true);
+      setStartRowId(0);
+      setStartRowIdPage(page);
+      debouncedResolveStartRowIdForPage(page);
+    },
+    [debouncedResolveStartRowIdForPage, entries, filtersKey, invalidateStartIdResolver, loading, minRowIdFromRows, pageNumber]
+  );
+
+  // When bulk modal opens: init ONCE (don’t re-init on pageNumber changes)
   useEffect(() => {
     if (!bulkConfigVisible) return;
 
     setBulkStartPage(pageNumber);
     setBulkEndPage(pageNumber);
+    setBulkPageTyping(false);
 
-    setResolvingStartId(true);
+    kickResolveStartId(pageNumber, true);
+
+    return () => {
+      // closing: cancel pending debounce + invalidate in-flight
+      debouncedResolveStartRowIdForPage.cancel();
+      invalidateStartIdResolver();
+      setResolvingStartId(false);
+    };
+  }, [bulkConfigVisible]);
+
+  // If filters change while bulk modal is open, recompute startRowId for current bulkStartPage safely
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+
+    clearStartIdCache();
+    invalidateStartIdResolver();
+    kickResolveStartId(bulkStartPage, bulkStartPage === pageNumber);
+  }, [selectedFilters]);
+
+  // If table finishes loading and bulk start page equals current page, prefer the local min row_id and cancel stale resolver
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+    if (bulkStartPage !== pageNumber) return;
+    if (loading) return;
+    if (startRowId > 0) return;
+
+    const localId = minRowIdFromRows(entries);
+    if (!localId) return;
+
+    invalidateStartIdResolver();
     debouncedResolveStartRowIdForPage.cancel();
-    debouncedResolveStartRowIdForPage(pageNumber);
-  }, [bulkConfigVisible, pageNumber, selectedFilters]);
+    setResolvingStartId(false);
+    setStartRowId(localId);
+    setStartRowIdPage(bulkStartPage);
+
+    const cacheKey = `${filtersKey}::${bulkStartPage}`;
+    startIdCacheRef.current[cacheKey] = localId;
+  }, [bulkConfigVisible, bulkStartPage, pageNumber, loading, entries, startRowId, filtersKey]);
 
   const handleBulkStartPageChange = (e: any) => {
     setBulkPageTyping(true);
@@ -748,12 +825,10 @@ export default function Collab_DataTablePage() {
     setBulkStartPage(clamped);
     setBulkEndPage((prev) => Math.max(clamped, prev));
 
-    setResolvingStartId(true);
-    debouncedResolveStartRowIdForPage.cancel();
-    debouncedResolveStartRowIdForPage(clamped);
+    kickResolveStartId(clamped, true);
 
-    window.clearTimeout((handleBulkStartPageChange as any)._t);
-    (handleBulkStartPageChange as any)._t = window.setTimeout(() => {
+    if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
+    bulkTypingTimerRef.current = window.setTimeout(() => {
       setBulkPageTyping(false);
     }, 350);
   };
@@ -780,15 +855,15 @@ export default function Collab_DataTablePage() {
 
   const proceedBulk = () => {
     if (bulkEndPage < bulkStartPage || pagesToAdd > MAX_BULK_PAGES) return;
+    if (!startRowId) return;
+    if (startRowIdPage !== bulkStartPage) return; // critical safety
 
     const take = pagesToAdd * PAGE_SIZE;
-
     setBulkPayload({
       filters: selectedFilters,
       take,
       startRowId,
     });
-
     setBulkConfigVisible(false);
     setAddMode("bulk");
     setModalVisible(true);
@@ -797,7 +872,6 @@ export default function Collab_DataTablePage() {
   const matchedValue = useMemo(() => {
     const m = Number(addResult?.matched);
     if (Number.isFinite(m) && m > 0) return m;
-
     const inserted = Number(addResult?.inserted || 0);
     const dup = Number(addResult?.duplicates || 0);
     const fallback = inserted + dup;
@@ -836,7 +910,6 @@ export default function Collab_DataTablePage() {
     setIsDirtyFilters(false);
     setSelectAllDesignation(false);
     setRowClick(false);
-
     setSelectedProfile([]);
     setBulkPayload(null);
     setAddMode("selected");
@@ -847,6 +920,7 @@ export default function Collab_DataTablePage() {
       debouncedFetchOptions.cancel();
       debouncedGoToPage.cancel();
       debouncedResolveStartRowIdForPage.cancel();
+      if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
     };
   }, [user?._id]);
 
@@ -863,32 +937,27 @@ export default function Collab_DataTablePage() {
         .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 600; }
         .lc-pill .p-multiselect-trigger { width: 2.6rem; }
         .lc-pill .p-placeholder { color: #6b7280; font-weight: 500; }
-
         .lc-panel .p-multiselect-header { padding: 10px 10px; border-bottom: 1px solid #f3f4f6; }
         .lc-panel .p-multiselect-items-wrapper { padding: 6px; }
         .lc-panel .p-multiselect-items { padding: 4px; }
         .lc-panel .p-multiselect-item { border-radius: 12px; }
         .lc-panel .p-multiselect-item:hover { background: rgba(243,81,20,0.08); }
-
         .lc-table .p-checkbox .p-checkbox-box {
           border: 1.5px solid #9ca3af !important;
           border-radius: 8px !important;
           background: #fff !important;
         }
-
         .lc-table .p-checkbox .p-checkbox-box.p-highlight,
         .lc-table .p-checkbox.p-highlight .p-checkbox-box {
           background: #F35114 !important;
           border-color: #F35114 !important;
         }
-
         .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
         .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
         .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
         .lc-table .p-checkbox.p-highlight .p-icon {
           color: #fff !important;
         }
-
         .lc-modal.p-dialog { border-radius: 26px; overflow: hidden; box-shadow: 0 22px 70px rgba(0,0,0,0.20); }
         .lc-modal .p-dialog-header { padding: 18px 18px 12px; border-bottom: 1px solid #f1f5f9; }
         .lc-modal .p-dialog-content { padding: 18px; }
@@ -898,7 +967,6 @@ export default function Collab_DataTablePage() {
         }
         .lc-modal .p-dialog-header-icons .p-dialog-header-icon:hover { background: #e5e7eb; }
       `}</style>
-
       <Dialog
         header="Insufficient Credit"
         visible={visible}
@@ -917,7 +985,6 @@ export default function Collab_DataTablePage() {
               <span className="text-sm">You have insufficient credits to view this profile(s).</span>
             </p>
           </div>
-
           <div className="mt-6 flex items-center pb-2">
             <div className="cursor-pointer w-fit m-auto">
               <button
@@ -931,7 +998,6 @@ export default function Collab_DataTablePage() {
           </div>
         </div>
       </Dialog>
-
       <Dialog
         header={
           <div className="flex items-center gap-3">
@@ -957,7 +1023,6 @@ export default function Collab_DataTablePage() {
               {addResult?.listName || "-"}
             </div>
           </div>
-
           <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white">
@@ -970,7 +1035,6 @@ export default function Collab_DataTablePage() {
             </div>
             <div className="text-3xl font-extrabold text-green-700">{Number(addResult?.inserted || 0)}</div>
           </div>
-
           <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
             <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -979,7 +1043,6 @@ export default function Collab_DataTablePage() {
               </div>
               <div className="text-sm font-semibold text-gray-900">{matchedValue.toLocaleString()}</div>
             </div>
-
             <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span className="w-2 h-2 bg-green-500 rounded-full" />
@@ -990,7 +1053,6 @@ export default function Collab_DataTablePage() {
               </div>
             </div>
           </div>
-
           <div className="pt-2 flex items-center justify-end">
             <button
               onClick={() => setAddResultVisible(false)}
@@ -1002,7 +1064,6 @@ export default function Collab_DataTablePage() {
           </div>
         </div>
       </Dialog>
-
       <Dialog
         header="Add multiple pages to list"
         visible={bulkConfigVisible}
@@ -1014,7 +1075,6 @@ export default function Collab_DataTablePage() {
         <div className="space-y-4">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <div className="text-[11px] text-gray-500 font-semibold tracking-wider">PAGE RANGE</div>
-
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm font-medium text-gray-800">Start page</div>
@@ -1028,7 +1088,6 @@ export default function Collab_DataTablePage() {
                   className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
-
               <div>
                 <div className="text-sm font-medium text-gray-800">End page</div>
                 <input
@@ -1044,7 +1103,6 @@ export default function Collab_DataTablePage() {
               </div>
             </div>
           </div>
-
           <div
             className="rounded-2xl border p-4 flex items-center gap-3"
             style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
@@ -1063,11 +1121,9 @@ export default function Collab_DataTablePage() {
               </span>
             </div>
           </div>
-
           <div className="rounded-2xl border border-gray-200 p-4 bg-white">
             <div className="flex items-center justify-between">
               <div className="text-[11px] text-gray-500 font-semibold tracking-wider">SELECTED FILTERS</div>
-
               {!filterSummary.length && (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <span className="w-2 h-2 bg-gray-300 rounded-full" />
@@ -1075,7 +1131,6 @@ export default function Collab_DataTablePage() {
                 </div>
               )}
             </div>
-
             {filterSummary.length ? (
               <div className="mt-3 flex flex-col gap-2">
                 {filterSummary.map((p) => {
@@ -1094,7 +1149,6 @@ export default function Collab_DataTablePage() {
               </div>
             ) : null}
           </div>
-
           <div className="pt-2 flex items-center justify-end gap-3">
             <button
               onClick={() => setBulkConfigVisible(false)}
@@ -1108,6 +1162,7 @@ export default function Collab_DataTablePage() {
                 bulkPageTyping ||
                 resolvingStartId ||
                 !startRowId ||
+                startRowIdPage !== bulkStartPage ||
                 pagesToAdd < 1 ||
                 pagesToAdd > MAX_BULK_PAGES ||
                 bulkStartPage < 1 ||
@@ -1121,7 +1176,6 @@ export default function Collab_DataTablePage() {
           </div>
         </div>
       </Dialog>
-
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-20 flex items-center shadow-sm">
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
@@ -1135,7 +1189,6 @@ export default function Collab_DataTablePage() {
                 {selectedProfile.length > 0 ? `Add to List (${selectedProfile.length})` : "Add multiple pages to list"}
               </span>
             </button>
-
             <div className="relative w-full sm:w-[380px] min-w-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -1146,7 +1199,6 @@ export default function Collab_DataTablePage() {
               />
             </div>
           </div>
-
           <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
             <div
               className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
@@ -1160,14 +1212,12 @@ export default function Collab_DataTablePage() {
           </div>
         </div>
       </div>
-
       <div className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700 text-sm font-medium whitespace-nowrap">
             <FilterIcon className="w-4 h-4 text-gray-600" />
             <span>Filters:</span>
           </div>
-
           <div className="flex items-center gap-3 overflow-x-auto flex-1 pb-1">
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
@@ -1191,7 +1241,6 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "Country" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <MapPin className="w-4 h-4 text-gray-500" />
@@ -1214,7 +1263,6 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "State" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <MapPin className="w-4 h-4 text-gray-500" />
@@ -1237,7 +1285,6 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "City" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-
             <div className="relative min-w-[180px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Briefcase className="w-4 h-4 text-gray-500" />
@@ -1261,7 +1308,6 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "Designation" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-
             <div className="relative min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Building2 className="w-4 h-4 text-gray-500" />
@@ -1284,7 +1330,6 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "Organization" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-
             {!isFree && (
               <>
                 <div className="relative min-w-[160px]">
@@ -1309,7 +1354,6 @@ export default function Collab_DataTablePage() {
                     emptyMessage={loadingDataKey === "orgIndustry" ? "Data Loading..." : "Search for more..."}
                   />
                 </div>
-
                 <div className="relative min-w-[160px]">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                     <Users className="w-4 h-4 text-gray-500" />
@@ -1335,7 +1379,6 @@ export default function Collab_DataTablePage() {
               </>
             )}
           </div>
-
           <div className="flex items-center gap-3">
             <button
               onClick={runSearch}
@@ -1358,7 +1401,6 @@ export default function Collab_DataTablePage() {
                 "Search"
               )}
             </button>
-
             <button
               onClick={clearAllFilters}
               className="text-sm font-medium text-gray-700 hover:text-orange-600 whitespace-nowrap"
@@ -1368,7 +1410,6 @@ export default function Collab_DataTablePage() {
           </div>
         </div>
       </div>
-
       <div className="p-6 lg:p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <Dialog
@@ -1392,7 +1433,6 @@ export default function Collab_DataTablePage() {
               }}
             />
           </Dialog>
-
           <div className="w-full overflow-x-auto overflow-y-hidden lc-table">
             {loading ? (
               <DataTable
@@ -1488,7 +1528,6 @@ export default function Collab_DataTablePage() {
             )}
           </div>
         </div>
-
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="text-sm text-gray-600 hidden sm:flex gap-1">
             Showing{" "}
@@ -1501,7 +1540,6 @@ export default function Collab_DataTablePage() {
             </span>{" "}
             results
           </div>
-
           <div className="hidden sm:flex items-center gap-3">
             <button
               className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
@@ -1509,7 +1547,6 @@ export default function Collab_DataTablePage() {
             >
               Previous
             </button>
-
             <input
               type="number"
               value={pageNumber}
@@ -1517,17 +1554,14 @@ export default function Collab_DataTablePage() {
               className="w-[90px] text-center py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
               onChange={(e) => handleChangePageNumber(e)}
             />
-
             <button
               className="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}
             >
               Next
             </button>
-
             <div className="text-sm text-gray-500 min-w-[90px] text-right">{totalPages.toLocaleString()} pages</div>
           </div>
-
           <div className="sm:hidden flex items-center justify-between gap-3">
             <button
               className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
@@ -1535,7 +1569,6 @@ export default function Collab_DataTablePage() {
             >
               Previous
             </button>
-
             <div className="w-[90px]">
               <input
                 type="number"
@@ -1545,7 +1578,6 @@ export default function Collab_DataTablePage() {
                 onChange={(e) => handleChangePageNumber(e)}
               />
             </div>
-
             <button
               className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-700 text-sm font-medium"
               onClick={() => handleChangePageNumber2("increase")}

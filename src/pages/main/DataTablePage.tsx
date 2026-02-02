@@ -123,15 +123,31 @@ export default function DataTablePage() {
   const [bulkConfigVisible, setBulkConfigVisible] = useState(false);
   const [bulkStartPage, setBulkStartPage] = useState(1);
   const [bulkEndPage, setBulkEndPage] = useState(1);
+
   const [startRowId, setStartRowId] = useState(0);
+  const [startRowIdPage, setStartRowIdPage] = useState<number | null>(null);
   const [resolvingStartId, setResolvingStartId] = useState(false);
+
   const [bulkPageTyping, setBulkPageTyping] = useState(false);
+  const bulkTypingTimerRef = useRef<number | null>(null);
+
   const [addMode, setAddMode] = useState<"selected" | "bulk">("selected");
   const [bulkPayload, setBulkPayload] = useState<any>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [addResultVisible, setAddResultVisible] = useState(false);
   const [addResult, setAddResult] = useState<any>(null);
+
+  const startIdReqRef = useRef(0);
+  const startIdCacheRef = useRef<Record<string, number>>({});
+
+  const invalidateStartIdResolver = useCallback(() => {
+    startIdReqRef.current += 1;
+  }, []);
+
+  const clearStartIdCache = useCallback(() => {
+    startIdCacheRef.current = {};
+  }, []);
 
   const columns = [
     { field: "Name", header: "NAME" },
@@ -229,7 +245,7 @@ export default function DataTablePage() {
         if (fetchId === fetchIdRef.current) setLoading(false);
       }
     },
-    [selectedFilters, selectAllDesignation, selectedFilterValue]
+    [selectedFilters]
   );
 
   const selectedFiltersRef = useRef<any>(selectedFilters);
@@ -263,6 +279,9 @@ export default function DataTablePage() {
 
   const runSearch = () => {
     debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
     const payload = buildFilterPayload(draftFilters);
     setSelectedFilters(payload);
     setIsDirtyFilters(false);
@@ -272,6 +291,9 @@ export default function DataTablePage() {
 
   const clearAllFilters = () => {
     debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
     setDraftFilters({});
     setSelectedFilters({});
     setIsDirtyFilters(false);
@@ -376,7 +398,8 @@ export default function DataTablePage() {
     const name = TextToCapitalize(rowData?.Name || "");
     return (
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold shadow-md"
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold shadow-md"
           style={{
             background: "linear-gradient(135deg, #FF6A00 0%, #F35114 100%)",
             boxShadow: "0 10px 25px rgba(243,81,20,0.22)",
@@ -677,6 +700,7 @@ export default function DataTablePage() {
     return () => {
       debouncedFetchOptions.cancel();
       debouncedGoToPage.cancel();
+      if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
     };
   }, []);
 
@@ -723,8 +747,40 @@ export default function DataTablePage() {
     return pairs;
   }, [selectedFilters]);
 
-  const getStartRowIdForPage = useCallback(
+  const filtersKey = useMemo(() => {
+    try {
+      return JSON.stringify(selectedFilters || {});
+    } catch {
+      return String(Date.now());
+    }
+  }, [selectedFilters]);
+
+  const minRowIdFromRows = useCallback((rows: any[]) => {
+    const ids = (rows || [])
+      .map((r: any) => Number(r?.row_id))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+    return ids.length ? Math.min(...ids) : 0;
+  }, []);
+
+  const resolveStartRowIdForPage = useCallback(
     async (page: number) => {
+      const reqId = ++startIdReqRef.current;
+
+      setResolvingStartId(true);
+      setStartRowId(0);
+      setStartRowIdPage(page);
+
+      const cacheKey = `${filtersKey}::${page}`;
+      const hasCache = Object.prototype.hasOwnProperty.call(startIdCacheRef.current, cacheKey);
+      if (hasCache) {
+        const cached = startIdCacheRef.current[cacheKey] || 0;
+        if (reqId === startIdReqRef.current) {
+          setStartRowId(cached);
+          setResolvingStartId(false);
+        }
+        return;
+      }
+
       try {
         const res = await getAllData({
           filters: selectedFilters,
@@ -732,29 +788,21 @@ export default function DataTablePage() {
           limit: PAGE_SIZE,
         });
 
-        const ids = (res?.data?.cleaned || [])
-          .map((r: any) => Number(r?.row_id))
-          .filter((n: number) => Number.isFinite(n) && n > 0);
+        const id = minRowIdFromRows(res?.data?.cleaned || []);
 
-        return ids.length ? Math.min(...ids) : 0;
-      } catch {
-        return 0;
-      }
-    },
-    [selectedFilters]
-  );
+        if (reqId !== startIdReqRef.current) return;
 
-  const resolveStartRowIdForPage = useCallback(
-    async (page: number) => {
-      setResolvingStartId(true);
-      try {
-        const id = await getStartRowIdForPage(page);
+        startIdCacheRef.current[cacheKey] = id;
         setStartRowId(id);
+      } catch {
+        if (reqId !== startIdReqRef.current) return;
+        startIdCacheRef.current[cacheKey] = 0;
+        setStartRowId(0);
       } finally {
-        setResolvingStartId(false);
+        if (reqId === startIdReqRef.current) setResolvingStartId(false);
       }
     },
-    [getStartRowIdForPage]
+    [filtersKey, minRowIdFromRows, selectedFilters]
   );
 
   const resolveStartRowIdForPageRef = useRef(resolveStartRowIdForPage);
@@ -765,24 +813,81 @@ export default function DataTablePage() {
   const debouncedResolveStartRowIdForPage = useRef(
     debounce((page: number) => {
       resolveStartRowIdForPageRef.current(page);
-    }, 300)
+    }, 450)
   ).current;
 
   useEffect(() => {
     return () => debouncedResolveStartRowIdForPage.cancel();
   }, [debouncedResolveStartRowIdForPage]);
 
+  const kickResolveStartId = useCallback(
+    (page: number, preferLocal: boolean) => {
+      debouncedResolveStartRowIdForPage.cancel();
+
+      if (preferLocal && page === pageNumber && !loading) {
+        const localId = minRowIdFromRows(entries);
+        if (localId > 0) {
+          invalidateStartIdResolver();
+          setResolvingStartId(false);
+          setStartRowId(localId);
+          setStartRowIdPage(page);
+
+          const cacheKey = `${filtersKey}::${page}`;
+          startIdCacheRef.current[cacheKey] = localId;
+          return;
+        }
+      }
+
+      setResolvingStartId(true);
+      setStartRowId(0);
+      setStartRowIdPage(page);
+      debouncedResolveStartRowIdForPage(page);
+    },
+    [debouncedResolveStartRowIdForPage, entries, filtersKey, invalidateStartIdResolver, loading, minRowIdFromRows, pageNumber]
+  );
 
   useEffect(() => {
     if (!bulkConfigVisible) return;
 
     setBulkStartPage(pageNumber);
     setBulkEndPage(pageNumber);
+    setBulkPageTyping(false);
 
-    setResolvingStartId(true);
+    kickResolveStartId(pageNumber, true);
+
+    return () => {
+      debouncedResolveStartRowIdForPage.cancel();
+      invalidateStartIdResolver();
+      setResolvingStartId(false);
+    };
+  }, [bulkConfigVisible]);
+
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+
+    clearStartIdCache();
+    invalidateStartIdResolver();
+    kickResolveStartId(bulkStartPage, bulkStartPage === pageNumber);
+  }, [selectedFilters]);
+
+  useEffect(() => {
+    if (!bulkConfigVisible) return;
+    if (bulkStartPage !== pageNumber) return;
+    if (loading) return;
+    if (startRowId > 0) return;
+
+    const localId = minRowIdFromRows(entries);
+    if (!localId) return;
+
+    invalidateStartIdResolver();
     debouncedResolveStartRowIdForPage.cancel();
-    debouncedResolveStartRowIdForPage(pageNumber);
-  }, [bulkConfigVisible, pageNumber, selectedFilters]);
+    setResolvingStartId(false);
+    setStartRowId(localId);
+    setStartRowIdPage(bulkStartPage);
+
+    const cacheKey = `${filtersKey}::${bulkStartPage}`;
+    startIdCacheRef.current[cacheKey] = localId;
+  }, [bulkConfigVisible, bulkStartPage, pageNumber, loading, entries, startRowId, filtersKey]);
 
   const handleBulkStartPageChange = (e: any) => {
     setBulkPageTyping(true);
@@ -795,12 +900,10 @@ export default function DataTablePage() {
     setBulkStartPage(clamped);
     setBulkEndPage((prev) => Math.max(clamped, prev));
 
-    setResolvingStartId(true);
-    debouncedResolveStartRowIdForPage.cancel();
-    debouncedResolveStartRowIdForPage(clamped);
+    kickResolveStartId(clamped, true);
 
-    window.clearTimeout((handleBulkStartPageChange as any)._t);
-    (handleBulkStartPageChange as any)._t = window.setTimeout(() => {
+    if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
+    bulkTypingTimerRef.current = window.setTimeout(() => {
       setBulkPageTyping(false);
     }, 350);
   };
@@ -827,6 +930,8 @@ export default function DataTablePage() {
 
   const proceedBulk = () => {
     if (bulkEndPage < bulkStartPage || pagesToAdd > MAX_BULK_PAGES) return;
+    if (!startRowId) return;
+    if (startRowIdPage !== bulkStartPage) return;
 
     const take = pagesToAdd * PAGE_SIZE;
 
@@ -973,9 +1078,7 @@ export default function DataTablePage() {
       >
         <div className="space-y-4">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">
-              PAGE RANGE
-            </div>
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">PAGE RANGE</div>
 
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
@@ -1075,6 +1178,7 @@ export default function DataTablePage() {
                 bulkPageTyping ||
                 resolvingStartId ||
                 !startRowId ||
+                startRowIdPage !== bulkStartPage ||
                 pagesToAdd < 1 ||
                 pagesToAdd > MAX_BULK_PAGES ||
                 bulkStartPage < 1 ||
@@ -1350,7 +1454,11 @@ export default function DataTablePage() {
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "text-white"
               }`}
-              style={!isDirtyFilters || loading ? {} : { background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.18)" }}
+              style={
+                !isDirtyFilters || loading
+                  ? {}
+                  : { background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.18)" }
+              }
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
