@@ -591,6 +591,9 @@ export default function DataTablePage() {
       setLoadingOptions(true);
       setLoadingDataKey(field);
       debouncedFetchOptions(field, value);
+    } else {
+      setLoadingDataKey("");
+      setLoadingOptions(false);
     }
   };
 
@@ -622,6 +625,8 @@ export default function DataTablePage() {
               placeholder={
                 placeholder === "Designation"
                   ? `Please enter "Job Title" or "Keyword"`
+                  : placeholder === "Organization"
+                  ? `Type at least 3 letters to search...`
                   : `Search ${placeholder}...`
               }
             />
@@ -670,12 +675,17 @@ export default function DataTablePage() {
     const initialOrgIndustry =
       (org_industry?.org_industry || []).map((x: string) => TextToCapitalize(x)) || [];
     const initialOrgSize = (org_size?.org_size || []).map((x: string) => TextToCapitalize(x)) || [];
+    
+    const defaultOrganizations = [
+      "Microsoft", "Google", "Amazon", "Apple", "IBM", 
+      "Oracle", "Salesforce", "Meta", "Intel", "Cisco"
+    ];
 
     baseRef.current.Country = initialCountries;
     baseRef.current.State = initialStates;
     baseRef.current.City = initialCities;
     baseRef.current.Designation = initialDesignations;
-    baseRef.current.Organization = [];
+    baseRef.current.Organization = defaultOrganizations;
     baseRef.current.orgIndustry = initialOrgIndustry;
     baseRef.current.orgSize = initialOrgSize;
 
@@ -683,7 +693,7 @@ export default function DataTablePage() {
     setStateOptions(initialStates);
     setCityOptions(initialCities);
     setDesignationOptions(initialDesignations);
-    setOrganizationOptions([]);
+    setOrganizationOptions(defaultOrganizations);
     setOrgIndustryOptions(initialOrgIndustry);
     setOrgSizeOptions(initialOrgSize);
 
@@ -1276,6 +1286,11 @@ export default function DataTablePage() {
             background: #f3f4f6; color: #111827;
           }
           .lc-modal .p-dialog-header-icons .p-dialog-header-icon:hover { background: #e5e7eb; }
+          
+          .lc-panel .p-multiselect-filter-container input {
+            min-width: 220px;
+            text-overflow: ellipsis;
+          }
         `}</style>
 
         <div className="flex items-center gap-4">
@@ -1393,6 +1408,20 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
+                emptyMessage={
+                  (selectedFilterValue["Organization"]?.length || 0) > 0 && (selectedFilterValue["Organization"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "Organization"
+                    ? "Searching..."
+                    : "No organizations found"
+                }
+                emptyFilterMessage={
+                  (selectedFilterValue["Organization"]?.length || 0) > 0 && (selectedFilterValue["Organization"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "Organization"
+                    ? "Searching..."
+                    : "No organizations found"
+                }
               />
             </div>
 
