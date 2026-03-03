@@ -1425,53 +1425,95 @@ export default function DataTablePage() {
               />
             </div>
 
-            {!isFree && (
-              <>
-                <div className="relative min-w-[160px]">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                    <Layers className="w-4 h-4 text-gray-500" />
-                  </div>
-                  <MultiSelect
-                    value={draftFilters.orgIndustry || []}
-                    options={orgIndustryOptions}
-                    onChange={(e) => updateDraft("orgIndustry", e.value)}
-                    filter
-                    filterTemplate={getFilterTemplate("orgIndustry")}
-                    loading={msLoading("orgIndustry")}
-                    showSelectAll
-                    placeholder="Org Industry"
-                    maxSelectedLabels={0}
-                    selectedItemsLabel="Org Industry ({0})"
-                    className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-2xl"
-                    dropdownIcon="pi pi-chevron-down"
-                    itemClassName={dropdownItemClass}
-                  />
-                </div>
+            {/* --- PREMIUM FILTERS: Visible & Searchable, but blocked on selection --- */}
+            <div className="relative min-w-[160px]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                <Layers className="w-4 h-4 text-gray-500" />
+              </div>
+              <MultiSelect
+                value={draftFilters.orgIndustry || []}
+                options={orgIndustryOptions}
+                onChange={(e) => {
+                  // Intercept the click for free users
+                  if (isFree) {
+                    toast.warn("Premium Feature: Subscribe to any plan to select Organization Industries!", { position: "bottom-right" });
+                    return; // This stops the checkbox from actually being checked!
+                  }
+                  // If premium, proceed normally
+                  updateDraft("orgIndustry", e.value);
+                }}
+                filter
+                filterTemplate={getFilterTemplate("orgIndustry")}
+                loading={msLoading("orgIndustry")}
+                showSelectAll
+                placeholder="Org Industry"
+                maxSelectedLabels={0}
+                selectedItemsLabel="Org Industry ({0})"
+                className="lc-pill w-full"
+                panelClassName="lc-panel rounded-2xl"
+                dropdownIcon="pi pi-chevron-down"
+                itemClassName={dropdownItemClass}
+                emptyMessage={
+                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 && (selectedFilterValue["orgIndustry"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "orgIndustry"
+                    ? "Searching..."
+                    : "No industries found"
+                }
+                emptyFilterMessage={
+                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 && (selectedFilterValue["orgIndustry"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "orgIndustry"
+                    ? "Searching..."
+                    : "No industries found"
+                }
+              />
+            </div>
 
-                <div className="relative min-w-[160px]">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                    <Users className="w-4 h-4 text-gray-500" />
-                  </div>
-                  <MultiSelect
-                    value={draftFilters.orgSize || []}
-                    options={orgSizeOptions}
-                    onChange={(e) => updateDraft("orgSize", e.value)}
-                    filter
-                    filterTemplate={getFilterTemplate("orgSize")}
-                    loading={msLoading("orgSize")}
-                    showSelectAll
-                    placeholder="Org Size"
-                    maxSelectedLabels={0}
-                    selectedItemsLabel="Org Size ({0})"
-                    className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-2xl"
-                    dropdownIcon="pi pi-chevron-down"
-                    itemClassName={dropdownItemClass}
-                  />
-                </div>
-              </>
-            )}
+            <div className="relative min-w-[160px]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                <Users className="w-4 h-4 text-gray-500" />
+              </div>
+              <MultiSelect
+                value={draftFilters.orgSize || []}
+                options={orgSizeOptions}
+                onChange={(e) => {
+                  // Intercept the click for free users
+                  if (isFree) {
+                    toast.warn("Premium Feature: Subscribe to any plan to select Organization Sizes!", { position: "bottom-right" });
+                    return; // This stops the checkbox from actually being checked!
+                  }
+                  // If premium, proceed normally
+                  updateDraft("orgSize", e.value);
+                }}
+                filter
+                filterTemplate={getFilterTemplate("orgSize")}
+                loading={msLoading("orgSize")}
+                showSelectAll
+                placeholder="Org Size"
+                maxSelectedLabels={0}
+                selectedItemsLabel="Org Size ({0})"
+                className="lc-pill w-full"
+                panelClassName="lc-panel rounded-2xl"
+                dropdownIcon="pi pi-chevron-down"
+                itemClassName={dropdownItemClass}
+                emptyMessage={
+                  (selectedFilterValue["orgSize"]?.length || 0) > 0 && (selectedFilterValue["orgSize"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "orgSize"
+                    ? "Searching..."
+                    : "No sizes found"
+                }
+                emptyFilterMessage={
+                  (selectedFilterValue["orgSize"]?.length || 0) > 0 && (selectedFilterValue["orgSize"]?.length || 0) < 3
+                    ? "Keep typing to search..."
+                    : loadingDataKey === "orgSize"
+                    ? "Searching..."
+                    : "No sizes found"
+                }
+              />
+            </div>
+            {/* --- END PREMIUM FILTERS --- */}
           </div>
 
           <div className="flex items-center gap-3">
