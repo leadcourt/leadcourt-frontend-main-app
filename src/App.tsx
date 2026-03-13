@@ -33,7 +33,7 @@ function MaintenancePage() {
 
         <p className="text-slate-500 leading-relaxed">
           We are currently upgrading our systems to serve you better. 
-          Leadcort will be back online shortly. We appreciate your patience!
+          Leadcourt will be back online shortly. We appreciate your patience!
         </p>
 
         <div className="pt-4">
