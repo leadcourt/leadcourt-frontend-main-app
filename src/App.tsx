@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import { RecoilRoot } from 'recoil';
 import Interceptor from './Interceptor';
 
-// 1. Toggle this to 'false' when you want the site to go live again
+
 const IS_MAINTENANCE_MODE = true;
 
 function MaintenancePage() {
