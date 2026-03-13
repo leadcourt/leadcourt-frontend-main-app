@@ -24,7 +24,7 @@ function MaintenancePage() {
         
         <div className="space-y-2">
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Leadcort
+            Leadcourt
           </h1>
           <p className="text-lg font-medium text-amber-600">
             Under Maintenance
