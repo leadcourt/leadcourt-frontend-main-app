@@ -6,7 +6,7 @@ import { RecoilRoot } from 'recoil';
 import Interceptor from './Interceptor';
 
 
-const IS_MAINTENANCE_MODE = true;
+const IS_MAINTENANCE_MODE = false;
 
 function MaintenancePage() {
   return (
