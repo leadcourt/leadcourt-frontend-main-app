@@ -4,6 +4,7 @@ import router from './router/Router';
 import { ToastContainer } from 'react-toastify';
 import { RecoilRoot } from 'recoil';
 import Interceptor from './Interceptor';
+import { Analytics } from '@vercel/analytics/react';
 
 
 const IS_MAINTENANCE_MODE = false;
@@ -58,6 +59,7 @@ function App() {
       <ToastContainer position="top-right" />
       <Interceptor />
       <RouterProvider router={router} />
+      <Analytics />
     </RecoilRoot>
   )
 }
