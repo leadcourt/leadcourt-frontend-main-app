@@ -7,7 +7,7 @@ import Interceptor from './Interceptor';
 import { Analytics } from '@vercel/analytics/react';
 
 
-const IS_MAINTENANCE_MODE = false;
+const IS_MAINTENANCE_MODE = true;
 
 function MaintenancePage() {
   return (
