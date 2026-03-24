@@ -48,7 +48,7 @@ type CouponSuccess = {
   credits: number;
   addedCredits: number;
   code: string;
-};
+}
 
 const BuyCredit = () => {
   const user = useRecoilValue(userState);
@@ -213,13 +213,13 @@ const BuyCredit = () => {
   };
 
   return (
-    <div className="leadcourt-theme-wrapper min-h-screen relative overflow-x-hidden font-sans text-white bg-[#0a0a0a]">
+    <div className="leadcourt-theme-wrapper min-h-screen relative overflow-x-hidden font-sans text-gray-700 bg-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         @import url("https://unpkg.com/primeicons/primeicons.css");
 
         .leadcourt-theme-wrapper {
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .lc-topbar {
@@ -240,40 +240,39 @@ const BuyCredit = () => {
         }
 
         .lc-credit-pill {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 107, 53, 0.3);
+          background: #ffffff;
+          border: 1px solid #fee2e2;
           padding: 10px 20px;
           border-radius: 100px;
           display: flex;
           align-items: center;
           gap: 10px;
-          font-weight: 700;
-          color: white;
-          box-shadow: 0 5px 20px rgba(255, 107, 53, 0.1);
+          font-weight: 600;
+          color: #4b5563;
+          box-shadow: 0 4px 6px -1px rgba(243, 79, 20, 0.05);
         }
         
-        .lc-credit-pill i { color: #ff6b35; font-size: 1.1rem; }
+        .lc-credit-pill i { color: #f34f14; font-size: 1.1rem; }
 
         .lc-btn-icon {
           min-width: 45px;
           height: 45px;
           padding: 0 16px;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid #fee2e2;
+          background: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           cursor: pointer;
-          transition: background 0.3s ease, border-color 0.3s ease;
-          color: #ff6b35;
-          font-family: 'Space Grotesk', sans-serif;
+          transition: all 0.2s ease;
+          color: #6b7280;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
+          font-weight: 500;
         }
 
-        /* Mobile-only toggle buttons (hamburger / close) */
         .lc-mobile-toggle {
           display: flex;
         }
@@ -290,11 +289,11 @@ const BuyCredit = () => {
         }
 
         .lc-btn-icon:hover {
-          background: rgba(255, 107, 53, 0.1);
-          border-color: #ff6b35;
+          background: #fef2f2;
+          color: #f34f14;
+          border-color: #f34f14;
         }
 
-        /* Only rotate icons on buttons that explicitly have lc-btn-rotate */
         .lc-btn-rotate:hover i {
           transform: rotate(90deg);
         }
@@ -313,24 +312,24 @@ const BuyCredit = () => {
         .orb {
           position: absolute;
           border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.6;
-          animation: float 20s infinite ease-in-out;
+          filter: blur(100px);
+          opacity: 0.4;
+          animation: float 25s infinite ease-in-out;
         }
 
         .orb1 {
-          width: 600px;
-          height: 600px;
-          background: linear-gradient(135deg, #ff6b35, #ff8c42);
+          width: 700px;
+          height: 700px;
+          background: radial-gradient(circle, #f34f1415 0%, transparent 70%);
           top: -200px;
-          right: -200px;
+          right: -100px;
           animation-delay: 0s;
         }
 
         .orb2 {
-          width: 500px;
-          height: 500px;
-          background: linear-gradient(135deg, #ff4500, #ff6347);
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, #fb923c15 0%, transparent 70%);
           bottom: -150px;
           left: -150px;
           animation-delay: 5s;
@@ -339,7 +338,7 @@ const BuyCredit = () => {
         .orb3 {
           width: 400px;
           height: 400px;
-          background: linear-gradient(135deg, #ffa500, #ff8c00);
+          background: radial-gradient(circle, #ef444410 0%, transparent 70%);
           top: 50%;
           left: 50%;
           animation-delay: 10s;
@@ -347,13 +346,13 @@ const BuyCredit = () => {
 
         @keyframes float {
           0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(100px, -100px) scale(1.1); }
-          50% { transform: translate(-50px, 100px) scale(0.9); }
-          75% { transform: translate(-100px, -50px) scale(1.05); }
+          25% { transform: translate(50px, -50px) scale(1.05); }
+          50% { transform: translate(-25px, 50px) scale(0.95); }
+          75% { transform: translate(-50px, -25px) scale(1.02); }
         }
 
         .lc-container {
-          max-width: 1600px;
+          max-width: 1280px;
           margin: 0 auto;
           padding: 40px;
           position: relative;
@@ -367,41 +366,19 @@ const BuyCredit = () => {
           margin-top: 20px;
         }
 
-        .hero::before {
-          content: '';
-          position: absolute;
-          top: -100px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 400px;
-          height: 400px;
-          background: radial-gradient(circle, rgba(255,107,53,0.3) 0%, transparent 70%);
-          border-radius: 50%;
-          filter: blur(60px);
-          animation: pulse 4s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.3; }
-          50% { transform: translateX(-50%) scale(1.2); opacity: 0.5; }
-        }
-
         .hero h1 {
-          font-size: clamp(48px, 8vw, 96px);
-          font-weight: 700;
-          background: linear-gradient(135deg, #fff 0%, #ff6b35 50%, #ff4500 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin-bottom: 24px;
-          letter-spacing: -2px;
+          font-size: clamp(40px, 6vw, 64px);
+          font-weight: 800;
+          color: #374151;
+          margin-bottom: 16px;
+          letter-spacing: -0.02em;
           line-height: 1.1;
         }
 
         .hero p {
-          font-size: 24px;
-          opacity: 0.8;
-          font-weight: 300;
+          font-size: 20px;
+          color: #6b7280;
+          font-weight: 400;
           max-width: 600px;
           margin: 0 auto;
         }
@@ -410,86 +387,64 @@ const BuyCredit = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: 30px;
+          gap: 20px;
           margin: 40px 0 60px 0;
           position: relative;
         }
 
         .toggle-group {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 107, 53, 0.2);
-          padding: 8px;
+          background: #f3f4f6;
+          padding: 6px;
           border-radius: 100px;
           display: flex;
-          gap: 8px;
-          box-shadow: 0 20px 60px rgba(255, 107, 53, 0.2);
+          gap: 4px;
         }
 
         .toggle-btn {
-          padding: 16px 40px;
+          padding: 12px 32px;
           border: none;
           border-radius: 100px;
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.3s ease;
           background: transparent;
-          color: rgba(255, 255, 255, 0.6);
-          font-family: 'Space Grotesk', sans-serif;
+          color: #6b7280;
+          font-family: 'Inter', sans-serif;
         }
 
         .toggle-btn.active {
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
-          color: white;
-          box-shadow: 0 10px 40px rgba(255, 107, 53, 0.4);
-          transform: scale(1.05);
+          background: #ffffff;
+          color: #f34f14;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
 
         .save-badge {
-          background: linear-gradient(135deg, #fff 0%, #ffa500 100%);
-          color: #000;
-          padding: 12px 28px;
+          background: #fef2f2;
+          color: #f34f14;
+          padding: 8px 20px;
           border-radius: 100px;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
-          box-shadow: 0 10px 40px rgba(255, 165, 0, 0.4);
           animation: bounce 2s infinite;
         }
 
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-5px); }
         }
 
         .enterprise-banner {
-          background: linear-gradient(135deg, rgba(255,107,53,0.1) 0%, rgba(255,69,0,0.1) 100%);
-          backdrop-filter: blur(20px);
-          border: 2px solid rgba(255, 107, 53, 0.3);
-          padding: 50px 60px;
-          border-radius: 30px;
+          background: linear-gradient(135deg, #f34f14 0%, #ff7a45 100%);
+          padding: 40px 50px;
+          border-radius: 24px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 80px;
           position: relative;
           overflow: hidden;
-        }
-
-        .enterprise-banner::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          right: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 70%);
-          animation: rotate 20s linear infinite;
-        }
-
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          box-shadow: 0 10px 30px rgba(243, 79, 20, 0.15);
         }
 
         .enterprise-content {
@@ -498,201 +453,163 @@ const BuyCredit = () => {
         }
 
         .enterprise-content h3 {
-          font-size: 32px;
-          margin-bottom: 12px;
-          background: linear-gradient(135deg, #fff 0%, #ff6b35 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          font-size: 28px;
+          font-weight: 700;
+          color: #ffffff;
+          margin-bottom: 8px;
         }
 
         .enterprise-content p {
-          font-size: 18px;
-          opacity: 0.8;
+          font-size: 16px;
+          color: rgba(255, 255, 255, 0.9);
         }
 
         .enterprise-btn {
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
-          color: white;
+          background: #ffffff;
+          color: #f34f14;
           border: none;
-          padding: 20px 50px;
-          border-radius: 15px;
-          font-size: 18px;
+          padding: 12px 32px;
+          border-radius: 12px;
+          font-size: 16px;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 15px 50px rgba(255, 107, 53, 0.4);
+          transition: all 0.2s ease;
           position: relative;
           z-index: 1;
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .enterprise-btn:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 25px 70px rgba(255, 107, 53, 0.6);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+          padding: 14px 36px;
         }
 
         .pricing-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-          gap: 40px;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 30px;
           margin-bottom: 100px;
-          perspective: 1000px;
         }
 
         .pricing-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 25px;
-          padding: 35px 30px;
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          background: #ffffff;
+          border: 1px solid #fee2e2;
+          border-radius: 24px;
+          padding: 40px 30px;
+          transition: all 0.3s ease;
           position: relative;
-          overflow: hidden;
           display: flex;
           flex-direction: column;
         }
 
-        .pricing-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(255,107,53,0.05) 0%, rgba(255,69,0,0.05) 100%);
-          opacity: 0;
-          transition: opacity 0.5s ease;
-        }
-
         .pricing-card:hover {
-          transform: translateY(-20px) rotateX(5deg);
-          border-color: rgba(255, 107, 53, 0.5);
-          box-shadow: 0 40px 100px rgba(255, 107, 53, 0.3);
-        }
-
-        .pricing-card:hover::before {
-          opacity: 1;
+          transform: translateY(-6px);
+          border-color: #fca5a5;
+          box-shadow: 0 15px 35px rgba(243, 79, 20, 0.05);
         }
 
         .pricing-card.featured {
-          background: linear-gradient(135deg, rgba(255,107,53,0.15) 0%, rgba(255,69,0,0.1) 100%);
-          border: 2px solid #ff6b35;
-          transform: scale(1.08);
-          box-shadow: 0 30px 80px rgba(255, 107, 53, 0.4);
+          border: 2px solid #f34f14;
+          transform: scale(1.02);
+          box-shadow: 0 15px 35px rgba(243, 79, 20, 0.08);
           z-index: 2;
         }
 
         .popular-badge {
           position: absolute;
-          top: 30px;
-          right: -35px;
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
+          top: -12px;
+          right: 30px;
+          background: #f34f14;
           color: white;
-          padding: 10px 50px;
-          font-size: 13px;
+          padding: 6px 16px;
+          border-radius: 100px;
+          font-size: 12px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 2px;
-          transform: rotate(45deg);
-          box-shadow: 0 5px 20px rgba(255, 107, 53, 0.5);
+          letter-spacing: 1px;
         }
 
         .plan-icon {
-          width: 60px;
-          height: 60px;
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
-          border-radius: 15px;
+          width: 50px;
+          height: 50px;
+          background: #fef2f2;
+          color: #f34f14;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 30px;
+          font-size: 24px;
           margin-bottom: 20px;
-          box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
-          position: relative;
-          z-index: 1;
         }
 
         .plan-name {
-          font-size: 28px;
+          font-size: 24px;
           font-weight: 700;
+          color: #4b5563;
           margin-bottom: 8px;
-          position: relative;
-          z-index: 1;
         }
 
         .plan-description {
           font-size: 14px;
-          opacity: 0.7;
-          margin-bottom: 25px;
-          position: relative;
-          z-index: 1;
+          color: #9ca3af;
+          margin-bottom: 24px;
+          line-height: 1.5;
         }
 
         .price-section {
-          margin: 25px 0;
-          position: relative;
-          z-index: 1;
+          margin: 20px 0;
         }
 
         .price {
           display: flex;
           align-items: baseline;
-          gap: 5px;
-          margin-bottom: 8px;
+          gap: 4px;
         }
 
         .currency {
-          font-size: 24px;
-          color: #ff6b35;
-          font-weight: 700;
+          font-size: 20px;
+          color: #9ca3af;
+          font-weight: 600;
         }
 
         .amount {
-          font-size: 52px;
+          font-size: 48px;
           font-weight: 800;
-          background: linear-gradient(135deg, #fff 0%, #ff6b35 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #f34f14;
           line-height: 1;
         }
 
         .period {
           font-size: 16px;
-          opacity: 0.6;
+          color: #9ca3af;
+          font-weight: 500;
         }
 
         .features-list {
           list-style: none;
-          margin: 25px 0;
-          position: relative;
-          z-index: 1;
+          margin: 30px 0;
           flex-grow: 1;
+          padding: 0;
         }
 
         .features-list li {
-          padding: 10px 0;
+          padding: 8px 0;
           font-size: 15px;
+          color: #6b7280;
           display: flex;
           align-items: center;
           gap: 12px;
-          opacity: 0.9;
-          transition: all 0.3s ease;
-        }
-
-        .features-list li:hover {
-          opacity: 1;
-          transform: translateX(10px);
         }
 
         .features-list li::before {
-          content: "✦";
-          color: #ff6b35;
-          font-size: 16px;
-          width: 26px;
-          height: 26px;
-          background: rgba(255, 107, 53, 0.1);
+          content: "✓";
+          color: #f34f14;
+          font-size: 14px;
+          font-weight: 900;
+          width: 24px;
+          height: 24px;
+          background: #fef2f2;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -702,225 +619,155 @@ const BuyCredit = () => {
 
         .cta-button {
           width: 100%;
-          padding: 20px;
+          padding: 16px;
           border: none;
-          border-radius: 15px;
-          font-size: 18px;
-          font-weight: 700;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          position: relative;
-          z-index: 1;
-          overflow: hidden;
-          font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .cta-button::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
-          transition: width 0.6s ease, height 0.6s ease, top 0.6s ease, left 0.6s ease;
-          transform: translate(-50%, -50%);
-        }
-
-        .cta-button:hover::before {
-          width: 400px;
-          height: 400px;
-        }
-
-        .cta-button span {
-          position: relative;
-          z-index: 1;
+          transition: all 0.2s ease;
+          font-family: 'Inter', sans-serif;
         }
 
         .cta-button.primary {
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
+          background: #f34f14;
           color: white;
-          box-shadow: 0 15px 50px rgba(255, 107, 53, 0.4);
         }
 
         .cta-button.primary:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 25px 70px rgba(255, 107, 53, 0.6);
+          background: #de450f;
         }
 
         .cta-button.secondary {
-          background: rgba(255, 255, 255, 0.05);
-          color: white;
-          border: 2px solid rgba(255, 107, 53, 0.5);
+          background: #ffffff;
+          color: #f34f14;
+          border: 1px solid #f34f14;
         }
 
         .cta-button.secondary:hover {
-          background: rgba(255, 107, 53, 0.1);
-          border-color: #ff6b35;
+          background: #fef2f2;
         }
 
         .custom-credit-section {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 40px;
-          padding: 80px 60px;
+          background: #ffffff;
+          border: 1px solid #fee2e2;
+          border-radius: 32px;
+          padding: 60px;
           position: relative;
-          overflow: hidden;
-        }
-
-        .custom-credit-section::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 70%);
-          animation: rotate 30s linear infinite reverse;
+          text-align: center;
         }
 
         .credit-header {
-          text-align: center;
-          margin-bottom: 60px;
-          position: relative;
-          z-index: 1;
+          margin-bottom: 40px;
         }
 
         .credit-header h2 {
-          font-size: 48px;
-          font-weight: 700;
-          margin-bottom: 16px;
-          background: linear-gradient(135deg, #fff 0%, #ff6b35 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          font-size: 36px;
+          font-weight: 800;
+          color: #374151;
+          margin-bottom: 12px;
         }
 
         .credit-header p {
-          font-size: 18px;
-          opacity: 0.7;
+          font-size: 16px;
+          color: #6b7280;
         }
 
         .slider-container {
-          margin: 60px 0;
-          position: relative;
-          z-index: 1;
+          margin: 40px 0;
         }
 
         .slider-wrapper {
           position: relative;
-          padding: 40px 0;
+          padding: 20px 0;
         }
 
         input[type="range"] {
           width: 100%;
-          height: 12px;
+          height: 8px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.1);
+          background: #e5e7eb;
           outline: none;
           -webkit-appearance: none;
-          position: relative;
           cursor: pointer;
-        }
-
-        input[type="range"]::-webkit-slider-track {
-          height: 12px;
-          border-radius: 10px;
-          background: linear-gradient(to right, #ff6b35 0%, #ff4500 100%);
         }
 
         input[type="range"]::-webkit-slider-thumb {
           -webkit-appearance: none;
-          width: 40px;
-          height: 40px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
+          background: #f34f14;
           cursor: pointer;
-          box-shadow: 0 10px 40px rgba(255, 107, 53, 0.6);
-          border: 4px solid rgba(255, 255, 255, 0.2);
-          transition: all 0.3s ease;
+          box-shadow: 0 4px 10px rgba(243, 79, 20, 0.3);
+          border: 4px solid #ffffff;
+          transition: all 0.2s ease;
         }
 
         input[type="range"]::-webkit-slider-thumb:hover {
-          transform: scale(1.2);
-          box-shadow: 0 15px 50px rgba(255, 107, 53, 0.8);
+          transform: scale(1.1);
         }
 
         input[type="range"]::-moz-range-thumb {
-          width: 40px;
-          height: 40px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
+          background: #f34f14;
           cursor: pointer;
-          box-shadow: 0 10px 40px rgba(255, 107, 53, 0.6);
-          border: 4px solid rgba(255, 255, 255, 0.2);
+          border: 4px solid #ffffff;
         }
 
         .slider-labels {
           display: flex;
           justify-content: space-between;
-          margin-top: 20px;
-          font-size: 16px;
-          opacity: 0.6;
+          margin-top: 16px;
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 500;
         }
 
         .credit-display {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 40px;
-          margin: 60px 0;
-          position: relative;
-          z-index: 1;
+          gap: 30px;
+          margin: 40px 0;
         }
 
         .credit-box {
-          background: rgba(255, 107, 53, 0.1);
-          backdrop-filter: blur(10px);
-          border: 2px solid rgba(255, 107, 53, 0.3);
-          border-radius: 25px;
-          padding: 50px;
+          background: #ffffff;
+          border: 1px solid #fee2e2;
+          border-radius: 20px;
+          padding: 30px;
           text-align: center;
-          transition: all 0.3s ease;
-        }
-
-        .credit-box:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 20px 60px rgba(255, 107, 53, 0.3);
         }
 
         .credit-box label {
-          font-size: 16px;
+          font-size: 12px;
           text-transform: uppercase;
-          letter-spacing: 2px;
-          opacity: 0.7;
+          font-weight: 700;
+          color: #6b7280;
           display: block;
-          margin-bottom: 20px;
+          margin-bottom: 10px;
+          letter-spacing: 1px;
         }
 
         .credit-value {
-          font-size: 64px;
+          font-size: 48px;
           font-weight: 800;
-          background: linear-gradient(135deg, #fff 0%, #ff6b35 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #f34f14;
         }
 
         .credit-subtext {
-          font-size: 18px;
-          opacity: 0.5;
-          margin-top: 10px;
+          font-size: 14px;
+          color: #9ca3af;
+          margin-top: 5px;
         }
 
         .particle {
           position: fixed;
           width: 4px;
           height: 4px;
-          background: #ff6b35;
+          background: #f34f14;
           border-radius: 50%;
           pointer-events: none;
           opacity: 0;
@@ -929,22 +776,23 @@ const BuyCredit = () => {
 
         @keyframes particleFloat {
           0% { opacity: 0; transform: translateY(0) scale(0); }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
+          10% { opacity: 0.3; }
+          90% { opacity: 0.3; }
           100% { opacity: 0; transform: translateY(-1000px) scale(1); }
         }
 
         @media (max-width: 1200px) {
           .pricing-grid { grid-template-columns: 1fr; }
           .pricing-card.featured { transform: scale(1); }
+          .popular-badge { top: 20px; right: 20px; }
         }
         @media (max-width: 768px) {
           .lc-topbar { padding: 15px 20px; }
-          .lc-container { padding: 20px 20px; }
-          .hero h1 { font-size: 48px; }
-          .enterprise-banner { flex-direction: column; text-align:center; padding: 40px 30px; gap: 20px;}
+          .lc-container { padding: 20px; }
+          .hero h1 { font-size: 36px; }
+          .enterprise-banner { flex-direction: column; text-align:center; padding: 30px 20px; gap: 20px;}
           .credit-display { grid-template-columns: 1fr; }
-          .toggle-btn { padding: 12px 24px; font-size: 16px; }
+          .toggle-btn { padding: 10px 20px; font-size: 14px; }
           .lc-credit-pill { padding: 8px 12px; }
         }
       `}</style>
@@ -963,7 +811,7 @@ const BuyCredit = () => {
           <div className="w-fit m-auto">
             <img src={paymentFailed} className="h-[100px]" alt="" />
           </div>
-          <p className="max-w-[300px] text-center m-auto mt-5 text-sm text-gray-700">
+          <p className="max-w-[300px] text-center m-auto mt-5 text-sm text-gray-500">
             The transaction you are trying to initiate has failed.
           </p>
         </div>
@@ -1005,53 +853,50 @@ const BuyCredit = () => {
         onHide={closeRedeem}
       >
         {!couponResult ? (
-          <div className="space-y-4">
-            <label className="text-sm text-gray-600">Enter Coupon</label>
+          <div className="space-y-4 pt-2">
+            <label className="text-sm font-medium text-gray-600">Enter Coupon Code</label>
             <input
               type="text"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
               placeholder="e.g. LC-QGBN-B3SW-GNVX"
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400 text-gray-900"
+              className="w-full border border-gray-300 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f34f14] text-gray-800"
             />
             <button
               onClick={onRedeem}
               disabled={redeeming}
-              className="bg-orange-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-lg hover:bg-orange-400 transition-all w-full"
+              className="bg-[#f34f14] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg hover:bg-[#de450f] transition-all w-full"
             >
-              {redeeming ? "Redeeming..." : "Redeem Coupon"}
+              {redeeming ? "Redeeming..." : "Apply Coupon"}
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <p className="text-green-600 font-semibold">
+          <div className="space-y-4 text-center py-2">
+            <i className="pi pi-check-circle text-green-500 text-5xl mb-2 block"></i>
+            <p className="text-gray-800 text-lg font-bold">
               Coupon applied successfully!
             </p>
-            <div className="text-sm text-gray-700 space-y-1">
-              <div>
-                <span className="font-medium">Plan:</span> {couponResult.plan}
+            <div className="text-sm text-gray-600 space-y-2 bg-gray-50 p-4 rounded-xl text-left border border-gray-100">
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Plan:</span> 
+                <span>{couponResult.plan}</span>
               </div>
-              <div>
-                <span className="font-medium">Expiry:</span>{" "}
-                {couponResult.isLTD ? "Lifetime" : "—"}
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Expiry:</span>{" "}
+                <span>{couponResult.isLTD ? "Lifetime" : "—"}</span>
               </div>
-              <div>
-                <span className="font-medium">Credits Added:</span>{" "}
-                {couponResult.addedCredits?.toLocaleString?.() ??
-                  couponResult.addedCredits}
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Credits Added:</span>{" "}
+                <span className="text-green-600 font-bold">+{couponResult.addedCredits?.toLocaleString?.() ?? couponResult.addedCredits}</span>
               </div>
-              <div>
-                <span className="font-medium">Updated Credits:</span>{" "}
-                {couponResult.credits?.toLocaleString?.() ??
-                  couponResult.credits}
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                Code: {couponResult.code}
+              <div className="flex justify-between pt-2 mt-2 border-t border-gray-200">
+                <span className="font-semibold text-gray-700">Updated Balance:</span>{" "}
+                <span className="font-bold text-[#f34f14]">{couponResult.credits?.toLocaleString?.() ?? couponResult.credits}</span>
               </div>
             </div>
             <button
               onClick={closeRedeem}
-              className="bg-gray-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-gray-700 transition-all w-full"
+              className="bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-200 transition-all w-full mt-2"
             >
               Close
             </button>
@@ -1062,7 +907,7 @@ const BuyCredit = () => {
       <Dialog
         header="Payment Options"
         visible={visible}
-        className="p-2 bg-white w-full max-w-[400px] lg:w-1/2"
+        className="p-2 bg-white w-full max-w-[400px] lg:w-1/2 rounded-xl"
         onHide={() => {
           if (!visible) return;
           setVisible(false);
@@ -1119,8 +964,8 @@ const BuyCredit = () => {
               className="lc-btn-icon lc-btn-rotate"
             >
               <i className="pi pi-ticket"></i>
-              <span className="hidden sm:inline text-xs font-medium text-white">
-                Redeem Coupon
+              <span className="hidden sm:inline text-sm font-medium">
+                Redeem
               </span>
             </button>
 
@@ -1140,7 +985,7 @@ const BuyCredit = () => {
       <div className="lc-container">
         <div className="hero">
           <h1>Choose a plan</h1>
-          <p>Choose the perfect plan for your business needs.</p>
+          <p>Choose the perfect plan for your lead generation needs.</p>
         </div>
 
         <div className="pricing-toggle">
@@ -1165,8 +1010,7 @@ const BuyCredit = () => {
           <div className="enterprise-content">
             <h3>Need more leads for your business?</h3>
             <p>
-              Our enterprise plans offer custom solutions tailored to your
-              specific requirements..
+              Our enterprise plans offer custom solutions tailored to your specific requirements.
             </p>
           </div>
           <button
@@ -1195,11 +1039,11 @@ const BuyCredit = () => {
                 className={`pricing-card ${isFeatured ? "featured" : ""}`}
               >
                 {isFeatured && (
-                  <div className="popular-badge">Most Popular</div>
+                  <div className="popular-badge">Recommended</div>
                 )}
 
                 <div className="plan-icon">
-                  {index === 0 ? "🌱" : index === 1 ? "⚡" : "🏢"}
+                  {index === 0 ? <i className="pi pi-star-fill text-xl"></i> : index === 1 ? <i className="pi pi-bolt text-xl"></i> : <i className="pi pi-building text-xl"></i>}
                 </div>
                 <div className="plan-name">{planItem.name}</div>
                 <div className="plan-description">{planItem.description}</div>
@@ -1254,7 +1098,7 @@ const BuyCredit = () => {
                         });
                   }}
                 >
-                  <span>Buy Now</span>
+                  <span>Get Started</span>
                 </button>
               </div>
             );
@@ -1265,8 +1109,7 @@ const BuyCredit = () => {
           <div className="credit-header">
             <h2>Custom Credit Purchase</h2>
             <p>
-              Need a specific amount of credits? Use the slider to select
-              exactly how many credits you want.
+              Need a specific amount of credits? Use the slider to select exactly how many credits you want.
             </p>
           </div>
 
@@ -1289,26 +1132,24 @@ const BuyCredit = () => {
 
           <div className="credit-display">
             <div className="credit-box">
-              <label>Selected:</label>
+              <label>Selected Credits</label>
               <div className="credit-value">
                 {creditAmount.toLocaleString()}
               </div>
-              <div className="credit-subtext">credits</div>
             </div>
             <div className="credit-box">
-              <label>Total Price:</label>
+              <label>Total Price</label>
               <div className="credit-value">
                 {countryCurrency.symbol}
                 {calculatePrice(creditAmount).toLocaleString()}
               </div>
-              <div className="credit-subtext">one-time payment</div>
             </div>
           </div>
 
           <button
             className="cta-button primary"
             style={{
-              maxWidth: "400px",
+              maxWidth: "350px",
               margin: "0 auto",
               display: "block",
             }}
@@ -1321,7 +1162,7 @@ const BuyCredit = () => {
               })
             }
           >
-            <span>Buy Now</span>
+            <span>Purchase Custom Credits</span>
           </button>
         </div>
       </div>
