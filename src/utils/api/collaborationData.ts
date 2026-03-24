@@ -23,50 +23,54 @@ const collaboration_getLinkedInUrl_api = async (payload: any) => {
   return await axios.post(`${baseUrl}/filter/linkedin`, payload);
 };
 
+// --- ALL /list2/ TYPOS FIXED TO /list/ BELOW ---
+
 const collaboration_getAllList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/summary`, payload);
+  return await axios.post(`${baseUrl}/list/summary`, payload);
 };
 
 const collaboration_getSingleListDetail_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/show`, payload);
+  return await axios.post(`${baseUrl}/list/show`, payload);
 };
 
 const collaboration_showListCursor_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/show-cursor`, payload);
+  return await axios.post(`${baseUrl}/list/show-cursor`, payload);
 };
 
 const collaboration_deleteAList_api = async (listname: any) => {
   const safe = encodeURIComponent(String(listname || "").trim());
-  return await axios.delete(`${baseUrl}/list2/${safe}`);
+  return await axios.delete(`${baseUrl}/list/${safe}`);
 };
 
 const collaboration_renameAList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/rename`, payload);
+  return await axios.post(`${baseUrl}/list/rename`, payload);
 };
 
 const collaboration_addProfilesToList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/store`, payload);
+  return await axios.post(`${baseUrl}/list/store`, payload);
 };
 
 const collaboration_createNewList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/create`, payload);
+  return await axios.post(`${baseUrl}/list/create`, payload);
 };
 
 const collaboration_exportList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/export`, payload);
+  return await axios.post(`${baseUrl}/list/export`, payload);
 };
 
 const collaboration_addByFilterToList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/add-by-filter`, payload);
+  return await axios.post(`${baseUrl}/list/add-by-filter`, payload);
 };
 
 const collaboration_getListRevealEstimate_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/reveal-estimate`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-estimate`, payload);
 };
 
 const collaboration_revealAllFromList_api = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/reveal-all`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-all`, payload);
 };
+
+// --------------------------------------------------
 
 const collaboration_getCreditBalance_api = async () => {
   return await axios.get(baseUrl + "/credits/total");

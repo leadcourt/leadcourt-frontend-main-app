@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import "./BuyCredit.css"; // Imports your new CSS file
+import "./BuyCredit.css";
 import PayPalButton from "../../component/PayPalButton";
 import { Dialog } from "primereact/dialog";
 import {
@@ -94,17 +94,6 @@ const BuyCredit = () => {
   const [urlSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useRecoilState(sidebarOpenState);
 
-  const logout = () => {
-    resetAccessToken();
-    resetRefreshToken();
-    resetUser();
-    resetCredit();
-    resetCollabState();
-    resetCollabcreditInfo();
-    toast.success("Log out successful");
-    navigate("/");
-  };
-
   const checkUrlSearchParams = () => {
     const status = urlSearchParams?.get("status");
     if (status === "failed") setPaymentStatus(true);
@@ -135,12 +124,22 @@ const BuyCredit = () => {
   const displayDialog = (info: string) => setOptions(info);
 
   const checkLocation = async () => {
-    await getLocation().then((res) => {
-      setLocation(res?.data?.country);
-      setCountryCurrency(
-        res?.data?.country === "IN" ? currencyConverter[0] : currencyConverter[1]
-      );
-    });
+    try {
+      // Using a reliable, free IP location service
+      const response = await fetch("https://ipapi.co/json/");
+      const data = await response.json();
+      
+      console.log("📍 Location Detected:", data.country_name);
+
+      // ipapi.co returns "IN" for country and "India" for country_name
+      const isIndia = data.country === "IN" || data.country_name?.toUpperCase() === "INDIA";
+      
+      setLocation(data.country);
+      setCountryCurrency(isIndia ? currencyConverter[0] : currencyConverter[1]);
+    } catch (error) {
+      console.error("❌ Location API failed. Defaulting to USD.", error);
+      setCountryCurrency(currencyConverter[1]); // Failsafe fallback
+    }
   };
 
   useEffect(() => {
@@ -343,126 +342,75 @@ const BuyCredit = () => {
       <div className="animated-bg">
         <div className="orb orb1"></div>
         <div className="orb orb2"></div>
-        <div className="orb orb3"></div>
         <div id="particle-container"></div>
-      </div>
-
-      {/* TOPBAR */}
-      <div className="lc-topbar">
-        <div className="flex items-center gap-3">
-          {!sidebarOpen && (
-            <button
-              type="button"
-              onClick={triggerSidebarToggle}
-              className="lc-btn-icon lc-mobile-toggle"
-            >
-              <i className="pi pi-bars"></i>
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 ml-auto">
-          {sidebarOpen && (
-            <button
-              type="button"
-              onClick={triggerSidebarToggle}
-              className="lc-btn-icon lc-mobile-toggle"
-            >
-              <i className="pi pi-times"></i>
-            </button>
-          )}
-
-          <div
-            className={`lc-nav-actions ${
-              sidebarOpen ? "hidden md:flex" : "flex"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => setRedeemOpen(true)}
-              className="lc-btn-icon lc-btn-rotate"
-            >
-              <i className="pi pi-ticket"></i>
-              <span className="hidden sm:inline text-sm font-medium">
-                Redeem
-              </span>
-            </button>
-
-            <div className="lc-credit-pill">
-              <i className="pi pi-wallet"></i>
-              <p>{credit?.credits?.toLocaleString()}</p>
-            </div>
-
-            <button className="lc-btn-icon" onClick={logout} type="button">
-              <i className="pi pi-sign-out"></i>
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* MAIN CONTENT */}
       <div className="lc-container">
-        <div className="hero">
-          <h1>Choose a plan</h1>
-          <p>Choose the perfect plan for your lead generation needs.</p>
+        
+        {/* HEADER SECTION (Aligns with Image 1) */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+           
+           <div>
+              <div className="flex items-center gap-3 mb-2">
+                {!sidebarOpen && (
+                  <button onClick={triggerSidebarToggle} className="lg:hidden text-gray-500 hover:text-orange-500 transition-colors">
+                    <i className="pi pi-bars text-xl"></i>
+                  </button>
+                )}
+                <h1 className="text-3xl font-extrabold text-gray-900">Choose a plan</h1>
+              </div>
+              <p className="text-gray-500 text-sm mb-6">Choose the perfect plan for your lead generation needs.</p>
+              
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="bg-white border border-gray-200 rounded-full p-1 flex shadow-sm w-fit">
+                  <button
+                    className={`px-5 py-2 text-sm font-semibold rounded-full transition-all ${!annualSub ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+                    onClick={() => setAnnualSub(false)}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    className={`px-5 py-2 text-sm font-semibold rounded-full transition-all ${annualSub ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+                    onClick={() => setAnnualSub(true)}
+                  >
+                    Annual
+                  </button>
+                </div>
+                <div className="bg-orange-50 text-[#f34f14] px-4 py-2 rounded-lg text-xs font-bold border border-orange-100 uppercase tracking-wide">
+                  Save 20%
+                </div>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-4 w-full lg:w-auto">
+             <div className="border border-red-200 bg-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-semibold text-gray-700 shadow-sm w-full lg:w-auto justify-center">
+               <i className="pi pi-desktop text-[#f34f14]"></i> 
+               Balance: <span className="text-[#f34f14]">{credit?.credits?.toLocaleString()} credits</span>
+             </div>
+             <button onClick={() => setRedeemOpen(true)} className="bg-[#f34f14] hover:bg-[#de450f] text-white px-6 py-2.5 rounded-lg font-bold transition-all shadow-md shadow-orange-500/20 whitespace-nowrap">
+               Redeem
+             </button>
+           </div>
         </div>
 
-        <div className="pricing-toggle">
-          <div className="toggle-group">
-            <button
-              className={`toggle-btn ${!annualSub ? "active" : ""}`}
-              onClick={() => setAnnualSub(false)}
-            >
-              Monthly
-            </button>
-            <button
-              className={`toggle-btn ${annualSub ? "active" : ""}`}
-              onClick={() => setAnnualSub(true)}
-            >
-              Annual
-            </button>
-          </div>
-          <div className="save-badge">Save 20%</div>
-        </div>
-
-        <div className="enterprise-banner">
-          <div className="enterprise-content">
-            <h3>Need more leads for your business?</h3>
-            <p>
-              Our enterprise plans offer custom solutions tailored to your specific requirements.
-            </p>
-          </div>
-          <button
-            className="enterprise-btn"
-            onClick={() => displayDialog("Support")}
-          >
-            Contact Us
-          </button>
-        </div>
-
+        {/* PRICING GRID (4 Columns) */}
         <div className="pricing-grid">
           {planData.map((planItem, index) => {
-            const isFeatured = index === 1 || planItem.name === "Pro";
+            // Highlighting Pro plan
+            const isFeatured = planItem.name === "Pro";
             const currentPrice = annualSub
-              ? Math.round(
-                  parseInt(planItem.dollar_amount) *
-                    countryCurrency.rate *
-                    12 *
-                    0.8
-                )
+              ? Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate * 12 * 0.8)
               : parseInt(planItem.dollar_amount) * countryCurrency.rate;
 
             return (
-              <div
-                key={index}
-                className={`pricing-card ${isFeatured ? "featured" : ""}`}
-              >
+              <div key={index} className={`pricing-card ${isFeatured ? "featured" : ""}`}>
                 {isFeatured && (
                   <div className="popular-badge">Recommended</div>
                 )}
 
                 <div className="plan-icon">
-                  {index === 0 ? <i className="pi pi-star-fill text-xl"></i> : index === 1 ? <i className="pi pi-bolt text-xl"></i> : <i className="pi pi-building text-xl"></i>}
+                  {index === 0 ? <i className="pi pi-star-fill"></i> : index === 1 ? <i className="pi pi-bolt"></i> : <i className="pi pi-building"></i>}
                 </div>
                 <div className="plan-name">{planItem.name}</div>
                 <div className="plan-description">{planItem.description}</div>
@@ -470,37 +418,25 @@ const BuyCredit = () => {
                 <div className="price-section">
                   <div className="price">
                     <span className="currency">{countryCurrency.symbol}</span>
-                    <span className="amount">
-                      {currentPrice.toLocaleString()}
-                    </span>
-                    <span className="period">
-                      {annualSub ? "/yr" : "/mo"}
-                    </span>
+                    <span className="amount">{currentPrice.toLocaleString()}</span>
+                    <span className="period">{annualSub ? "/yr" : "/mo"}</span>
                   </div>
                 </div>
 
                 <ul className="features-list">
-                  {planItem.features.map(
-                    (feature: string, featIndex: number) => {
-                      if (feature === "credits") {
-                        const creditVal = annualSub
-                          ? planItem.credits * 12
-                          : planItem.credits;
-                        return (
-                          <li key={featIndex}>
-                            {creditVal.toLocaleString()} credits
-                          </li>
-                        );
-                      }
-                      return <li key={featIndex}>{feature}</li>;
+                  {planItem.features.map((feature: string, featIndex: number) => {
+                    if (feature === "credits") {
+                      const creditVal = annualSub ? planItem.credits * 12 : planItem.credits;
+                      return (
+                        <li key={featIndex}>{creditVal.toLocaleString()} credits</li>
+                      );
                     }
-                  )}
+                    return <li key={featIndex}>{feature}</li>;
+                  })}
                 </ul>
 
                 <button
-                  className={`cta-button ${
-                    isFeatured ? "primary" : "secondary"
-                  }`}
+                  className={`cta-button ${isFeatured ? "" : "secondary"}`}
                   onClick={() => {
                     annualSub
                       ? handlePaymentPlan({
@@ -517,72 +453,130 @@ const BuyCredit = () => {
                         });
                   }}
                 >
-                  <span>Get Started</span>
+                  Get Started
                 </button>
               </div>
             );
           })}
+
+          {/* ENTERPRISE CARD (4th Column) */}
+          <div className="pricing-card border border-red-200">
+             <div className="bg-orange-50 text-orange-600 text-[10px] font-bold px-3 py-1 rounded w-fit mb-4 uppercase tracking-widest">Enterprise</div>
+             <h3 className="text-xl font-extrabold text-gray-900 mb-2 leading-tight">Need more leads for your business?</h3>
+             <p className="text-xs text-gray-500 mb-6 flex-grow">Our enterprise plans offer custom solutions tailored to your specific requirements.</p>
+             
+             <ul className="features-list mb-6">
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Unlimited credits</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Custom integrations</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> SLA guarantee</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Dedicated manager</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Priority onboarding</li>
+             </ul>
+             
+             <button onClick={() => displayDialog("Support")} className="w-full py-3.5 border-2 border-[#f34f14] text-[#f34f14] rounded-xl font-bold hover:bg-orange-50 transition-colors mt-auto">
+               Contact Us
+             </button>
+          </div>
         </div>
 
-        <div className="custom-credit-section">
-          <div className="credit-header">
-            <h2>Custom Credit Purchase</h2>
-            <p>
-              Need a specific amount of credits? Use the slider to select exactly how many credits you want.
-            </p>
-          </div>
+        {/* CUSTOM CREDIT SECTION (Image 2 Layout) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           
+           {/* Left Panel: Slider */}
+           <div className="lg:col-span-2 border border-red-200 rounded-2xl bg-white p-6 md:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
+             <div className="mb-10">
+               <h3 className="text-xl font-extrabold text-gray-900 mb-2">Custom Credit Purchase</h3>
+               <p className="text-sm text-gray-500">Need a specific amount of credits? Use the slider to select exactly how many credits you want.</p>
+             </div>
 
-          <div className="slider-container">
-            <div className="slider-wrapper">
-              <input
-                type="range"
-                min="1000"
-                max="50000"
-                step="1000"
-                value={creditAmount}
-                onChange={(e) => setCreditAmount(parseInt(e.target.value))}
-              />
-              <div className="slider-labels">
-                <span>1,000 credits</span>
-                <span>50,000 credits</span>
-              </div>
-            </div>
-          </div>
+             <div className="w-full relative z-10 mb-8">
+                <div className="flex justify-between text-xs font-semibold text-gray-400 mb-4">
+                  <span>1,000 credits</span>
+                  <span>50,000 credits</span>
+                </div>
+                
+                <input
+                  type="range"
+                  min="1000"
+                  max="50000"
+                  step="1000"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(parseInt(e.target.value))}
+                  style={{
+                    background: `linear-gradient(to right, #f34f14 ${(creditAmount - 1000) / 49000 * 100}%, #e5e7eb ${(creditAmount - 1000) / 49000 * 100}%)`
+                  }}
+                />
+             </div>
 
-          <div className="credit-display">
-            <div className="credit-box">
-              <label>Selected Credits</label>
-              <div className="credit-value">
-                {creditAmount.toLocaleString()}
-              </div>
-            </div>
-            <div className="credit-box">
-              <label>Total Price</label>
-              <div className="credit-value">
-                {countryCurrency.symbol}
-                {calculatePrice(creditAmount).toLocaleString()}
-              </div>
-            </div>
-          </div>
+             <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="text-center">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Selected Credits</div>
+                  <div className="text-3xl font-extrabold text-[#f34f14]">{creditAmount.toLocaleString()}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Price</div>
+                  <div className="text-3xl font-extrabold text-gray-900">{countryCurrency.symbol}{calculatePrice(creditAmount).toLocaleString()}</div>
+                </div>
+             </div>
 
-          <button
-            className="cta-button primary"
-            style={{
-              maxWidth: "350px",
-              margin: "0 auto",
-              display: "block",
-            }}
-            onClick={() =>
-              handlePaymentPlan({
-                userId: user?.id,
-                plan: "CUSTOM",
-                amount: calculatePrice(creditAmount),
-                credit: creditAmount,
-              })
-            }
-          >
-            <span>Purchase Custom Credits</span>
-          </button>
+             <button
+               className="w-full bg-[#f34f14] hover:bg-[#de450f] text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-orange-500/20"
+               onClick={() =>
+                 handlePaymentPlan({
+                   userId: user?.id,
+                   plan: "CUSTOM",
+                   amount: calculatePrice(creditAmount),
+                   credit: creditAmount,
+                 })
+               }
+             >
+               Purchase Custom Credits
+             </button>
+           </div>
+
+           {/* Right Panel: Why Buy */}
+           <div className="lg:col-span-1 border border-red-200 rounded-2xl bg-gray-50 flex flex-col overflow-hidden shadow-sm">
+              <div className="p-6 flex-grow">
+                 <h3 className="text-lg font-extrabold text-gray-900 mb-6">Why buy custom credits?</h3>
+                 <ul className="space-y-5">
+                    <li className="flex justify-between items-start">
+                      <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Never expire
+                      </div>
+                      <span className="text-gray-500 text-xs text-right mt-0.5">Credits roll over forever</span>
+                    </li>
+                    <li className="flex justify-between items-start border-t border-gray-200 pt-4">
+                      <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Flexible volume
+                      </div>
+                      <span className="text-gray-500 text-xs text-right mt-0.5">1,000 to 50,000 at once</span>
+                    </li>
+                    <li className="flex justify-between items-start border-t border-gray-200 pt-4">
+                      <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Pay as you go
+                      </div>
+                      <span className="text-gray-500 text-xs text-right mt-0.5">No recurring commitment</span>
+                    </li>
+                    <li className="flex justify-between items-start border-t border-gray-200 pt-4">
+                      <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Best rate at 10k+
+                      </div>
+                      <span className="text-gray-500 text-xs text-right mt-0.5">{countryCurrency.symbol}{(calculatePrice(10000) / 10000).toFixed(2)} per credit</span>
+                    </li>
+                 </ul>
+              </div>
+              <div className="bg-[#f34f14] p-5 text-white flex justify-between items-end">
+                 <div>
+                   <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">Current selection</div>
+                   <div className="font-extrabold text-lg">{creditAmount.toLocaleString()} credits</div>
+                 </div>
+                 <div className="text-right">
+                   <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">You pay</div>
+                   <div className="font-extrabold text-2xl leading-none tracking-tight">{countryCurrency.symbol}{calculatePrice(creditAmount).toLocaleString()}</div>
+                 </div>
+              </div>
+           </div>
+
         </div>
       </div>
     </div>

@@ -27,51 +27,54 @@ const searchLinkedInProfile = async (payload: any) => {
 };
 
 const addProfilesToList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/store`, payload);
+  return await axios.post(`${baseUrl}/list/store`, payload);
 };
 
 const addByFilterToList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/add-by-filter`, payload);
+  return await axios.post(`${baseUrl}/list/add-by-filter`, payload);
 };
 
 const createNewList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/create`, payload);
+  return await axios.post(`${baseUrl}/list/create`, payload);
 };
 
 const getAllList = async (payload?: any) => {
-  return await axios.post(`${baseUrl}/list2/summary`, payload || {});
+  return await axios.post(`${baseUrl}/list/summary`, payload || {});
 };
 
 const getSingleListDetail = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/show`, payload);
+  return await axios.post(`${baseUrl}/list/show`, payload);
 };
 
 const getSingleListDetailCursor = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/show-cursor`, payload);
+  return await axios.post(`${baseUrl}/list/show-cursor`, payload);
 };
 
 const getListRevealEstimate = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/reveal-estimate`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-estimate`, payload);
 };
 
 const revealAllFromList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/reveal-all`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-all`, payload);
 };
 
 const deleteAList = async (listname: any) => {
-  return await axios.delete(`${baseUrl}/list2/${listname}`);
+  return await axios.delete(`${baseUrl}/list/${listname}`);
 };
 
 const renameAList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/rename`, payload);
+  return await axios.post(`${baseUrl}/list/rename`, payload);
 };
 
 const exportList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list2/export`, payload);
+  return await axios.post(`${baseUrl}/list/export`, payload);
 };
 
 const addSubscriber = async (payload: any) => {
-  return await axios.post(`${baseUrl}/add-subscriber`, payload);
+
+  const authUrl = baseUrl.replace('/api', '/auth');
+  
+  return await axios.post(`${authUrl}/ext/login`, payload);
 };
 
 export {

@@ -107,6 +107,45 @@ export default function Collab_ListDetailPage() {
     emailCount: number;
   }>({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
 
+  const [revealProgress, setRevealProgress] = useState({
+    visible: false,
+    current: 0,
+    total: 0,
+    type: "",
+  });
+
+  // --- UPGRADED EXPORT STATS CALCULATOR ---
+  const exportStats = useMemo(() => {
+    // If user selected checkboxes (across any pages), calculate those specific rows
+    if (selectedProfile.length > 0) {
+      const total = selectedProfile.length;
+      const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
+      const revealedEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
+      return {
+        mode: "selected",
+        total,
+        revealedPhones,
+        revealedEmails,
+        unrevealedPhones: total - revealedPhones,
+        unrevealedEmails: total - revealedEmails,
+      };
+    } 
+    // If no checkboxes selected, calculate the ENTIRE saved list
+    else {
+      const total = totalRows;
+      const unrevealedPhones = listEstimate?.phoneCount || 0;
+      const unrevealedEmails = listEstimate?.emailCount || 0;
+      return {
+        mode: "all",
+        total,
+        revealedPhones: Math.max(0, total - unrevealedPhones),
+        revealedEmails: Math.max(0, total - unrevealedEmails),
+        unrevealedPhones,
+        unrevealedEmails,
+      };
+    }
+  }, [selectedProfile, totalRows, listEstimate]);
+
   const listName = params?.listName;
   const listNamePretty = useMemo(
     () => (listName || "").replace(/-/g, " "),
@@ -153,27 +192,15 @@ export default function Collab_ListDetailPage() {
   const canGoNext = pageNumber < totalPages;
 
   const counts = useMemo(() => {
-    const allUnrevealedPhone = entries.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-    const allUnrevealedEmail = entries.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
-    const selUnrevealedPhone = selectedProfile.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-    const selUnrevealedEmail = selectedProfile.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
+    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
     const useSelected = selectedProfile.length > 0;
     return {
       useSelected,
-      phoneCost:
-        (useSelected ? selUnrevealedPhone : allUnrevealedPhone) *
-        PHONE_REVEAL_CREDITS,
-      emailCost:
-        (useSelected ? selUnrevealedEmail : allUnrevealedEmail) *
-        EMAIL_REVEAL_CREDITS,
+      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
+      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
     };
   }, [entries, selectedProfile]);
 
@@ -184,42 +211,10 @@ export default function Collab_ListDetailPage() {
 
   const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
-    const phoneCredits = Number(
-      d?.phoneCredits ??
-        d?.phoneCost ??
-        d?.creditsPhone ??
-        d?.phone?.credits ??
-        d?.phone?.cost ??
-        d?.estimate?.phoneCredits ??
-        d?.estimate?.phoneCost ??
-        0
-    );
-    const emailCredits = Number(
-      d?.emailCredits ??
-        d?.emailCost ??
-        d?.creditsEmail ??
-        d?.email?.credits ??
-        d?.email?.cost ??
-        d?.estimate?.emailCredits ??
-        d?.estimate?.emailCost ??
-        0
-    );
-    const phoneCount = Number(
-      d?.phoneCount ??
-        d?.unrevealedPhone ??
-        d?.phoneUnrevealed ??
-        d?.phone?.count ??
-        d?.estimate?.phoneCount ??
-        0
-    );
-    const emailCount = Number(
-      d?.emailCount ??
-        d?.unrevealedEmail ??
-        d?.emailUnrevealed ??
-        d?.email?.count ??
-        d?.estimate?.emailCount ??
-        0
-    );
+    const phoneCredits = Number(d?.phoneCredits ?? d?.phoneCost ?? d?.creditsPhone ?? d?.phone?.credits ?? d?.phone?.cost ?? d?.estimate?.phoneCredits ?? d?.estimate?.phoneCost ?? 0);
+    const emailCredits = Number(d?.emailCredits ?? d?.emailCost ?? d?.creditsEmail ?? d?.email?.credits ?? d?.email?.cost ?? d?.estimate?.emailCredits ?? d?.estimate?.emailCost ?? 0);
+    const phoneCount = Number(d?.phoneCount ?? d?.unrevealedPhone ?? d?.phoneUnrevealed ?? d?.phone?.count ?? d?.estimate?.phoneCount ?? 0);
+    const emailCount = Number(d?.emailCount ?? d?.unrevealedEmail ?? d?.emailUnrevealed ?? d?.email?.count ?? d?.estimate?.emailCount ?? 0);
     return {
       phoneCredits: Number.isFinite(phoneCredits) ? phoneCredits : 0,
       emailCredits: Number.isFinite(emailCredits) ? emailCredits : 0,
@@ -236,16 +231,10 @@ export default function Collab_ListDetailPage() {
 
   const listDetail = async (pageNum: number) => {
     setLoading(true);
-    const payload: ListDetailPayload = {
-      page: pageNum,
-      listName: listName,
-    };
+    const payload: ListDetailPayload = { page: pageNum, listName: listName };
     try {
       const res: any = await collaboration_getSingleListDetail_api(payload);
-      const data: Person[] =
-        res?.data?.sort((a: Person, b: Person) =>
-          (a?.Name || "").localeCompare(b?.Name || "")
-        ) || [];
+      const data: Person[] = res?.data?.sort((a: Person, b: Person) => (a?.Name || "").localeCompare(b?.Name || "")) || [];
       setEntries(data);
       setSelectedProfile([]);
     } catch (e) {
@@ -260,9 +249,7 @@ export default function Collab_ListDetailPage() {
     if (!user?._id) return;
     setLoadingTotal(true);
     try {
-      const res: any = await collaboration_getAllList_api({
-        projectId: user?._id,
-      });
+      const res: any = await collaboration_getAllList_api({ projectId: user?._id });
       const lists: any[] = res?.data || [];
       const match = lists.find((l) => l?.name === listName);
       const t = Number(match?.total || 0);
@@ -298,11 +285,7 @@ export default function Collab_ListDetailPage() {
     try {
       const res: any = await collaboration_getLinkedInUrl_api({ row_id: id });
       if (res?.data?.linkedin_url) {
-        window.open(
-          `https://${res.data.linkedin_url}`,
-          "popupWindow",
-          "width=600,height=600"
-        );
+        window.open(`https://${res.data.linkedin_url}`, "popupWindow", "width=600,height=600");
       }
     } finally {
       setLoadRow({});
@@ -318,13 +301,9 @@ export default function Collab_ListDetailPage() {
         return;
       }
       const patch = res?.data?.results?.[0] || {};
-      const updatedEntries = entries.map((entry: any) =>
-        entry.row_id === id ? { ...entry, ...patch } : entry
-      );
+      const updatedEntries = entries.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
       setEntries(updatedEntries);
-      const updatedSelected = selectedProfile.map((entry: any) =>
-        entry.row_id === id ? { ...entry, ...patch } : entry
-      );
+      const updatedSelected = selectedProfile.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
       setSelectedProfile(updatedSelected);
       setCreditInfo({
         id: user?._id ?? "",
@@ -341,46 +320,69 @@ export default function Collab_ListDetailPage() {
   const bulkReveal = async (type: "phone" | "email") => {
     const useSelected = selectedProfile.length > 0;
     const source = useSelected ? selectedProfile : entries;
-    const ids = source
+
+    const idsToReveal = source
       .filter((p: Person) => {
         const v = type === "phone" ? p.Phone : p.Email;
         return !isNil(v) && !hasValue(v);
       })
       .map((p: Person) => p.row_id)
       .filter(Boolean);
-    if (!ids.length) return;
-    const spinnerKey =
-      (useSelected ? "selected" : "page") + (type === "phone" ? "Phone" : "Email");
-    setLoadRow({ type: spinnerKey });
-    try {
-      const res: any = await collaboration_showPhoneAndEmail_api(type, ids, user);
-      if (res?.data?.error) {
-        setInsufficientVisible(true);
-        return;
+
+    if (!idsToReveal.length) {
+      toast.info(`No unrevealed ${type}s found in selection.`);
+      return;
+    }
+
+    setRevealProgress({ visible: true, current: 0, total: idsToReveal.length, type });
+
+    const CHUNK_SIZE = 25;
+    let updatedEntries = [...entries];
+    let updatedSelected = [...selectedProfile];
+    let finalCredits = creditInfoValue?.credits;
+
+    for (let i = 0; i < idsToReveal.length; i += CHUNK_SIZE) {
+      const chunkIds = idsToReveal.slice(i, i + CHUNK_SIZE);
+      try {
+        const res: any = await collaboration_showPhoneAndEmail_api(type, chunkIds, user);
+        if (res?.data?.error) {
+          setInsufficientVisible(true);
+          break;
+        }
+
+        const resMap = new Map((res?.data?.results || []).map((r: any) => [r.row_id, r]));
+        updatedEntries = updatedEntries.map((entry: any) => {
+          const match: any = resMap.get(entry.row_id);
+          return match ? { ...entry, ...match } : entry;
+        });
+
+        updatedSelected = updatedSelected.map((entry: any) => {
+          const match: any = resMap.get(entry.row_id);
+          return match ? { ...entry, ...match } : entry;
+        });
+
+        finalCredits = res?.data?.remainingCredits;
+        setEntries(updatedEntries);
+        setSelectedProfile(updatedSelected);
+        setRevealProgress((prev) => ({ ...prev, current: Math.min(prev.total, i + CHUNK_SIZE) }));
+      } catch (e) {
+        toast.error("An error occurred during bulk reveal. Process paused.");
+        break;
       }
-      const resMap = new Map(
-        (res?.data?.results || []).map((r: any) => [r.row_id, r])
-      );
-      const updatedEntries = entries.map((entry: any) => {
-        const match: any = resMap.get(entry.row_id);
-        return match ? { ...entry, ...match } : entry;
-      });
-      setEntries(updatedEntries);
-      const updatedSelected = selectedProfile.map((entry: any) => {
-        const match: any = resMap.get(entry.row_id);
-        return match ? { ...entry, ...match } : entry;
-      });
-      setSelectedProfile(updatedSelected);
+    }
+
+    if (finalCredits !== undefined) {
       setCreditInfo({
         id: user?._id ?? "",
-        credits: res?.data?.remainingCredits || 0,
+        credits: finalCredits,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
-      fetchRevealEstimate();
-    } catch (e) {
-    } finally {
-      setLoadRow({});
     }
+
+    fetchRevealEstimate();
+    setTimeout(() => {
+      setRevealProgress({ visible: false, current: 0, total: 0, type: "" });
+    }, 600);
   };
 
   const revealAll = async (type: "phone" | "email") => {
@@ -400,9 +402,7 @@ export default function Collab_ListDetailPage() {
         setInsufficientVisible(true);
         toast.warning("Partially revealed — ran out of credits");
       } else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
-        toast.success(
-          type === "phone" ? "Revealed all phones" : "Revealed all emails"
-        );
+        toast.success(type === "phone" ? "Revealed all phones" : "Revealed all emails");
       } else {
         toast.success("Reveal queued");
       }
@@ -430,12 +430,8 @@ export default function Collab_ListDetailPage() {
       collaboration_checkHubspotConnection(),
       collaboration_checkBrevoConnection(false),
     ]);
-    setHubspotConnected(
-      hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false
-    );
-    setBrevoConnected(
-      br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false
-    );
+    setHubspotConnected(hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false);
+    setBrevoConnected(br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false);
     setCheckingConnections(false);
   };
 
@@ -451,19 +447,20 @@ export default function Collab_ListDetailPage() {
 
   const exportCurrentList = async (target: "hubspot" | "brevo" | "email") => {
     setExportingTarget(target);
+    
     const payload: any = { listName };
+
+    // Pass the specific row IDs if the user has checkboxes selected
+    if (selectedProfile.length > 0) {
+      payload.rowIds = selectedProfile.map(p => p.row_id);
+    }
+
     try {
       if (target === "hubspot") {
         const res: any = await collaboration_exportToHubspotApi(payload);
         if (res?.data?.success) {
           toast.success("Exported to Hubspot successfully");
-          if (res?.data?.portalId) {
-            window.open(
-              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
-              "_blank",
-              "noopener,noreferrer"
-            );
-          }
+          if (res?.data?.portalId) window.open(`https://app-na2.hubspot.com/import/${res?.data?.portalId}`, "_blank", "noopener,noreferrer");
           setExportModalVisible(false);
         } else {
           toast.error("Unable to export to Hubspot");
@@ -472,9 +469,7 @@ export default function Collab_ListDetailPage() {
       if (target === "brevo") {
         const res: any = await collaboration_exportToBrevoApi(payload);
         if (res?.data?.queued) {
-          const name = res?.data?.targetBrevoListName
-            ? ` (${res?.data?.targetBrevoListName})`
-            : "";
+          const name = res?.data?.targetBrevoListName ? ` (${res?.data?.targetBrevoListName})` : "";
           toast.success(`Queued export to Brevo${name}`);
           setExportModalVisible(false);
         } else if (res?.data?.success) {
@@ -564,17 +559,14 @@ export default function Collab_ListDetailPage() {
   };
 
   const showLinkedIn = (rowData: any) => {
-    const loadingThis =
-      loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
+    const loadingThis = loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
         className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
         title="Open LinkedIn"
       >
-        <i
-          className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`}
-        />
+        <i className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`} />
       </button>
     );
   };
@@ -633,8 +625,7 @@ export default function Collab_ListDetailPage() {
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
     if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
     if (phoneCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < phoneCostToShow)
-      return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
+    if (userCredits < phoneCostToShow) return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
     return "";
   }, [counts.useSelected, entries.length, estimateLoading, listName, phoneCostToShow, totalRows, userCredits]);
 
@@ -643,8 +634,7 @@ export default function Collab_ListDetailPage() {
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
     if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
     if (emailCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < emailCostToShow)
-      return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
+    if (userCredits < emailCostToShow) return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
     return "";
   }, [counts.useSelected, entries.length, estimateLoading, listName, emailCostToShow, totalRows, userCredits]);
 
@@ -669,6 +659,38 @@ export default function Collab_ListDetailPage() {
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
+      
+      {/* 1. REVEALING PROGRESS DIALOG */}
+      <Dialog
+        header="Revealing Contacts"
+        visible={revealProgress.visible}
+        className="p-2 bg-white w-[90vw] max-w-[420px] rounded-xl"
+        closable={false}
+        draggable={false}
+        resizable={false}
+        onHide={() => {}}
+      >
+        <div className="flex flex-col items-center justify-center p-4">
+          <i className="pi pi-spin pi-spinner text-4xl text-orange-500 mb-4"></i>
+          <div className="text-lg font-semibold text-gray-900 mb-1">
+            Revealing {revealProgress.type === "phone" ? "Phone Numbers" : "Emails"}...
+          </div>
+          <div className="text-sm text-gray-500 mb-6 text-center">
+            Please don't close or refresh this window.
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden">
+            <div
+              className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%` }}
+            ></div>
+          </div>
+          <div className="w-full flex justify-between text-xs font-semibold text-gray-600">
+            <span>{revealProgress.current} / {revealProgress.total}</span>
+            <span>{revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%</span>
+          </div>
+        </div>
+      </Dialog>
+
       <Dialog
         header={`Connect to ${TextToCapitalize(connectTarget)}`}
         visible={connectVisible && connectTarget.length > 0}
@@ -686,18 +708,14 @@ export default function Collab_ListDetailPage() {
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
               <span className="text-sm">
-                You haven’t connected {TextToCapitalize(connectTarget)} yet.
-                Connect it from the Integrations page first.
+                You haven’t connected {TextToCapitalize(connectTarget)} yet. Connect it from the Integrations page first.
               </span>
             </p>
           </div>
           <div className="mt-6 flex mb-3">
             <div className="cursor-pointer w-fit m-auto">
               <button
-                onClick={() => {
-                  setConnectVisible(false);
-                  setConnectTarget("");
-                }}
+                onClick={() => { setConnectVisible(false); setConnectTarget(""); }}
                 className="bg-gray-500 cursor-pointer text-white text-md rounded-lg px-6 py-2"
               >
                 Cancel
@@ -750,10 +768,11 @@ export default function Collab_ListDetailPage() {
         </div>
       </Dialog>
 
+      {/* 2. UPGRADED EXPORT MODAL */}
       <Dialog
-        header="Export"
+        header="Export Options"
         visible={exportModalVisible}
-        className="p-2 bg-white w-[92vw] max-w-[520px] rounded-xl"
+        className="p-2 bg-white w-[95vw] max-w-[700px] rounded-xl shadow-2xl"
         onHide={() => {
           if (!exportModalVisible) return;
           setExportModalVisible(false);
@@ -761,95 +780,170 @@ export default function Collab_ListDetailPage() {
         draggable={false}
         resizable={false}
       >
-        <div className="flex items-start gap-2 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-3">
-          <i className="pi pi-exclamation-triangle text-yellow-700 mt-0.5" />
-          <span>
-            Note: Only the rows with revealed email or phone number will be
-            included in your export.
-          </span>
+        {/* --- DYNAMIC STATS SUMMARY (WIDER & WITH REVEAL BUTTONS) --- */}
+        <div className="mb-6 grid grid-cols-3 gap-4 text-center">
+          
+          {/* TOTAL CARD */}
+          <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 flex flex-col items-center justify-center">
+            <div className="text-4xl font-extrabold text-gray-900">{exportStats.total}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-2">
+              {exportStats.mode === "selected" ? "Selected Contacts" : "Entire List"}
+            </div>
+          </div>
+
+          {/* PHONE CARD */}
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2">
+              <i className="pi pi-phone text-orange-600 text-xl" />
+              <span className="text-3xl font-extrabold text-orange-600">{exportStats.revealedPhones}</span>
+            </div>
+            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider mt-1">
+              Revealed Phones
+            </div>
+            <div className="text-xs font-medium text-orange-600 mt-1 mb-4">
+              ({exportStats.unrevealedPhones} missing)
+            </div>
+            
+            <button
+              disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("phone");
+                else revealAll("phone");
+              }}
+              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {phoneBusy ? (
+                <i className="pi pi-spin pi-spinner mr-2" />
+              ) : null}
+              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+            </button>
+          </div>
+
+          {/* EMAIL CARD */}
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2">
+              <i className="pi pi-envelope text-blue-600 text-xl" />
+              <span className="text-3xl font-extrabold text-blue-600">{exportStats.revealedEmails}</span>
+            </div>
+            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mt-1">
+              Revealed Emails
+            </div>
+            <div className="text-xs font-medium text-blue-600 mt-1 mb-4">
+              ({exportStats.unrevealedEmails} missing)
+            </div>
+
+            <button
+              disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("email");
+                else revealAll("email");
+              }}
+              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {emailBusy ? (
+                <i className="pi pi-spin pi-spinner mr-2" />
+              ) : null}
+              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+            </button>
+          </div>
         </div>
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center gap-3">
-              <img
-                src={hubspotLogo}
-                className="w-10 h-10 bg-white rounded"
-                alt=""
-              />
+
+        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
+          <div className="leading-relaxed">
+            Only the <b>{Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+            <div className="flex items-center gap-4">
+              <img src={hubspotLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="HubSpot" />
               <div>
-                <div className="font-semibold text-gray-900">HubSpot</div>
-                <div className="text-xs text-gray-500">
-                  {hubspotConnected === null
-                    ? "Checking..."
-                    : hubspotConnected
-                    ? "Connected"
-                    : "Not connected"}
+                <div className="font-bold text-gray-900 text-base">HubSpot</div>
+                <div className="text-xs font-medium text-gray-500">
+                  {hubspotConnected === null ? "Checking connection..." : hubspotConnected ? "Connected" : "Not connected"}
                 </div>
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "hubspot"}
+              disabled={checkingConnections || exportingTarget === "hubspot" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
               onClick={() => {
                 if (hubspotConnected) exportCurrentList("hubspot");
                 else openConnectDialog("hubspot");
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                hubspotConnected
-                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : hubspotConnected
+                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "hubspot" ? (
-                <span className="inline-flex items-center gap-2">
-                  <i className="pi pi-spin pi-spinner text-xs" />
-                  Exporting
-                </span>
-              ) : hubspotConnected ? (
-                "Export"
-              ) : (
-                "Not connected"
-              )}
+                <span className="inline-flex items-center gap-2"><i className="pi pi-spin pi-spinner text-xs" /> Exporting</span>
+              ) : hubspotConnected ? ("Export") : ("Connect")}
             </button>
           </div>
-          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center gap-3">
-              <img
-                src={brevoLogo}
-                className="w-10 h-10 bg-white rounded"
-                alt=""
-              />
+
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+            <div className="flex items-center gap-4">
+              <img src={brevoLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="Brevo" />
               <div>
-                <div className="font-semibold text-gray-900">Brevo</div>
-                <div className="text-xs text-gray-500">
-                  {brevoConnected === null
-                    ? "Checking..."
-                    : brevoConnected
-                    ? "Connected"
-                    : "Not connected"}
+                <div className="font-bold text-gray-900 text-base">Brevo</div>
+                <div className="text-xs font-medium text-gray-500">
+                  {brevoConnected === null ? "Checking connection..." : brevoConnected ? "Connected" : "Not connected"}
                 </div>
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "brevo"}
+              disabled={checkingConnections || exportingTarget === "brevo" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
               onClick={() => {
                 if (brevoConnected) exportCurrentList("brevo");
                 else openConnectDialog("brevo");
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                brevoConnected
-                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : brevoConnected
+                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "brevo" ? (
+                <span className="inline-flex items-center gap-2"><i className="pi pi-spin pi-spinner text-xs" /> Exporting</span>
+              ) : brevoConnected ? ("Export") : ("Connect")}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xl">
+                @
+              </div>
+              <div>
+                <div className="font-bold text-gray-900 text-base">Email</div>
+                <div className="text-xs font-medium text-gray-500">
+                  Sends export to {user?.collaboratorEmail || "your email"}
+                </div>
+              </div>
+            </div>
+            <button
+              disabled={exportingTarget === "email" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              onClick={() => exportCurrentList("email")}
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+              }`}
+            >
+              {exportingTarget === "email" ? (
                 <span className="inline-flex items-center gap-2">
                   <i className="pi pi-spin pi-spinner text-xs" />
                   Exporting
                 </span>
-              ) : brevoConnected ? (
-                "Export"
               ) : (
-                "Not connected"
+                "Export"
               )}
             </button>
           </div>
