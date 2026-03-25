@@ -14,7 +14,7 @@ const createNewList = async (payload: any) => await axios.post(`${baseUrl}/list/
 const getAllList = async (payload?: any) => await axios.post(`${baseUrl}/list/summary`, payload || {});
 const getSingleListDetail = async (payload: any) => await axios.post(`${baseUrl}/list/show`, payload);
 const getSingleListDetailCursor = async (payload: any) => await axios.post(`${baseUrl}/list/show-cursor`, payload);
-const exportList = async (payload: any) => await axios.post(`${baseUrl}/list2/export`, payload);
+const exportList = async (payload: any) => await axios.post(`${baseUrl}/list/export`, payload);
 const deleteAList = async (listname: any) => await axios.delete(`${baseUrl}/list/${listname}`);
 const renameAList = async (payload: any) => await axios.post(`${baseUrl}/list/rename`, payload);
 const addSubscriber = async (payload: any) => await axios.post(`${baseUrl.replace('/api', '/auth')}/ext/login`, payload);
