@@ -9,11 +9,11 @@ const getDataPhoneAndEmail = async (payload: any) => await axios.post(`${baseUrl
 const getLinkedInUrl = async (payload: any) => await axios.post(`${baseUrl}/filter/linkedin`, payload);
 const searchLinkedInProfile = async (payload: any) => await axios.post(`${baseUrl}/filter/linkedin-search`, payload);
 const addProfilesToList = async (payload: any) => await axios.post(`${baseUrl}/list/store`, payload);
-const addByFilterToList = async (payload: any) => await axios.post(`${baseUrl}/list/add-by-filter`, payload);
+const addByFilterToList = async (payload: any) => await axios.post(`${baseUrl}/list2/add-by-filter`, payload);
 const createNewList = async (payload: any) => await axios.post(`${baseUrl}/list/create`, payload);
 const getAllList = async (payload?: any) => await axios.post(`${baseUrl}/list/summary`, payload || {});
 const getSingleListDetail = async (payload: any) => await axios.post(`${baseUrl}/list/show`, payload);
-const getSingleListDetailCursor = async (payload: any) => await axios.post(`${baseUrl}/list/show-cursor`, payload);
+const getSingleListDetailCursor = async (payload: any) => await axios.post(`${baseUrl}/list2/show-cursor`, payload);
 const exportList = async (payload: any) => await axios.post(`${baseUrl}/list/export`, payload);
 const deleteAList = async (listname: any) => await axios.delete(`${baseUrl}/list/${listname}`);
 const renameAList = async (payload: any) => await axios.post(`${baseUrl}/list/rename`, payload);
