@@ -112,7 +112,6 @@ export default function ListDetailPage() {
     ""
   );
 
-  // THESE STATE VARIABLES MUST BE DECLARED BEFORE exportStats
   const [totalRows, setTotalRows] = useState<number>(0);
   const [loadingTotal, setLoadingTotal] = useState<boolean>(false);
 
@@ -124,37 +123,55 @@ export default function ListDetailPage() {
     emailCount: number;
   }>({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
 
-  // --- UPGRADED EXPORT STATS CALCULATOR (Now placed correctly!) ---
+  // 1. CALCULATE EXACT SCREEN COUNTS FIRST
+  const counts = useMemo(() => {
+    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const useSelected = selectedProfile.length > 0;
+
+    return {
+      useSelected,
+      allUnrevealedPhone,
+      allUnrevealedEmail,
+      selUnrevealedPhone,
+      selUnrevealedEmail,
+      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
+      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
+    };
+  }, [entries, selectedProfile]);
+
+  // 2. FRONTEND SAFETY OVERRIDE (Fixes the 0 Credits bug)
+  const safePhoneCount = Math.max(listEstimate.phoneCount, counts.allUnrevealedPhone);
+  const safeEmailCount = Math.max(listEstimate.emailCount, counts.allUnrevealedEmail);
+  const safePhoneCredits = Math.max(listEstimate.phoneCredits, counts.allUnrevealedPhone * PHONE_REVEAL_CREDITS);
+  const safeEmailCredits = Math.max(listEstimate.emailCredits, counts.allUnrevealedEmail * EMAIL_REVEAL_CREDITS);
+
+  // 3. UPGRADED EXPORT STATS CALCULATOR (4-Column Ready)
   const exportStats = useMemo(() => {
-    // If user selected checkboxes (across any pages), calculate those specific rows
-    if (selectedProfile.length > 0) {
-      const total = selectedProfile.length;
-      const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
-      const revealedEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
-      return {
-        mode: "selected",
-        total,
-        revealedPhones,
-        revealedEmails,
-        unrevealedPhones: total - revealedPhones,
-        unrevealedEmails: total - revealedEmails,
-      };
-    } 
-    // If no checkboxes selected, calculate the ENTIRE saved list
-    else {
-      const total = totalRows;
-      const unrevealedPhones = listEstimate?.phoneCount || 0;
-      const unrevealedEmails = listEstimate?.emailCount || 0;
-      return {
-        mode: "all",
-        total,
-        revealedPhones: Math.max(0, total - unrevealedPhones),
-        revealedEmails: Math.max(0, total - unrevealedEmails),
-        unrevealedPhones,
-        unrevealedEmails,
-      };
-    }
-  }, [selectedProfile, totalRows, listEstimate]);
+    const totalSelected = selectedProfile.length;
+    const selPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
+    const selEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
+
+    return {
+      all: {
+        total: totalRows,
+        revealedPhones: Math.max(0, totalRows - safePhoneCount),
+        revealedEmails: Math.max(0, totalRows - safeEmailCount),
+        unrevealedPhones: safePhoneCount,
+        unrevealedEmails: safeEmailCount,
+      },
+      selected: {
+        total: totalSelected,
+        revealedPhones: selPhones,
+        revealedEmails: selEmails,
+        unrevealedPhones: totalSelected - selPhones,
+        unrevealedEmails: totalSelected - selEmails,
+      },
+      isSelectionActive: totalSelected > 0
+    };
+  }, [selectedProfile, totalRows, safePhoneCount, safeEmailCount]);
 
   const listNamePretty = useMemo(
     () => (listName || "").replace(/-/g, " "),
@@ -200,36 +217,6 @@ export default function ListDetailPage() {
   const canGoPrev = pageNumber > 1;
   const canGoNext = pageNumber < totalPages;
 
-  const counts = useMemo(() => {
-    const allUnrevealedPhone = entries.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-
-    const allUnrevealedEmail = entries.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
-
-    const selUnrevealedPhone = selectedProfile.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-
-    const selUnrevealedEmail = selectedProfile.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
-
-    const useSelected = selectedProfile.length > 0;
-
-    return {
-      useSelected,
-      phoneCost:
-        (useSelected ? selUnrevealedPhone : allUnrevealedPhone) *
-        PHONE_REVEAL_CREDITS,
-      emailCost:
-        (useSelected ? selUnrevealedEmail : allUnrevealedEmail) *
-        EMAIL_REVEAL_CREDITS,
-    };
-  }, [entries, selectedProfile]);
-
   const userCredits = useMemo(
     () => Number(creditInfoValue?.credits || 0),
     [creditInfoValue?.credits]
@@ -238,40 +225,16 @@ export default function ListDetailPage() {
   const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
     const phoneCredits = Number(
-      d?.phoneCredits ??
-        d?.phoneCost ??
-        d?.creditsPhone ??
-        d?.phone?.credits ??
-        d?.phone?.cost ??
-        d?.estimate?.phoneCredits ??
-        d?.estimate?.phoneCost ??
-        0
+      d?.phoneCredits ?? d?.phoneCost ?? d?.creditsPhone ?? d?.phone?.credits ?? d?.phone?.cost ?? d?.estimate?.phoneCredits ?? d?.estimate?.phoneCost ?? 0
     );
     const emailCredits = Number(
-      d?.emailCredits ??
-        d?.emailCost ??
-        d?.creditsEmail ??
-        d?.email?.credits ??
-        d?.email?.cost ??
-        d?.estimate?.emailCredits ??
-        d?.estimate?.emailCost ??
-        0
+      d?.emailCredits ?? d?.emailCost ?? d?.creditsEmail ?? d?.email?.credits ?? d?.email?.cost ?? d?.estimate?.emailCredits ?? d?.estimate?.emailCost ?? 0
     );
     const phoneCount = Number(
-      d?.phoneCount ??
-        d?.unrevealedPhone ??
-        d?.phoneUnrevealed ??
-        d?.phone?.count ??
-        d?.estimate?.phoneCount ??
-        0
+      d?.phoneCount ?? d?.unrevealedPhone ?? d?.phoneUnrevealed ?? d?.phone?.count ?? d?.estimate?.phoneCount ?? 0
     );
     const emailCount = Number(
-      d?.emailCount ??
-        d?.unrevealedEmail ??
-        d?.emailUnrevealed ??
-        d?.email?.count ??
-        d?.estimate?.emailCount ??
-        0
+      d?.emailCount ?? d?.unrevealedEmail ?? d?.emailUnrevealed ?? d?.email?.count ?? d?.estimate?.emailCount ?? 0
     );
 
     return {
@@ -349,10 +312,9 @@ export default function ListDetailPage() {
             (a?.Name || "").localeCompare(b?.Name || "")
           ) || [];
         setEntries(data);
-        setSelectedProfile([]);
+        // REMOVED: setSelectedProfile([]) to persist selections across pages
       } catch (e) {
         setEntries([]);
-        setSelectedProfile([]);
       } finally {
         setLoading(false);
       }
@@ -565,7 +527,7 @@ export default function ListDetailPage() {
 
     const payload: any = { listName: listName };
 
-    // Pass the specific row IDs if the user has checkboxes selected
+    // Support exporting only selected IDs
     if (selectedProfile.length > 0) {
       payload.rowIds = selectedProfile.map(p => p.row_id);
     }
@@ -770,8 +732,8 @@ export default function ListDetailPage() {
     }
   };
 
-  const phoneCostToShow = counts.useSelected ? counts.phoneCost : listEstimate.phoneCredits;
-  const emailCostToShow = counts.useSelected ? counts.emailCost : listEstimate.emailCredits;
+  const phoneCostToShow = counts.useSelected ? counts.phoneCost : safePhoneCredits;
+  const emailCostToShow = counts.useSelected ? counts.emailCost : safeEmailCredits;
 
   const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
   const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
@@ -936,11 +898,11 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
-      {/* 2. UPGRADED EXPORT MODAL */}
+      {/* 2. UPGRADED EXPORT MODAL (4-COLUMN GRID) */}
       <Dialog
         header="Export Options"
         visible={exportModalVisible}
-        className="p-2 bg-white w-[95vw] max-w-[700px] rounded-xl shadow-2xl"
+        className="p-2 bg-white w-[95vw] max-w-[750px] rounded-xl shadow-2xl"
         onHide={() => {
           if (!exportModalVisible) return;
           setExportModalVisible(false);
@@ -948,85 +910,67 @@ export default function ListDetailPage() {
         draggable={false}
         resizable={false}
       >
-        {/* --- DYNAMIC STATS SUMMARY (WIDER & WITH REVEAL BUTTONS) --- */}
-        <div className="mb-6 grid grid-cols-3 gap-4 text-center">
-          
-          {/* TOTAL CARD */}
-          <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 flex flex-col items-center justify-center">
-            <div className="text-4xl font-extrabold text-gray-900">{exportStats.total}</div>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-2">
-              {exportStats.mode === "selected" ? "Selected Contacts" : "Entire List"}
-            </div>
+        <div className="mb-6 grid grid-cols-4 gap-3 text-center">
+          {/* BOX 1: ENTIRE LIST */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
+            <div className="text-3xl font-black text-gray-900">{exportStats.all.total}</div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Entire List</div>
           </div>
 
-          {/* PHONE CARD */}
-          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-2">
-              <i className="pi pi-phone text-orange-600 text-xl" />
-              <span className="text-3xl font-extrabold text-orange-600">{exportStats.revealedPhones}</span>
+          {/* BOX 2: SELECTED */}
+          <div className={`rounded-xl p-4 border flex flex-col items-center justify-center transition-all ${exportStats.isSelectionActive ? "bg-orange-50 border-orange-200 shadow-sm" : "bg-gray-50 border-gray-100 opacity-40"}`}>
+            <div className={`text-3xl font-black ${exportStats.isSelectionActive ? "text-orange-600" : "text-gray-300"}`}>{exportStats.selected.total}</div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selected</div>
+          </div>
+
+          {/* BOX 3: REVEALED PHONES */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-1.5">
+              <i className="pi pi-phone text-orange-600 text-sm" />
+              <span className="text-2xl font-black text-gray-900">
+                {exportStats.isSelectionActive ? exportStats.selected.revealedPhones : exportStats.all.revealedPhones}
+              </span>
             </div>
-            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider mt-1">
-              Revealed Phones
-            </div>
-            <div className="text-xs font-medium text-orange-600 mt-1 mb-4">
-              ({exportStats.unrevealedPhones} missing)
-            </div>
-            
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">Revealed Phones</div>
             <button
-              disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("phone");
-                else revealAll("phone");
-              }}
-              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedPhones === 0 : exportStats.all.unrevealedPhones === 0}
+              onClick={() => exportStats.isSelectionActive ? bulkReveal("phone") : revealAll("phone")}
+              className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded font-bold disabled:opacity-40"
             >
-              {phoneBusy ? (
-                <i className="pi pi-spin pi-spinner mr-2" />
-              ) : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              Reveal Missing
             </button>
           </div>
 
-          {/* EMAIL CARD */}
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-2">
-              <i className="pi pi-envelope text-blue-600 text-xl" />
-              <span className="text-3xl font-extrabold text-blue-600">{exportStats.revealedEmails}</span>
+          {/* BOX 4: REVEALED EMAILS */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-1.5">
+              <i className="pi pi-envelope text-blue-600 text-sm" />
+              <span className="text-2xl font-black text-gray-900">
+                {exportStats.isSelectionActive ? exportStats.selected.revealedEmails : exportStats.all.revealedEmails}
+              </span>
             </div>
-            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mt-1">
-              Revealed Emails
-            </div>
-            <div className="text-xs font-medium text-blue-600 mt-1 mb-4">
-              ({exportStats.unrevealedEmails} missing)
-            </div>
-
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">Revealed Emails</div>
             <button
-              disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("email");
-                else revealAll("email");
-              }}
-              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedEmails === 0 : exportStats.all.unrevealedEmails === 0}
+              onClick={() => exportStats.isSelectionActive ? bulkReveal("email") : revealAll("email")}
+              className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-bold disabled:opacity-40"
             >
-              {emailBusy ? (
-                <i className="pi pi-spin pi-spinner mr-2" />
-              ) : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              Reveal Missing
             </button>
           </div>
         </div>
 
-        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
           <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
           <div className="leading-relaxed">
-            Only the <b>{Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
+            Only the <b>{Math.max(exportStats.isSelectionActive ? exportStats.selected.revealedPhones : exportStats.all.revealedPhones, exportStats.isSelectionActive ? exportStats.selected.revealedEmails : exportStats.all.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
           </div>
         </div>
 
-        <div className="mt-6 space-y-3">
+        <div className="space-y-3">
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={hubspotLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="HubSpot" />
+              <img src={hubspotLogo} className="w-10 h-10 border border-gray-100 bg-white rounded p-1" alt="HubSpot" />
               <div>
                 <div className="font-bold text-gray-900 text-base">HubSpot</div>
                 <div className="text-xs font-medium text-gray-500">
@@ -1035,13 +979,13 @@ export default function ListDetailPage() {
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "hubspot" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={checkingConnections || exportingTarget === "hubspot" || (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))}
               onClick={() => {
                 if (hubspotConnected) exportCurrentList("hubspot");
                 else openConnectDialog("hubspot");
               }}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : hubspotConnected
                   ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
@@ -1056,7 +1000,7 @@ export default function ListDetailPage() {
 
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={brevoLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="Brevo" />
+              <img src={brevoLogo} className="w-10 h-10 border border-gray-100 bg-white rounded p-1" alt="Brevo" />
               <div>
                 <div className="font-bold text-gray-900 text-base">Brevo</div>
                 <div className="text-xs font-medium text-gray-500">
@@ -1065,13 +1009,13 @@ export default function ListDetailPage() {
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "brevo" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={checkingConnections || exportingTarget === "brevo" || (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))}
               onClick={() => {
                 if (brevoConnected) exportCurrentList("brevo");
                 else openConnectDialog("brevo");
               }}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : brevoConnected
                   ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
@@ -1097,10 +1041,10 @@ export default function ListDetailPage() {
               </div>
             </div>
             <button
-              disabled={exportingTarget === "email" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={exportingTarget === "email" || (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))}
               onClick={() => exportCurrentList("email")}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                (exportStats.isSelectionActive ? (exportStats.selected.revealedPhones === 0 && exportStats.selected.revealedEmails === 0) : (exportStats.all.revealedPhones === 0 && exportStats.all.revealedEmails === 0))
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
               }`}
@@ -1140,12 +1084,19 @@ export default function ListDetailPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate("/list")}
-            className="text-sm font-medium text-gray-600 hover:text-orange-600 shrink-0"
-          >
-            Back to Lists
-          </button>
+          <div className="flex items-center gap-4">
+            {selectedProfile.length > 0 && (
+              <button onClick={() => setSelectedProfile([])} className="text-xs font-bold text-orange-600 hover:underline">
+                Clear Selection ({selectedProfile.length})
+              </button>
+            )}
+            <button
+              onClick={() => navigate("/list")}
+              className="text-sm font-medium text-gray-600 hover:text-orange-600 shrink-0"
+            >
+              Back to Lists
+            </button>
+          </div>
         </div>
       </div>
 
