@@ -964,10 +964,8 @@ export default function ListDetailPage() {
             
             <button
               disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("phone");
-                else revealAll("phone");
-              }}
+              onClick={() => bulkReveal("phone")}
+
               className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-[#FCA5A5] hover:bg-[#F87171] text-white disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
               style={{ backgroundColor: exportStats.unrevealedPhones === 0 ? "#FCA5A5" : "#FBA985" }}
             >
@@ -991,10 +989,8 @@ export default function ListDetailPage() {
 
             <button
               disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("email");
-                else revealAll("email");
-              }}
+              onClick={() => bulkReveal("email")}
+
               className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-[#93C5FD] hover:bg-[#60A5FA] text-white disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
               style={{ backgroundColor: exportStats.unrevealedEmails === 0 ? "#93C5FD" : "#86B5FF" }}
             >
@@ -1143,10 +1139,8 @@ export default function ListDetailPage() {
             <button
               disabled={phoneDisabled}
               title={phoneDisabledReason || ""}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("phone");
-                else revealAll("phone");
-              }}
+              onClick={() => bulkReveal("phone")}
+
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
@@ -1167,10 +1161,8 @@ export default function ListDetailPage() {
             <button
               disabled={emailDisabled}
               title={emailDisabledReason || ""}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("email");
-                else revealAll("email");
-              }}
+              onClick={() => bulkReveal("email")}
+              
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
