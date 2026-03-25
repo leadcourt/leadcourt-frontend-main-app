@@ -42,21 +42,38 @@ const getAllList = async (payload?: any) => {
   return await axios.post(`${baseUrl}/list/summary`, payload || {});
 };
 
+// ==========================================
+// 🚀 V2 ENDPOINTS (New Background Worker Logic)
+// ==========================================
+
 const getSingleListDetail = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/show`, payload);
+  // Changed to list2
+  return await axios.post(`${baseUrl}/list2/show`, payload);
 };
 
 const getSingleListDetailCursor = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/show-cursor`, payload);
+  // Changed to list2 to keep pagination in sync
+  return await axios.post(`${baseUrl}/list2/show-cursor`, payload);
 };
 
 const getListRevealEstimate = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/reveal-estimate`, payload);
+  // Changed to list2 (Fixes the 0 credits disabled button bug)
+  return await axios.post(`${baseUrl}/list2/reveal-estimate`, payload);
 };
 
 const revealAllFromList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/reveal-all`, payload);
+  // Changed to list2 (Fixes the fake "success" toast without deducting credits)
+  return await axios.post(`${baseUrl}/list2/reveal-all`, payload);
 };
+
+const exportList = async (payload: any) => {
+  // Changed to list2 (Connects to your new specific checkbox export logic)
+  return await axios.post(`${baseUrl}/list2/export`, payload);
+};
+
+// ==========================================
+// 🔙 V1 ENDPOINTS (Standard List Management)
+// ==========================================
 
 const deleteAList = async (listname: any) => {
   return await axios.delete(`${baseUrl}/list/${listname}`);
@@ -66,14 +83,8 @@ const renameAList = async (payload: any) => {
   return await axios.post(`${baseUrl}/list/rename`, payload);
 };
 
-const exportList = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/export`, payload);
-};
-
 const addSubscriber = async (payload: any) => {
-
   const authUrl = baseUrl.replace('/api', '/auth');
-  
   return await axios.post(`${authUrl}/ext/login`, payload);
 };
 
