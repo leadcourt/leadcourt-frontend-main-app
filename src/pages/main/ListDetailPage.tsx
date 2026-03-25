@@ -139,8 +139,8 @@ export default function ListDetailPage() {
     // If no checkboxes selected, calculate the ENTIRE saved list
     else {
       const total = totalRows;
-      const unrevealedPhones = listEstimate?.phoneCount || 0;
-      const unrevealedEmails = listEstimate?.emailCount || 0;
+      const unrevealedPhones = listEstimate.phoneCount;
+      const unrevealedEmails = listEstimate.emailCount;
       return {
         mode: "all",
         total,
