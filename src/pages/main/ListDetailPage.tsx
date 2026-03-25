@@ -13,8 +13,7 @@ import {
   getLinkedInUrl,
   getSingleListDetail,
   getAllList,
-  getListRevealEstimate,
-  revealAllFromList,
+  getListRevealEstimate
 } from "../../utils/api/data";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
