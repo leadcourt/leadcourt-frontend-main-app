@@ -922,9 +922,7 @@ export default function ListDetailPage() {
             <button
               disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
               onClick={() => bulkReveal("phone")}
-
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-[#FCA5A5] hover:bg-[#F87171] text-white disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-              style={{ backgroundColor: exportStats.unrevealedPhones === 0 ? "#FCA5A5" : "#FBA985" }}
+              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
             >
               {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
@@ -947,9 +945,7 @@ export default function ListDetailPage() {
             <button
               disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
               onClick={() => bulkReveal("email")}
-
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-[#93C5FD] hover:bg-[#60A5FA] text-white disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-              style={{ backgroundColor: exportStats.unrevealedEmails === 0 ? "#93C5FD" : "#86B5FF" }}
+              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
             >
               {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
