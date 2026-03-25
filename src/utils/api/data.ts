@@ -55,7 +55,8 @@ const getSingleListDetailCursor = async (payload: any) => {
 };
 
 const getListRevealEstimate = async (payload: any) => {
-  return await axios.post(`${baseUrl}/list/reveal-estimate`, payload);
+  // We calculate this on the frontend now, no need to hit the server
+  return { data: { phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 } };
 };
 
 const revealAllFromList = async (payload: any) => {
