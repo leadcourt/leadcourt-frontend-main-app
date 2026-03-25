@@ -475,49 +475,7 @@ export default function ListDetailPage() {
     }, 600);
   };
 
-  const revealAll = async (type: "phone" | "email") => {
-    const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
-    setLoadRow({ type: spinnerKey });
-
-    try {
-      // Added 'as any' to bypass the TypeScript argument error
-      const res: any = await (revealAllFromList as any)({
-        listName,
-        type,
-        userId: user?.id,
-      });
-
-      if (res?.data?.error) {
-        setInsufficientVisible(true);
-        return;
-      }
-      if (res?.data?.stoppedDueToCredits) { setInsufficientVisible(true); toast.warning("Partially revealed — ran out of credits"); }
-      else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
-        toast.success(
-          type === "phone" ? "Revealed all phones" : "Revealed all emails"
-        );
-      } else {
-        toast.success("Reveal queued");
-      }
-
-      if (typeof res?.data?.remainingCredits !== "undefined") {
-        setCreditInfo({
-          id: user?.id ?? "",
-          credits: res?.data?.remainingCredits || 0,
-          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
-        });
-      } else {
-        fetchCredits();
-      }
-
-      await fetchRevealEstimate();
-      await listDetail(pageNumber);
-    } catch (e) {
-      toast.error("Something went wrong. Try again.");
-    } finally {
-      setLoadRow({});
-    }
-  };
+ 
 
   const refreshConnections = async () => {
     setCheckingConnections(true);
@@ -1162,7 +1120,7 @@ export default function ListDetailPage() {
               disabled={emailDisabled}
               title={emailDisabledReason || ""}
               onClick={() => bulkReveal("email")}
-              
+
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
