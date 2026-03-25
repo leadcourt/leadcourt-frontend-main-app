@@ -14,7 +14,6 @@ import {
   getSingleListDetail,
   getAllList,
   getListRevealEstimate,
-  revealAllFromList,
 } from "../../utils/api/data";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
@@ -286,7 +285,8 @@ export default function ListDetailPage() {
     if (!listName) return;
     setEstimateLoading(true);
     try {
-      const res: any = await getListRevealEstimate({ listName, userId: user?.id });
+      // Handled primarily on the frontend now to avoid 404s, but left intact if V1 estimate route is ever restored.
+      const res: any = await getListRevealEstimate();
       setListEstimate(parseEstimate(res));
     } catch (e) {
       setListEstimate({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
@@ -374,8 +374,9 @@ export default function ListDetailPage() {
     }
   };
 
+  // --- REPLACES THE BROKEN REVEAL ALL ROUTE WITH FRONTEND CHUNKING ---
   const bulkReveal = async (type: "phone" | "email") => {
-    const useSelected = selectedProfile.length > 0;
+    const useSelected = counts.useSelected;
     const source = useSelected ? selectedProfile : entries;
 
     const idsToReveal = source
@@ -387,7 +388,7 @@ export default function ListDetailPage() {
       .filter(Boolean);
 
     if (!idsToReveal.length) {
-      toast.info(`No unrevealed ${type}s found in selection.`);
+      toast.info(`No unrevealed ${type}s found.`);
       return;
     }
 
@@ -397,6 +398,7 @@ export default function ListDetailPage() {
     let updatedEntries = [...entries];
     let updatedSelected = [...selectedProfile];
     let finalCredits = creditInfoValue?.credits;
+    let successCount = 0;
 
     for (let i = 0; i < idsToReveal.length; i += CHUNK_SIZE) {
       const chunkIds = idsToReveal.slice(i, i + CHUNK_SIZE);
@@ -422,6 +424,7 @@ export default function ListDetailPage() {
         });
 
         finalCredits = res?.data?.remainingCredits;
+        successCount += resMap.size;
 
         setEntries(updatedEntries);
         setSelectedProfile(updatedSelected);
@@ -446,50 +449,10 @@ export default function ListDetailPage() {
     fetchRevealEstimate();
     setTimeout(() => {
       setRevealProgress({ visible: false, current: 0, total: 0, type: "" });
+      if (successCount > 0) {
+        toast.success(`Successfully revealed ${successCount} ${type}(s)!`);
+      }
     }, 600);
-  };
-
-  const revealAll = async (type: "phone" | "email") => {
-    const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
-    setLoadRow({ type: spinnerKey });
-
-    try {
-      const res: any = await revealAllFromList({
-        listName,
-        type,
-        userId: user?.id,
-      });
-
-      if (res?.data?.error) {
-        setInsufficientVisible(true);
-        return;
-      }
-      if (res?.data?.stoppedDueToCredits) { setInsufficientVisible(true); toast.warning("Partially revealed — ran out of credits"); }
-      else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
-        toast.success(
-          type === "phone" ? "Revealed all phones" : "Revealed all emails"
-        );
-      } else {
-        toast.success("Reveal queued");
-      }
-
-      if (typeof res?.data?.remainingCredits !== "undefined") {
-        setCreditInfo({
-          id: user?.id ?? "",
-          credits: res?.data?.remainingCredits || 0,
-          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
-        });
-      } else {
-        fetchCredits();
-      }
-
-      await fetchRevealEstimate();
-      await listDetail(pageNumber);
-    } catch (e) {
-      toast.error("Something went wrong. Try again.");
-    } finally {
-      setLoadRow({});
-    }
   };
 
   const refreshConnections = async () => {
@@ -898,11 +861,11 @@ export default function ListDetailPage() {
         </div>
       </Dialog>
 
-      {/* 2. UPGRADED EXPORT MODAL (4-COLUMN GRID) */}
+      {/* 2. UPGRADED EXPORT MODAL */}
       <Dialog
         header="Export Options"
         visible={exportModalVisible}
-        className="p-2 bg-white w-[95vw] max-w-[750px] rounded-xl shadow-2xl"
+        className="p-2 bg-white w-[95vw] max-w-[700px] rounded-xl shadow-2xl"
         onHide={() => {
           if (!exportModalVisible) return;
           setExportModalVisible(false);
@@ -911,66 +874,69 @@ export default function ListDetailPage() {
         resizable={false}
       >
         <div className="mb-6 grid grid-cols-4 gap-3 text-center">
-          {/* BOX 1: ENTIRE LIST */}
+          
+          {/* TOTAL CARD */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
             <div className="text-3xl font-black text-gray-900">{exportStats.all.total}</div>
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Entire List</div>
           </div>
 
-          {/* BOX 2: SELECTED */}
+          {/* SELECTED CARD */}
           <div className={`rounded-xl p-4 border flex flex-col items-center justify-center transition-all ${exportStats.isSelectionActive ? "bg-orange-50 border-orange-200 shadow-sm" : "bg-gray-50 border-gray-100 opacity-40"}`}>
             <div className={`text-3xl font-black ${exportStats.isSelectionActive ? "text-orange-600" : "text-gray-300"}`}>{exportStats.selected.total}</div>
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selected</div>
           </div>
 
-          {/* BOX 3: REVEALED PHONES */}
+          {/* PHONE CARD */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
             <div className="flex items-center gap-1.5">
               <i className="pi pi-phone text-orange-600 text-sm" />
-              <span className="text-2xl font-black text-gray-900">
-                {exportStats.isSelectionActive ? exportStats.selected.revealedPhones : exportStats.all.revealedPhones}
-              </span>
+              <span className="text-2xl font-black text-gray-900">{exportStats.isSelectionActive ? exportStats.selected.revealedPhones : exportStats.all.revealedPhones}</span>
             </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">Revealed Phones</div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">
+              Revealed Phones
+            </div>
+            
             <button
-              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedPhones === 0 : exportStats.all.unrevealedPhones === 0}
-              onClick={() => exportStats.isSelectionActive ? bulkReveal("phone") : revealAll("phone")}
-              className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded font-bold disabled:opacity-40"
+              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedPhones === 0 : counts.allUnrevealedPhone === 0}
+              onClick={() => bulkReveal("phone")}
+              className="w-full py-1.5 rounded text-[10px] font-bold transition-all bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              Reveal Missing
+              Reveal on Page
             </button>
           </div>
 
-          {/* BOX 4: REVEALED EMAILS */}
+          {/* EMAIL CARD */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col items-center justify-center">
             <div className="flex items-center gap-1.5">
               <i className="pi pi-envelope text-blue-600 text-sm" />
-              <span className="text-2xl font-black text-gray-900">
-                {exportStats.isSelectionActive ? exportStats.selected.revealedEmails : exportStats.all.revealedEmails}
-              </span>
+              <span className="text-2xl font-black text-gray-900">{exportStats.isSelectionActive ? exportStats.selected.revealedEmails : exportStats.all.revealedEmails}</span>
             </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">Revealed Emails</div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">
+              Revealed Emails
+            </div>
+
             <button
-              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedEmails === 0 : exportStats.all.unrevealedEmails === 0}
-              onClick={() => exportStats.isSelectionActive ? bulkReveal("email") : revealAll("email")}
-              className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-bold disabled:opacity-40"
+              disabled={exportStats.isSelectionActive ? exportStats.selected.unrevealedEmails === 0 : counts.allUnrevealedEmail === 0}
+              onClick={() => bulkReveal("email")}
+              className="w-full py-1.5 rounded text-[10px] font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              Reveal Missing
+              Reveal on Page
             </button>
           </div>
         </div>
 
-        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
           <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
           <div className="leading-relaxed">
             Only the <b>{Math.max(exportStats.isSelectionActive ? exportStats.selected.revealedPhones : exportStats.all.revealedPhones, exportStats.isSelectionActive ? exportStats.selected.revealedEmails : exportStats.all.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={hubspotLogo} className="w-10 h-10 border border-gray-100 bg-white rounded p-1" alt="HubSpot" />
+              <img src={hubspotLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="HubSpot" />
               <div>
                 <div className="font-bold text-gray-900 text-base">HubSpot</div>
                 <div className="text-xs font-medium text-gray-500">
@@ -1000,7 +966,7 @@ export default function ListDetailPage() {
 
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={brevoLogo} className="w-10 h-10 border border-gray-100 bg-white rounded p-1" alt="Brevo" />
+              <img src={brevoLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="Brevo" />
               <div>
                 <div className="font-bold text-gray-900 text-base">Brevo</div>
                 <div className="text-xs font-medium text-gray-500">
@@ -1106,22 +1072,19 @@ export default function ListDetailPage() {
             <button
               disabled={phoneDisabled}
               title={phoneDisabledReason || ""}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("phone");
-                else revealAll("phone");
-              }}
+              onClick={() => bulkReveal("phone")}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
                   {phoneBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
-                  <span>Show {counts.useSelected ? "selected" : "all"} phone</span>
+                  <span>Show {counts.useSelected ? "selected" : "page"} phone</span>
                 </span>
 
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
                   <span>
-                    {estimateLoading && !counts.useSelected ? "..." : phoneCostToShow} credits
+                    {phoneCostToShow} credits
                   </span>
                 </span>
               </span>
@@ -1130,22 +1093,19 @@ export default function ListDetailPage() {
             <button
               disabled={emailDisabled}
               title={emailDisabledReason || ""}
-              onClick={() => {
-                if (counts.useSelected) bulkReveal("email");
-                else revealAll("email");
-              }}
+              onClick={() => bulkReveal("email")}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
                   {emailBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
-                  <span>Show {counts.useSelected ? "selected" : "all"} email</span>
+                  <span>Show {counts.useSelected ? "selected" : "page"} email</span>
                 </span>
 
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
                   <span>
-                    {estimateLoading && !counts.useSelected ? "..." : emailCostToShow} credits
+                    {emailCostToShow} credits
                   </span>
                 </span>
               </span>
