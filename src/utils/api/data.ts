@@ -30,5 +30,5 @@ export {
   getAllData, searchOption, searchOptionDesignation, getAllList, getSingleListDetail,
   getSingleListDetailCursor, getListRevealEstimate, revealAllFromList, addProfilesToList,
   addByFilterToList, getDataPhoneAndEmail, getLinkedInUrl, searchLinkedInProfile,
-  createNewList, deleteAList, renameAList, exportList, addSubscriber,
+  createNewList, deleteAList, renameAList, addSubscriber,exportList,
 };
