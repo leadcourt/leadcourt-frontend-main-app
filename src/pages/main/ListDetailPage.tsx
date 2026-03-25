@@ -764,8 +764,11 @@ export default function ListDetailPage() {
     }
   };
 
-  const phoneCostToShow = counts.useSelected ? counts.phoneCost : listEstimate.phoneCredits;
-  const emailCostToShow = counts.useSelected ? counts.emailCost : listEstimate.emailCredits;
+  const safePhoneCredits = listEstimate.phoneCredits || 0;
+  const safeEmailCredits = listEstimate.emailCredits || 0;
+
+  const phoneCostToShow = counts.useSelected ? counts.phoneCost : safePhoneCredits;
+  const emailCostToShow = counts.useSelected ? counts.emailCost : safeEmailCredits;
 
   const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
   const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
