@@ -5,23 +5,15 @@ import { Dialog } from "primereact/dialog";
 import {
   useRecoilValue,
   useSetRecoilState,
-  useResetRecoilState,
   useRecoilState,
 } from "recoil";
 import {
   creditState,
   userState,
-  accessTokenState,
-  refreshTokenState,
 } from "../../utils/atom/authAtom";
-import {
-  collabCreditState,
-  collabProjectState,
-} from "../../utils/atom/collabAuthAtom";
 import SupportPage from "../../component/settings/SupportPage";
 import PaymentInIndia from "../../component/settings/PaymentInIndia";
-import { getLocation } from "../../utils/api/location";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import paymentFailed from "../../assets/icons/payment_failed.jpeg";
 import planData from "../../utils/buyCredit.json";
 import { toast } from "react-toastify";
@@ -55,15 +47,6 @@ const BuyCredit = () => {
   const user = useRecoilValue(userState);
   const credit = useRecoilValue(creditState);
   const setCreditInfo = useSetRecoilState(creditState);
-
-  const resetAccessToken = useResetRecoilState(accessTokenState);
-  const resetRefreshToken = useResetRecoilState(refreshTokenState);
-  const resetUser = useResetRecoilState(userState);
-  const resetCredit = useResetRecoilState(creditState);
-  const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
-  const resetCollabState = useResetRecoilState(collabProjectState);
-
-  const navigate = useNavigate();
 
   const [location, setLocation] = useState<string>("");
   const [annualSub, setAnnualSub] = useState<boolean>(false);
@@ -125,20 +108,18 @@ const BuyCredit = () => {
 
   const checkLocation = async () => {
     try {
-      // Using a reliable, free IP location service
       const response = await fetch("https://ipapi.co/json/");
       const data = await response.json();
       
       console.log("📍 Location Detected:", data.country_name);
 
-      // ipapi.co returns "IN" for country and "India" for country_name
       const isIndia = data.country === "IN" || data.country_name?.toUpperCase() === "INDIA";
       
       setLocation(data.country);
       setCountryCurrency(isIndia ? currencyConverter[0] : currencyConverter[1]);
     } catch (error) {
       console.error("❌ Location API failed. Defaulting to USD.", error);
-      setCountryCurrency(currencyConverter[1]); // Failsafe fallback
+      setCountryCurrency(currencyConverter[1]);
     }
   };
 
@@ -348,7 +329,6 @@ const BuyCredit = () => {
       {/* MAIN CONTENT */}
       <div className="lc-container">
         
-        {/* HEADER SECTION (Aligns with Image 1) */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
            
            <div>
@@ -394,10 +374,9 @@ const BuyCredit = () => {
            </div>
         </div>
 
-        {/* PRICING GRID (4 Columns) */}
+        {/* PRICING GRID */}
         <div className="pricing-grid">
           {planData.map((planItem, index) => {
-            // Highlighting Pro plan
             const isFeatured = planItem.name === "Pro";
             const currentPrice = annualSub
               ? Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate * 12 * 0.8)
@@ -459,7 +438,7 @@ const BuyCredit = () => {
             );
           })}
 
-          {/* ENTERPRISE CARD (4th Column) */}
+          {/* ENTERPRISE CARD */}
           <div className="pricing-card border border-red-200">
              <div className="bg-orange-50 text-orange-600 text-[10px] font-bold px-3 py-1 rounded w-fit mb-4 uppercase tracking-widest">Enterprise</div>
              <h3 className="text-xl font-extrabold text-gray-900 mb-2 leading-tight">Need more leads for your business?</h3>
@@ -479,10 +458,9 @@ const BuyCredit = () => {
           </div>
         </div>
 
-        {/* CUSTOM CREDIT SECTION (Image 2 Layout) */}
+        {/* CUSTOM CREDIT SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            
-           {/* Left Panel: Slider */}
            <div className="lg:col-span-2 border border-red-200 rounded-2xl bg-white p-6 md:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
              <div className="mb-10">
                <h3 className="text-xl font-extrabold text-gray-900 mb-2">Custom Credit Purchase</h3>
@@ -534,7 +512,6 @@ const BuyCredit = () => {
              </button>
            </div>
 
-           {/* Right Panel: Why Buy */}
            <div className="lg:col-span-1 border border-red-200 rounded-2xl bg-gray-50 flex flex-col overflow-hidden shadow-sm">
               <div className="p-6 flex-grow">
                  <h3 className="text-lg font-extrabold text-gray-900 mb-6">Why buy custom credits?</h3>
