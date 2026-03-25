@@ -43,40 +43,36 @@ const getAllList = async (payload?: any) => {
 };
 
 // ==========================================
-// 🔙 V1 ENDPOINTS (Reads saved lists from MongoDB)
+// 🔙 V1 ENDPOINTS (Reads from MongoDB & handles revealing)
 // ==========================================
 
 const getSingleListDetail = async (payload: any) => {
-  // Reverted to list (V1) so your table actually shows the saved contacts!
   return await axios.post(`${baseUrl}/list/show`, payload);
 };
 
 const getSingleListDetailCursor = async (payload: any) => {
-  // Reverted to list (V1) to keep pagination in sync with MongoDB
   return await axios.post(`${baseUrl}/list/show-cursor`, payload);
 };
 
-// ==========================================
-// 🚀 V2 ENDPOINTS (New Background Worker & DuckDB Logic)
-// ==========================================
-
 const getListRevealEstimate = async (payload: any) => {
-  // Stays list2: Fixes the 0 credits disabled button bug
-  return await axios.post(`${baseUrl}/list2/reveal-estimate`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-estimate`, payload);
 };
 
 const revealAllFromList = async (payload: any) => {
-  // Stays list2: Fixes the fake "success" toast without deducting credits
-  return await axios.post(`${baseUrl}/list2/reveal-all`, payload);
+  return await axios.post(`${baseUrl}/list/reveal-all`, payload);
 };
 
+// ==========================================
+// 🚀 V2 ENDPOINTS (New Background Worker Logic)
+// ==========================================
+
 const exportList = async (payload: any) => {
-  // Stays list2: Connects to your new specific checkbox export logic
+  // This is the ONLY route that should point to list2
   return await axios.post(`${baseUrl}/list2/export`, payload);
 };
 
 // ==========================================
-// 🔙 V1 ENDPOINTS (Standard List Management)
+// 🔙 STANDARD LIST MANAGEMENT
 // ==========================================
 
 const deleteAList = async (listname: any) => {
