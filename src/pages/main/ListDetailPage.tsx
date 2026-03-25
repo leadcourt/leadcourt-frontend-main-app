@@ -120,7 +120,32 @@ export default function ListDetailPage() {
     emailCount: number;
   }>({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
 
-  // --- UPGRADED EXPORT STATS CALCULATOR ---
+  // 1. CALCULATE EXACT SCREEN COUNTS FIRST
+  const counts = useMemo(() => {
+    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const useSelected = selectedProfile.length > 0;
+
+    return {
+      useSelected,
+      allUnrevealedPhone,
+      allUnrevealedEmail,
+      selUnrevealedPhone,
+      selUnrevealedEmail,
+      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
+      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
+    };
+  }, [entries, selectedProfile]);
+
+  // 2. FRONTEND SAFETY OVERRIDE (Fixes the 0 Credits bug)
+  const safePhoneCount = Math.max(listEstimate.phoneCount, counts.allUnrevealedPhone);
+  const safeEmailCount = Math.max(listEstimate.emailCount, counts.allUnrevealedEmail);
+  const safePhoneCredits = Math.max(listEstimate.phoneCredits, counts.allUnrevealedPhone * PHONE_REVEAL_CREDITS);
+  const safeEmailCredits = Math.max(listEstimate.emailCredits, counts.allUnrevealedEmail * EMAIL_REVEAL_CREDITS);
+
+  // 3. UPGRADED EXPORT STATS CALCULATOR
   const exportStats = useMemo(() => {
     // If user selected checkboxes (across any pages), calculate those specific rows
     if (selectedProfile.length > 0) {
@@ -139,8 +164,8 @@ export default function ListDetailPage() {
     // If no checkboxes selected, calculate the ENTIRE saved list
     else {
       const total = totalRows;
-      const unrevealedPhones = listEstimate.phoneCount;
-      const unrevealedEmails = listEstimate.emailCount;
+      const unrevealedPhones = safePhoneCount;
+      const unrevealedEmails = safeEmailCount;
       return {
         mode: "all",
         total,
@@ -150,7 +175,7 @@ export default function ListDetailPage() {
         unrevealedEmails,
       };
     }
-  }, [selectedProfile, totalRows, listEstimate]);
+  }, [selectedProfile, totalRows, safePhoneCount, safeEmailCount]);
 
   const listNamePretty = useMemo(
     () => (listName || "").replace(/-/g, " "),
@@ -195,36 +220,6 @@ export default function ListDetailPage() {
 
   const canGoPrev = pageNumber > 1;
   const canGoNext = pageNumber < totalPages;
-
-  const counts = useMemo(() => {
-    const allUnrevealedPhone = entries.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-
-    const allUnrevealedEmail = entries.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
-
-    const selUnrevealedPhone = selectedProfile.filter(
-      (e) => !hasValue(e.Phone) && !isNil(e.Phone)
-    ).length;
-
-    const selUnrevealedEmail = selectedProfile.filter(
-      (e) => !hasValue(e.Email) && !isNil(e.Email)
-    ).length;
-
-    const useSelected = selectedProfile.length > 0;
-
-    return {
-      useSelected,
-      phoneCost:
-        (useSelected ? selUnrevealedPhone : allUnrevealedPhone) *
-        PHONE_REVEAL_CREDITS,
-      emailCost:
-        (useSelected ? selUnrevealedEmail : allUnrevealedEmail) *
-        EMAIL_REVEAL_CREDITS,
-    };
-  }, [entries, selectedProfile]);
 
   const userCredits = useMemo(
     () => Number(creditInfoValue?.credits || 0),
@@ -764,11 +759,8 @@ export default function ListDetailPage() {
     }
   };
 
-  const safePhoneCredits = listEstimate.phoneCredits || 0;
-  const safeEmailCredits = listEstimate.emailCredits || 0;
-
-  const phoneCostToShow = counts.useSelected ? counts.phoneCost : safePhoneCredits;
-  const emailCostToShow = counts.useSelected ? counts.emailCost : safeEmailCredits;
+  const phoneCostToShow = counts.useSelected ? counts.phoneCost : listEstimate.phoneCredits;
+  const emailCostToShow = counts.useSelected ? counts.emailCost : listEstimate.emailCredits;
 
   const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
   const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
