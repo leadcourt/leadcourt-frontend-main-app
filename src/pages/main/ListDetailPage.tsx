@@ -14,7 +14,7 @@ import {
   getSingleListDetail,
   getAllList,
   getListRevealEstimate,
-  revealAllFromList // <-- ADDED MISSING IMPORT HERE
+  revealAllFromList
 } from "../../utils/api/data";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
@@ -100,8 +100,9 @@ export default function ListDetailPage() {
     "hubspot" | "brevo" | "email" | ""
   >("");
 
+  // UPGRADED: Added isBulkAll flag to handle full-list loading screens
   const [revealProgress, setRevealProgress] = useState({
-    visible: false, current: 0, total: 0, type: "",
+    visible: false, current: 0, total: 0, type: "", isBulkAll: false
   });
 
   const [connectVisible, setConnectVisible] = useState(false);
@@ -139,7 +140,7 @@ export default function ListDetailPage() {
     };
   }, [entries, selectedProfile]);
 
-  // 2. FRONTEND SAFETY OVERRIDE (Fixes the 0 Credits bug)
+  // 2. FRONTEND SAFETY OVERRIDE
   const safePhoneCount = Math.max(listEstimate.phoneCount, counts.allUnrevealedPhone);
   const safeEmailCount = Math.max(listEstimate.emailCount, counts.allUnrevealedEmail);
   const safePhoneCredits = Math.max(listEstimate.phoneCredits, counts.allUnrevealedPhone * PHONE_REVEAL_CREDITS);
@@ -147,7 +148,6 @@ export default function ListDetailPage() {
 
   // 3. UPGRADED EXPORT STATS CALCULATOR
   const exportStats = useMemo(() => {
-    // If user selected checkboxes (across any pages), calculate those specific rows
     if (selectedProfile.length > 0) {
       const total = selectedProfile.length;
       const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
@@ -161,7 +161,6 @@ export default function ListDetailPage() {
         unrevealedEmails: total - revealedEmails,
       };
     } 
-    // If no checkboxes selected, calculate the ENTIRE saved list
     else {
       const total = totalRows;
       const unrevealedPhones = safePhoneCount;
@@ -416,7 +415,7 @@ export default function ListDetailPage() {
 
     if (!ids.length) return;
 
-    setRevealProgress({ visible: true, current: 0, total: ids.length, type });
+    setRevealProgress({ visible: true, current: 0, total: ids.length, type, isBulkAll: false });
 
     const CHUNK_SIZE = 25;
     let updatedEntries = [...entries];
@@ -470,14 +469,17 @@ export default function ListDetailPage() {
 
     fetchRevealEstimate();
     setTimeout(() => {
-      setRevealProgress({ visible: false, current: 0, total: 0, type: "" });
+      setRevealProgress({ visible: false, current: 0, total: 0, type: "", isBulkAll: false });
     }, 600);
   };
 
-  // <-- ADDED MISSING REVEAL ALL FUNCTION HERE -->
+  // UPGRADED REVEAL ALL: Now shows a blocking loading modal for large lists
   const revealAll = async (type: "phone" | "email") => {
     const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
     setLoadRow({ type: spinnerKey });
+
+    const missingCount = type === "phone" ? safePhoneCount : safeEmailCount;
+    setRevealProgress({ visible: true, current: 0, total: missingCount, type, isBulkAll: true });
 
     try {
       const res: any = await (revealAllFromList as any)({
@@ -518,6 +520,7 @@ export default function ListDetailPage() {
       toast.error("Something went wrong. Try again.");
     } finally {
       setLoadRow({});
+      setRevealProgress({ visible: false, current: 0, total: 0, type: "", isBulkAll: false });
     }
   };
 
@@ -556,7 +559,6 @@ export default function ListDetailPage() {
 
     const payload: any = { listName };
 
-    // Pass the specific row IDs if the user has checkboxes selected
     if (selectedProfile.length > 0) {
       payload.rowIds = selectedProfile.map(p => p.row_id);
     }
@@ -814,7 +816,7 @@ export default function ListDetailPage() {
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
       
-      {/* 1. REVEALING PROGRESS DIALOG */}
+      {/* 1. UPGRADED REVEALING PROGRESS DIALOG */}
       <Dialog
         header="Revealing Contacts"
         visible={revealProgress.visible}
@@ -829,16 +831,28 @@ export default function ListDetailPage() {
           <div className="text-lg font-semibold text-gray-900 mb-1">
             Revealing {revealProgress.type === "phone" ? "Phone Numbers" : "Emails"}...
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3 mt-4 mb-2 overflow-hidden">
-            <div
-              className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%` }}
-            ></div>
-          </div>
-          <div className="w-full flex justify-between text-xs font-semibold text-gray-600">
-            <span>{revealProgress.current} / {revealProgress.total}</span>
-            <span>{revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%</span>
-          </div>
+          
+          {/* Conditional render: Show simple loading message for full lists, or progress bar for chunks */}
+          {revealProgress.isBulkAll ? (
+            <div className="mt-3 text-sm text-gray-600 text-center leading-relaxed">
+              Processing <b className="text-gray-900">{revealProgress.total}</b> contacts. <br/>
+              For large lists, this might take a minute or two. <br/>
+              Please don't close this window...
+            </div>
+          ) : (
+            <>
+              <div className="w-full bg-gray-100 rounded-full h-3 mt-4 mb-2 overflow-hidden">
+                <div
+                  className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%` }}
+                ></div>
+              </div>
+              <div className="w-full flex justify-between text-xs font-semibold text-gray-600">
+                <span>{revealProgress.current} / {revealProgress.total}</span>
+                <span>{revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%</span>
+              </div>
+            </>
+          )}
         </div>
       </Dialog>
 
@@ -962,7 +976,7 @@ export default function ListDetailPage() {
               Revealed Phones
             </div>
             <div className="text-xs font-semibold text-[#EA580C] mt-0.5 mb-3">
-              ({exportStats.unrevealedPhones} missing)
+              ({exportStats.unrevealedPhones} Left)
             </div>
             
             <button
@@ -988,7 +1002,7 @@ export default function ListDetailPage() {
               Revealed Emails
             </div>
             <div className="text-xs font-semibold text-[#2563EB] mt-0.5 mb-3">
-              ({exportStats.unrevealedEmails} missing)
+              ({exportStats.unrevealedEmails} Left)
             </div>
 
             <button
