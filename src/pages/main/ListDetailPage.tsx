@@ -8,17 +8,7 @@ import { Column } from "primereact/column";
 import { Dialog } from "primereact/dialog";
 import { Skeleton } from "primereact/skeleton";
 
-import {
-  exportList,
-  getLinkedInUrl,
-  getSingleListDetail,
-  getAllList,
-  getListRevealEstimate,
-  revealAllFromList
-} from "../../utils/api/data";
-import { getCreditBalance } from "../../utils/api/creditApi";
-import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
-import { creditState, userState } from "../../utils/atom/authAtom";
+import { exportList } from "../../utils/api/data";
 import TextToCapitalize from "../../component/TextToCapital";
 
 import hubspotLogo from "../../assets/integrations/hubspot/HubSpot.png";
@@ -26,13 +16,24 @@ import brevoLogo from "../../assets/integrations/Brevo.png";
 import noDataImg from "../../assets/icons/nodataImage.jpg";
 
 import {
-  checkHubspotConnection,
-  exportToHubspotApi,
-} from "../../utils/api/crmIntegrations";
+  collaboration_checkHubspotConnection,
+  collaboration_checkBrevoConnection,
+  collaboration_exportToHubspotApi,
+  collaboration_exportToBrevoApi,
+} from "../../utils/api/collaborationIntegrations";
 import {
-  checkBrevoConnection,
-  exportToBrevoApi,
-} from "../../utils/api/brevoIntegrations";
+  collaboration_getLinkedInUrl_api,
+  collaboration_getSingleListDetail_api,
+  collaboration_getAllList_api,
+  collaboration_getListRevealEstimate_api,
+  collaboration_revealAllFromList_api,
+  collaboration_showPhoneAndEmail_api,
+} from "../../utils/api/collaborationData";
+
+import {
+  collabCreditState,
+  collabProjectState,
+} from "../../utils/atom/collabAuthAtom";
 
 interface Person {
   City: string;
@@ -51,7 +52,6 @@ interface Person {
 }
 
 interface ListDetailPayload {
-  userId: string | undefined;
   page: number | undefined;
   listName: string | undefined;
 }
@@ -70,28 +70,22 @@ const isNil = (v: any) =>
 const PHONE_REVEAL_CREDITS = 5;
 const EMAIL_REVEAL_CREDITS = 1;
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 const TABLE_SCROLL_HEIGHT = "clamp(320px, 68vh, 620px)";
 
-export default function ListDetailPage() {
+export default function Collab_ListDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
-
-  const user = useRecoilValue(userState);
-  const setCreditInfo = useSetRecoilState(creditState);
-  const creditInfoValue = useRecoilValue(creditState);
-
-  const listName = params?.listName;
+  const user = useRecoilValue(collabProjectState);
+  const setCreditInfo = useSetRecoilState(collabCreditState);
+  const creditInfoValue = useRecoilValue(collabCreditState);
 
   const [pageNumber, setPageNumber] = useState<number>(1);
-
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<Person[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Person[]>([]);
   const [loadRow, setLoadRow] = useState<any>({});
-
   const [insufficientVisible, setInsufficientVisible] = useState(false);
-
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(null);
   const [brevoConnected, setBrevoConnected] = useState<boolean | null>(null);
@@ -99,20 +93,12 @@ export default function ListDetailPage() {
   const [exportingTarget, setExportingTarget] = useState<
     "hubspot" | "brevo" | "email" | ""
   >("");
-
-  // UPGRADED: Added isBulkAll flag to handle full-list loading screens
-  const [revealProgress, setRevealProgress] = useState({
-    visible: false, current: 0, total: 0, type: "", isBulkAll: false
-  });
-
   const [connectVisible, setConnectVisible] = useState(false);
   const [connectTarget, setConnectTarget] = useState<"hubspot" | "brevo" | "">(
     ""
   );
-
   const [totalRows, setTotalRows] = useState<number>(0);
   const [loadingTotal, setLoadingTotal] = useState<boolean>(false);
-
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [listEstimate, setListEstimate] = useState<{
     phoneCredits: number;
@@ -121,61 +107,16 @@ export default function ListDetailPage() {
     emailCount: number;
   }>({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
 
-  // 1. CALCULATE EXACT SCREEN COUNTS FIRST
-  const counts = useMemo(() => {
-    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
-    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
-    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
-    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
-    const useSelected = selectedProfile.length > 0;
+  // UPGRADED: Added isBulkAll flag
+  const [revealProgress, setRevealProgress] = useState({
+    visible: false,
+    current: 0,
+    total: 0,
+    type: "",
+    isBulkAll: false
+  });
 
-    return {
-      useSelected,
-      allUnrevealedPhone,
-      allUnrevealedEmail,
-      selUnrevealedPhone,
-      selUnrevealedEmail,
-      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
-      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
-    };
-  }, [entries, selectedProfile]);
-
-  // 2. FRONTEND SAFETY OVERRIDE
-  const safePhoneCount = Math.max(listEstimate.phoneCount, counts.allUnrevealedPhone);
-  const safeEmailCount = Math.max(listEstimate.emailCount, counts.allUnrevealedEmail);
-  const safePhoneCredits = Math.max(listEstimate.phoneCredits, counts.allUnrevealedPhone * PHONE_REVEAL_CREDITS);
-  const safeEmailCredits = Math.max(listEstimate.emailCredits, counts.allUnrevealedEmail * EMAIL_REVEAL_CREDITS);
-
-  // 3. UPGRADED EXPORT STATS CALCULATOR
-  const exportStats = useMemo(() => {
-    if (selectedProfile.length > 0) {
-      const total = selectedProfile.length;
-      const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
-      const revealedEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
-      return {
-        mode: "selected",
-        total,
-        revealedPhones,
-        revealedEmails,
-        unrevealedPhones: total - revealedPhones,
-        unrevealedEmails: total - revealedEmails,
-      };
-    } 
-    else {
-      const total = totalRows;
-      const unrevealedPhones = safePhoneCount;
-      const unrevealedEmails = safeEmailCount;
-      return {
-        mode: "all",
-        total,
-        revealedPhones: Math.max(0, total - unrevealedPhones),
-        revealedEmails: Math.max(0, total - unrevealedEmails),
-        unrevealedPhones,
-        unrevealedEmails,
-      };
-    }
-  }, [selectedProfile, totalRows, safePhoneCount, safeEmailCount]);
-
+  const listName = params?.listName;
   const listNamePretty = useMemo(
     () => (listName || "").replace(/-/g, " "),
     [listName]
@@ -220,6 +161,59 @@ export default function ListDetailPage() {
   const canGoPrev = pageNumber > 1;
   const canGoNext = pageNumber < totalPages;
 
+  // 1. CALCULATE EXACT SCREEN COUNTS FIRST
+  const counts = useMemo(() => {
+    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
+    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const useSelected = selectedProfile.length > 0;
+    return {
+      useSelected,
+      allUnrevealedPhone,
+      allUnrevealedEmail,
+      selUnrevealedPhone,
+      selUnrevealedEmail,
+      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
+      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
+    };
+  }, [entries, selectedProfile]);
+
+  // 2. FRONTEND SAFETY OVERRIDE (Fixes the 0 Credits bug)
+  const safePhoneCount = Math.max(listEstimate.phoneCount, counts.allUnrevealedPhone);
+  const safeEmailCount = Math.max(listEstimate.emailCount, counts.allUnrevealedEmail);
+  const safePhoneCredits = Math.max(listEstimate.phoneCredits, counts.allUnrevealedPhone * PHONE_REVEAL_CREDITS);
+  const safeEmailCredits = Math.max(listEstimate.emailCredits, counts.allUnrevealedEmail * EMAIL_REVEAL_CREDITS);
+
+  // 3. UPGRADED EXPORT STATS CALCULATOR
+  const exportStats = useMemo(() => {
+    if (selectedProfile.length > 0) {
+      const total = selectedProfile.length;
+      const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
+      const revealedEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
+      return {
+        mode: "selected",
+        total,
+        revealedPhones,
+        revealedEmails,
+        unrevealedPhones: total - revealedPhones,
+        unrevealedEmails: total - revealedEmails,
+      };
+    } else {
+      const total = totalRows;
+      const unrevealedPhones = safePhoneCount;
+      const unrevealedEmails = safeEmailCount;
+      return {
+        mode: "all",
+        total,
+        revealedPhones: Math.max(0, total - unrevealedPhones),
+        revealedEmails: Math.max(0, total - unrevealedEmails),
+        unrevealedPhones,
+        unrevealedEmails,
+      };
+    }
+  }, [selectedProfile, totalRows, safePhoneCount, safeEmailCount]);
+
   const userCredits = useMemo(
     () => Number(creditInfoValue?.credits || 0),
     [creditInfoValue?.credits]
@@ -227,43 +221,10 @@ export default function ListDetailPage() {
 
   const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
-    const phoneCredits = Number(
-      d?.phoneCredits ??
-        d?.phoneCost ??
-        d?.creditsPhone ??
-        d?.phone?.credits ??
-        d?.phone?.cost ??
-        d?.estimate?.phoneCredits ??
-        d?.estimate?.phoneCost ??
-        0
-    );
-    const emailCredits = Number(
-      d?.emailCredits ??
-        d?.emailCost ??
-        d?.creditsEmail ??
-        d?.email?.credits ??
-        d?.email?.cost ??
-        d?.estimate?.emailCredits ??
-        d?.estimate?.emailCost ??
-        0
-    );
-    const phoneCount = Number(
-      d?.phoneCount ??
-        d?.unrevealedPhone ??
-        d?.phoneUnrevealed ??
-        d?.phone?.count ??
-        d?.estimate?.phoneCount ??
-        0
-    );
-    const emailCount = Number(
-      d?.emailCount ??
-        d?.unrevealedEmail ??
-        d?.emailUnrevealed ??
-        d?.email?.count ??
-        d?.estimate?.emailCount ??
-        0
-    );
-
+    const phoneCredits = Number(d?.phoneCredits ?? d?.phoneCost ?? d?.creditsPhone ?? d?.phone?.credits ?? d?.phone?.cost ?? d?.estimate?.phoneCredits ?? d?.estimate?.phoneCost ?? 0);
+    const emailCredits = Number(d?.emailCredits ?? d?.emailCost ?? d?.creditsEmail ?? d?.email?.credits ?? d?.email?.cost ?? d?.estimate?.emailCredits ?? d?.estimate?.emailCost ?? 0);
+    const phoneCount = Number(d?.phoneCount ?? d?.unrevealedPhone ?? d?.phoneUnrevealed ?? d?.phone?.count ?? d?.estimate?.phoneCount ?? 0);
+    const emailCount = Number(d?.emailCount ?? d?.unrevealedEmail ?? d?.emailUnrevealed ?? d?.email?.count ?? d?.estimate?.emailCount ?? 0);
     return {
       phoneCredits: Number.isFinite(phoneCredits) ? phoneCredits : 0,
       emailCredits: Number.isFinite(emailCredits) ? emailCredits : 0,
@@ -278,28 +239,29 @@ export default function ListDetailPage() {
     return parts.map((p) => p[0]?.toUpperCase()).join("") || "U";
   };
 
-  const fetchCredits = useCallback(async () => {
+  const listDetail = async (pageNum: number) => {
+    setLoading(true);
+    const payload: ListDetailPayload = { page: pageNum, listName: listName };
     try {
-      const res: any = await getCreditBalance();
-      setCreditInfo({
-        id: user?.id ?? "",
-        credits: res?.data?.credits ?? 0,
-        subscriptionType: res?.data?.subscriptionType ?? "FREE",
-      });
-    } catch (e) {}
-  }, [setCreditInfo, user?.id]);
+      const res: any = await collaboration_getSingleListDetail_api(payload);
+      const data: Person[] = res?.data?.sort((a: Person, b: Person) => (a?.Name || "").localeCompare(b?.Name || "")) || [];
+      setEntries(data);
+      setSelectedProfile([]);
+    } catch (e) {
+      setEntries([]);
+      setSelectedProfile([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const fetchTotalRows = useCallback(async () => {
-    if (!user?.id) return;
-
+  const fetchTotalRows = async () => {
+    if (!user?._id) return;
     setLoadingTotal(true);
     try {
-      const payload = { userId: user?.id };
-      const res: any = await getAllList(payload);
-
+      const res: any = await collaboration_getAllList_api({ projectId: user?._id });
       const lists: any[] = res?.data || [];
       const match = lists.find((l) => l?.name === listName);
-
       const t = Number(match?.total || 0);
       setTotalRows(Number.isFinite(t) ? t : 0);
     } catch (e) {
@@ -307,59 +269,33 @@ export default function ListDetailPage() {
     } finally {
       setLoadingTotal(false);
     }
-  }, [user?.id, listName]);
+  };
 
   const fetchRevealEstimate = useCallback(async () => {
     if (!listName) return;
     setEstimateLoading(true);
     try {
-      const res: any = await (getListRevealEstimate as any)({ listName, userId: user?.id });
+      const res: any = await collaboration_getListRevealEstimate_api({ listName, userId: user?._id });
       setListEstimate(parseEstimate(res));
     } catch (e) {
       setListEstimate({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
     } finally {
       setEstimateLoading(false);
     }
-  }, [listName, user?.id]);
+  }, [listName, user?._id]);
 
-  const listDetail = useCallback(
-    async (pageNum: number) => {
-      setLoading(true);
-
-      const payload: ListDetailPayload = {
-        userId: user?.id,
-        page: pageNum,
-        listName: listName,
-      };
-
-      try {
-        const res: any = await getSingleListDetail(payload);
-        const data: Person[] =
-          res?.data?.sort((a: Person, b: Person) =>
-            (a?.Name || "").localeCompare(b?.Name || "")
-          ) || [];
-        setEntries(data);
-        setSelectedProfile([]);
-      } catch (e) {
-        setEntries([]);
-        setSelectedProfile([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [user?.id, listName]
-  );
+  const goToPage = (next: number) => {
+    const clamped = Math.min(Math.max(1, next), totalPages);
+    setPageNumber(clamped);
+    listDetail(clamped);
+  };
 
   const openLinkedInPopup = async (id: any) => {
     setLoadRow({ type: "linkedIn", row_id: id });
     try {
-      const res: any = await getLinkedInUrl({ row_id: id });
+      const res: any = await collaboration_getLinkedInUrl_api({ row_id: id });
       if (res?.data?.linkedin_url) {
-        window.open(
-          `https://${res.data.linkedin_url}`,
-          "popupWindow",
-          "width=600,height=600"
-        );
+        window.open(`https://${res.data.linkedin_url}`, "popupWindow", "width=600,height=600");
       }
     } finally {
       setLoadRow({});
@@ -368,33 +304,22 @@ export default function ListDetailPage() {
 
   const handleShowPhoneOrEmail = async (type: "phone" | "email", id: any) => {
     setLoadRow({ type, row_id: id });
-
     try {
-      const res: any = await showPhoneAndEmail(type, [id], user);
-
+      const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
       if (res?.data?.error) {
         setInsufficientVisible(true);
         return;
       }
-
       const patch = res?.data?.results?.[0] || {};
-
-      const updatedEntries = entries.map((entry: any) =>
-        entry.row_id === id ? { ...entry, ...patch } : entry
-      );
+      const updatedEntries = entries.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
       setEntries(updatedEntries);
-
-      const updatedSelected = selectedProfile.map((entry: any) =>
-        entry.row_id === id ? { ...entry, ...patch } : entry
-      );
+      const updatedSelected = selectedProfile.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
       setSelectedProfile(updatedSelected);
-
       setCreditInfo({
-        id: user?.id ?? "",
+        id: user?._id ?? "",
         credits: res?.data?.remainingCredits || 0,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
-
       fetchRevealEstimate();
     } catch (e) {
     } finally {
@@ -405,7 +330,8 @@ export default function ListDetailPage() {
   const bulkReveal = async (type: "phone" | "email") => {
     const useSelected = selectedProfile.length > 0;
     const source = useSelected ? selectedProfile : entries;
-    const ids = source
+
+    const idsToReveal = source
       .filter((p: Person) => {
         const v = type === "phone" ? p.Phone : p.Email;
         return !isNil(v) && !hasValue(v);
@@ -413,28 +339,28 @@ export default function ListDetailPage() {
       .map((p: Person) => p.row_id)
       .filter(Boolean);
 
-    if (!ids.length) return;
+    if (!idsToReveal.length) {
+      toast.info(`No unrevealed ${type}s found in selection.`);
+      return;
+    }
 
-    setRevealProgress({ visible: true, current: 0, total: ids.length, type, isBulkAll: false });
+    setRevealProgress({ visible: true, current: 0, total: idsToReveal.length, type, isBulkAll: false });
 
     const CHUNK_SIZE = 25;
     let updatedEntries = [...entries];
     let updatedSelected = [...selectedProfile];
     let finalCredits = creditInfoValue?.credits;
 
-    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-      const chunkIds = ids.slice(i, i + CHUNK_SIZE);
-
+    for (let i = 0; i < idsToReveal.length; i += CHUNK_SIZE) {
+      const chunkIds = idsToReveal.slice(i, i + CHUNK_SIZE);
       try {
-        const res: any = await showPhoneAndEmail(type, chunkIds, user);
-
+        const res: any = await collaboration_showPhoneAndEmail_api(type, chunkIds, user);
         if (res?.data?.error) {
           setInsufficientVisible(true);
           break;
         }
 
         const resMap = new Map((res?.data?.results || []).map((r: any) => [r.row_id, r]));
-
         updatedEntries = updatedEntries.map((entry: any) => {
           const match: any = resMap.get(entry.row_id);
           return match ? { ...entry, ...match } : entry;
@@ -446,13 +372,9 @@ export default function ListDetailPage() {
         });
 
         finalCredits = res?.data?.remainingCredits;
-
         setEntries(updatedEntries);
         setSelectedProfile(updatedSelected);
-        setRevealProgress((prev) => ({
-          ...prev,
-          current: Math.min(prev.total, i + CHUNK_SIZE),
-        }));
+        setRevealProgress((prev) => ({ ...prev, current: Math.min(prev.total, i + CHUNK_SIZE) }));
       } catch (e) {
         toast.error("An error occurred during bulk reveal. Process paused.");
         break;
@@ -461,7 +383,7 @@ export default function ListDetailPage() {
 
     if (finalCredits !== undefined) {
       setCreditInfo({
-        id: user?.id ?? "",
+        id: user?._id ?? "",
         credits: finalCredits,
         subscriptionType: creditInfoValue?.subscriptionType || "FREE",
       });
@@ -482,38 +404,30 @@ export default function ListDetailPage() {
     setRevealProgress({ visible: true, current: 0, total: missingCount, type, isBulkAll: true });
 
     try {
-      const res: any = await (revealAllFromList as any)({
+      const res: any = await collaboration_revealAllFromList_api({
         listName,
         type,
-        userId: user?.id,
+        userId: user?._id,
       });
-
       if (res?.data?.error) {
         setInsufficientVisible(true);
         return;
       }
-      if (res?.data?.stoppedDueToCredits) { 
-        setInsufficientVisible(true); 
-        toast.warning("Partially revealed — ran out of credits"); 
-      }
-      else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
-        toast.success(
-          type === "phone" ? "Revealed all phones" : "Revealed all emails"
-        );
+      if (res?.data?.stoppedDueToCredits) {
+        setInsufficientVisible(true);
+        toast.warning("Partially revealed — ran out of credits");
+      } else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
+        toast.success(type === "phone" ? "Revealed all phones" : "Revealed all emails");
       } else {
         toast.success("Reveal queued");
       }
-
       if (typeof res?.data?.remainingCredits !== "undefined") {
         setCreditInfo({
-          id: user?.id ?? "",
+          id: user?._id ?? "",
           credits: res?.data?.remainingCredits || 0,
           subscriptionType: creditInfoValue?.subscriptionType || "FREE",
         });
-      } else {
-        fetchCredits();
       }
-
       await fetchRevealEstimate();
       await listDetail(pageNumber);
     } catch (e) {
@@ -528,19 +442,12 @@ export default function ListDetailPage() {
     setCheckingConnections(true);
     setHubspotConnected(null);
     setBrevoConnected(null);
-
     const [hs, br] = await Promise.allSettled([
-      checkHubspotConnection(),
-      checkBrevoConnection(false),
+      collaboration_checkHubspotConnection(),
+      collaboration_checkBrevoConnection(false),
     ]);
-
-    setHubspotConnected(
-      hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false
-    );
-    setBrevoConnected(
-      br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false
-    );
-
+    setHubspotConnected(hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false);
+    setBrevoConnected(br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false);
     setCheckingConnections(false);
   };
 
@@ -556,37 +463,29 @@ export default function ListDetailPage() {
 
   const exportCurrentList = async (target: "hubspot" | "brevo" | "email") => {
     setExportingTarget(target);
-
+    
     const payload: any = { listName };
 
+    // Pass the specific row IDs if the user has checkboxes selected
     if (selectedProfile.length > 0) {
       payload.rowIds = selectedProfile.map(p => p.row_id);
     }
 
     try {
       if (target === "hubspot") {
-        const res: any = await exportToHubspotApi(payload);
+        const res: any = await collaboration_exportToHubspotApi(payload);
         if (res?.data?.success) {
           toast.success("Exported to Hubspot successfully");
-          if (res?.data?.portalId) {
-            window.open(
-              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
-              "_blank",
-              "noopener,noreferrer"
-            );
-          }
+          if (res?.data?.portalId) window.open(`https://app-na2.hubspot.com/import/${res?.data?.portalId}`, "_blank", "noopener,noreferrer");
           setExportModalVisible(false);
         } else {
           toast.error("Unable to export to Hubspot");
         }
       }
-
       if (target === "brevo") {
-        const res: any = await exportToBrevoApi(payload);
+        const res: any = await collaboration_exportToBrevoApi(payload);
         if (res?.data?.queued) {
-          const name = res?.data?.targetBrevoListName
-            ? ` (${res?.data?.targetBrevoListName})`
-            : "";
+          const name = res?.data?.targetBrevoListName ? ` (${res?.data?.targetBrevoListName})` : "";
           toast.success(`Queued export to Brevo${name}`);
           setExportModalVisible(false);
         } else if (res?.data?.success) {
@@ -596,9 +495,8 @@ export default function ListDetailPage() {
           toast.error("Unable to export to Brevo");
         }
       }
-
       if (target === "email") {
-        payload.email = user?.email;
+        payload.email = user?.collaboratorEmail;
         await exportList(payload);
         toast.success("You will receive a mail shortly");
         setExportModalVisible(false);
@@ -610,9 +508,7 @@ export default function ListDetailPage() {
     }
   };
 
-  const skeletonLoad = () => (
-    <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />
-  );
+  const skeletonLoad = () => <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />;
 
   const emptyMessageTemplate = () => (
     <div className="h-[60vh] w-full flex items-center justify-center">
@@ -633,16 +529,12 @@ export default function ListDetailPage() {
   };
 
   const showDesignation = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.Designation || "")}
-    </div>
+    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Designation || "")}</div>
   );
 
   const showPhone = (rowData: any) => {
     const v = rowData?.Phone;
-
     if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
-
     if (!hasValue(v)) {
       return (
         <button
@@ -658,15 +550,12 @@ export default function ListDetailPage() {
         </button>
       );
     }
-
     return <span className="text-sm text-gray-900">{v}</span>;
   };
 
   const showEmail = (rowData: any) => {
     const v = rowData?.Email;
-
     if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
-
     if (!hasValue(v)) {
       return (
         <button
@@ -682,33 +571,24 @@ export default function ListDetailPage() {
         </button>
       );
     }
-
     return <span className="text-sm text-gray-900">{v}</span>;
   };
 
   const showLinkedIn = (rowData: any) => {
-    const loadingThis =
-      loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
-
+    const loadingThis = loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
         className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
         title="Open LinkedIn"
       >
-        <i
-          className={`pi ${
-            loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"
-          } text-blue-600`}
-        />
+        <i className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`} />
       </button>
     );
   };
 
   const showOrganization = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.Organization || "")}
-    </div>
+    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Organization || "")}</div>
   );
 
   const showOrgIndustry = (rowData: any) => {
@@ -722,30 +602,15 @@ export default function ListDetailPage() {
   };
 
   const showCity = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.City || rowData?.city || "")}
-    </div>
+    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.City || rowData?.city || "")}</div>
   );
 
   const showState = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.State || rowData?.state || "")}
-    </div>
+    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.State || rowData?.state || "")}</div>
   );
 
   const showCountry = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.Country || rowData?.country || "")}
-    </div>
-  );
-
-  const goToPage = useCallback(
-    (next: number) => {
-      const clamped = Math.min(Math.max(1, next), totalPages);
-      setPageNumber(clamped);
-      listDetail(clamped);
-    },
-    [listDetail, totalPages]
+    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Country || rowData?.country || "")}</div>
   );
 
   const handleChangePageNumber = (e: any) => {
@@ -766,10 +631,8 @@ export default function ListDetailPage() {
 
   const phoneCostToShow = counts.useSelected ? counts.phoneCost : safePhoneCredits;
   const emailCostToShow = counts.useSelected ? counts.emailCost : safeEmailCredits;
-
   const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
   const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
-
   const phoneBusy = loadRow?.type === phoneSpinnerKey || loadRow?.type === "pagePhone";
   const emailBusy = loadRow?.type === emailSpinnerKey || loadRow?.type === "pageEmail";
 
@@ -778,8 +641,7 @@ export default function ListDetailPage() {
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
     if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
     if (phoneCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < phoneCostToShow)
-      return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
+    if (userCredits < phoneCostToShow) return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
     return "";
   }, [counts.useSelected, entries.length, estimateLoading, listName, phoneCostToShow, totalRows, userCredits]);
 
@@ -788,8 +650,7 @@ export default function ListDetailPage() {
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
     if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
     if (emailCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < emailCostToShow)
-      return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
+    if (userCredits < emailCostToShow) return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
     return "";
   }, [counts.useSelected, entries.length, estimateLoading, listName, emailCostToShow, totalRows, userCredits]);
 
@@ -797,13 +658,12 @@ export default function ListDetailPage() {
   const emailDisabled = !!emailDisabledReason || emailBusy;
 
   useEffect(() => {
-    if (!user?.id || !listName) return;
-    fetchCredits();
+    if (!user?._id || !listName) return;
     fetchTotalRows();
     fetchRevealEstimate();
     listDetail(1);
     setPageNumber(1);
-  }, [fetchCredits, fetchRevealEstimate, fetchTotalRows, listDetail, listName, user?.id]);
+  }, [user?._id, listName]);
 
   useEffect(() => {
     if (!listName) return;
@@ -811,7 +671,7 @@ export default function ListDetailPage() {
       setPageNumber(totalPages);
       listDetail(totalPages);
     }
-  }, [listDetail, listName, pageNumber, totalPages]);
+  }, [pageNumber, totalPages, listName]);
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
@@ -873,31 +733,25 @@ export default function ListDetailPage() {
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
               <span className="text-sm">
-                You haven’t connected {TextToCapitalize(connectTarget)} yet.
-                Connect it from the Integrations page first.
+                You haven’t connected {TextToCapitalize(connectTarget)} yet. Connect it from the Integrations page first.
               </span>
             </p>
           </div>
-
           <div className="mt-6 flex mb-3">
             <div className="cursor-pointer w-fit m-auto">
               <button
-                onClick={() => {
-                  setConnectVisible(false);
-                  setConnectTarget("");
-                }}
+                onClick={() => { setConnectVisible(false); setConnectTarget(""); }}
                 className="bg-gray-500 cursor-pointer text-white text-md rounded-lg px-6 py-2"
               >
                 Cancel
               </button>
             </div>
-
             <div className="cursor-pointer w-fit m-auto">
               <button
                 onClick={() => {
                   setConnectVisible(false);
                   setConnectTarget("");
-                  navigate("/integrations");
+                  navigate(`/collaboration/${user?._id}/integrations`);
                 }}
                 className="bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-lg px-6 py-2 shadow-lg shadow-orange-500/20"
               >
@@ -923,12 +777,9 @@ export default function ListDetailPage() {
           <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-              <span className="text-sm">
-                You have insufficient credits to view this profile(s).
-              </span>
+              <span className="text-sm">You have insufficient credits to view this profile(s).</span>
             </p>
           </div>
-
           <div className="mt-6 flex items-center pb-2">
             <div className="cursor-pointer w-fit m-auto">
               <button
@@ -944,11 +795,9 @@ export default function ListDetailPage() {
 
       {/* 2. UPGRADED EXPORT MODAL */}
       <Dialog
-        header={
-          <div className="text-xl font-bold text-gray-800">Export Options</div>
-        }
+        header="Export Options"
         visible={exportModalVisible}
-        className="p-2 bg-white w-[95vw] max-w-[700px] rounded-2xl shadow-2xl"
+        className="p-2 bg-white w-[95vw] max-w-[700px] rounded-xl shadow-2xl"
         onHide={() => {
           if (!exportModalVisible) return;
           setExportModalVisible(false);
@@ -956,27 +805,28 @@ export default function ListDetailPage() {
         draggable={false}
         resizable={false}
       >
-        <div className="mb-5 grid grid-cols-3 gap-4 text-center mt-2">
+        {/* --- DYNAMIC STATS SUMMARY (WIDER & WITH REVEAL BUTTONS) --- */}
+        <div className="mb-6 grid grid-cols-3 gap-4 text-center">
           
           {/* TOTAL CARD */}
-          <div className="bg-white rounded-xl p-5 border border-gray-200 flex flex-col items-center justify-center shadow-sm">
-            <div className="text-5xl font-black text-gray-800">{exportStats.total}</div>
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-2">
-              {exportStats.mode === "selected" ? "SELECTED" : "ENTIRE LIST"}
+          <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 flex flex-col items-center justify-center">
+            <div className="text-4xl font-extrabold text-gray-900">{exportStats.total}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-2">
+              {exportStats.mode === "selected" ? "Selected Contacts" : "Entire List"}
             </div>
           </div>
 
           {/* PHONE CARD */}
-          <div className="bg-[#FFF7ED] rounded-xl p-5 border border-[#FED7AA] flex flex-col items-center justify-center shadow-sm">
-            <div className="flex items-center gap-2 text-[#EA580C]">
-              <i className="pi pi-phone text-2xl font-bold" />
-              <span className="text-4xl font-black">{exportStats.revealedPhones}</span>
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2">
+              <i className="pi pi-phone text-orange-600 text-xl" />
+              <span className="text-3xl font-extrabold text-orange-600">{exportStats.revealedPhones}</span>
             </div>
-            <div className="text-[11px] font-bold text-[#EA580C] uppercase tracking-widest mt-2">
+            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider mt-1">
               Revealed Phones
             </div>
-            <div className="text-xs font-semibold text-[#EA580C] mt-0.5 mb-3">
-              ({exportStats.unrevealedPhones} Left)
+            <div className="text-xs font-medium text-orange-600 mt-1 mb-4">
+              ({exportStats.unrevealedPhones} missing)
             </div>
             
             <button
@@ -985,24 +835,26 @@ export default function ListDetailPage() {
                 if (counts.useSelected) bulkReveal("phone");
                 else revealAll("phone");
               }}
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
+              {phoneBusy ? (
+                <i className="pi pi-spin pi-spinner mr-2" />
+              ) : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
             </button>
           </div>
 
           {/* EMAIL CARD */}
-          <div className="bg-[#EFF6FF] rounded-xl p-5 border border-[#BFDBFE] flex flex-col items-center justify-center shadow-sm">
-            <div className="flex items-center gap-2 text-[#2563EB]">
-              <i className="pi pi-envelope text-2xl font-bold" />
-              <span className="text-4xl font-black">{exportStats.revealedEmails}</span>
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2">
+              <i className="pi pi-envelope text-blue-600 text-xl" />
+              <span className="text-3xl font-extrabold text-blue-600">{exportStats.revealedEmails}</span>
             </div>
-            <div className="text-[11px] font-bold text-[#2563EB] uppercase tracking-widest mt-2">
+            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mt-1">
               Revealed Emails
             </div>
-            <div className="text-xs font-semibold text-[#2563EB] mt-0.5 mb-3">
-              ({exportStats.unrevealedEmails} Left)
+            <div className="text-xs font-medium text-blue-600 mt-1 mb-4">
+              ({exportStats.unrevealedEmails} missing)
             </div>
 
             <button
@@ -1011,23 +863,25 @@ export default function ListDetailPage() {
                 if (counts.useSelected) bulkReveal("email");
                 else revealAll("email");
               }}
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
+              {emailBusy ? (
+                <i className="pi pi-spin pi-spinner mr-2" />
+              ) : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-sm text-[#9A3412] bg-[#FFF7ED] border border-[#FED7AA] rounded-lg p-3 mb-4">
-          <i className="pi pi-info-circle text-lg" />
+        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
           <div className="leading-relaxed">
             Only the <b>{Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-colors bg-white shadow-sm">
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
               <img src={hubspotLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="HubSpot" />
               <div>
@@ -1043,12 +897,12 @@ export default function ListDetailPage() {
                 if (hubspotConnected) exportCurrentList("hubspot");
                 else openConnectDialog("hubspot");
               }}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : hubspotConnected
-                  ? "bg-[#EA580C] hover:bg-[#C2410C] text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "hubspot" ? (
@@ -1057,7 +911,7 @@ export default function ListDetailPage() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-colors bg-white shadow-sm">
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
               <img src={brevoLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="Brevo" />
               <div>
@@ -1073,12 +927,12 @@ export default function ListDetailPage() {
                 if (brevoConnected) exportCurrentList("brevo");
                 else openConnectDialog("brevo");
               }}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : brevoConnected
-                  ? "bg-[#EA580C] hover:bg-[#C2410C] text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "brevo" ? (
@@ -1087,25 +941,25 @@ export default function ListDetailPage() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-colors bg-white shadow-sm">
+          <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded bg-[#FFF7ED] border border-[#FED7AA] flex items-center justify-center text-[#EA580C] font-bold text-xl">
+              <div className="w-10 h-10 rounded bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xl">
                 @
               </div>
               <div>
                 <div className="font-bold text-gray-900 text-base">Email</div>
                 <div className="text-xs font-medium text-gray-500">
-                  Sends export to {user?.email || "your email"}
+                  Sends export to {user?.collaboratorEmail || "your email"}
                 </div>
               </div>
             </div>
             <button
               disabled={exportingTarget === "email" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
               onClick={() => exportCurrentList("email")}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-[#EA580C] hover:bg-[#C2410C] text-white shadow-md"
+                  : "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
               }`}
             >
               {exportingTarget === "email" ? (
@@ -1127,7 +981,6 @@ export default function ListDetailPage() {
             <div className="text-xl font-semibold text-gray-900 truncate">
               {listNamePretty || "List"}
             </div>
-
             <div className="mt-1 text-xs text-gray-500">
               {loadingTotal ? (
                 <span className="inline-flex items-center gap-2">
@@ -1142,9 +995,8 @@ export default function ListDetailPage() {
               )}
             </div>
           </div>
-
           <button
-            onClick={() => navigate("/list")}
+            onClick={() => navigate(`/collaboration/${user?._id}/list`)}
             className="text-sm font-medium text-gray-600 hover:text-orange-600 shrink-0"
           >
             Back to Lists
@@ -1169,7 +1021,6 @@ export default function ListDetailPage() {
                   {phoneBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
                   <span>Show {counts.useSelected ? "selected" : "all"} phone</span>
                 </span>
-
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
                   <span>
@@ -1178,7 +1029,6 @@ export default function ListDetailPage() {
                 </span>
               </span>
             </button>
-
             <button
               disabled={emailDisabled}
               title={emailDisabledReason || ""}
@@ -1193,7 +1043,6 @@ export default function ListDetailPage() {
                   {emailBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
                   <span>Show {counts.useSelected ? "selected" : "all"} email</span>
                 </span>
-
                 <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
                   <i className="pi pi-wallet" />
                   <span>
@@ -1203,7 +1052,6 @@ export default function ListDetailPage() {
               </span>
             </button>
           </div>
-
           <button
             onClick={openExportModal}
             className="w-fit flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/20 transition-all"
@@ -1220,13 +1068,11 @@ export default function ListDetailPage() {
             border-radius: 6px !important;
             background: #fff !important;
           }
-
           .lc-table .p-checkbox .p-checkbox-box.p-highlight,
           .lc-table .p-checkbox.p-highlight .p-checkbox-box {
             background: #F35114 !important;
             border-color: #F35114 !important;
           }
-
           .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
           .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
           .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
@@ -1234,7 +1080,6 @@ export default function ListDetailPage() {
             color: #fff !important;
           }
         `}</style>
-
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="w-full overflow-x-auto overflow-y-hidden lc-table">
             {loading ? (
@@ -1327,11 +1172,9 @@ export default function ListDetailPage() {
             )}
           </div>
         </div>
-
         <div className="px-2 sm:px-6 py-3 flex items-center m-auto">
           <div className="text-xs w-full m-auto flex items-center justify-center gap-5">
             <div className="text-gray-500">Rows {PAGE_SIZE}</div>
-
             <i
               className={`pi pi-angle-left text-2xl p-3 ${
                 canGoPrev
@@ -1340,7 +1183,6 @@ export default function ListDetailPage() {
               }`}
               onClick={() => handleChangePageNumber2("decrease")}
             ></i>
-
             <input
               type="number"
               value={pageNumber}
@@ -1350,9 +1192,7 @@ export default function ListDetailPage() {
               className="w-fit text-center border border-gray-300 rounded px-3 py-1 bg-white"
               onChange={(e) => handleChangePageNumber(e)}
             />
-
             <div className="text-gray-400">/ {totalPages}</div>
-
             <i
               className={`pi pi-angle-right text-2xl p-3 ${
                 canGoNext
