@@ -13,7 +13,8 @@ import {
   getLinkedInUrl,
   getSingleListDetail,
   getAllList,
-  getListRevealEstimate
+  getListRevealEstimate,
+  revealAllFromList // <-- ADDED MISSING IMPORT HERE
 } from "../../utils/api/data";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { showPhoneAndEmail } from "../../utils/api/getPhoneAndEmail";
@@ -313,7 +314,6 @@ export default function ListDetailPage() {
     if (!listName) return;
     setEstimateLoading(true);
     try {
-      // Added 'as any' to bypass the TypeScript argument error
       const res: any = await (getListRevealEstimate as any)({ listName, userId: user?.id });
       setListEstimate(parseEstimate(res));
     } catch (e) {
@@ -474,7 +474,52 @@ export default function ListDetailPage() {
     }, 600);
   };
 
- 
+  // <-- ADDED MISSING REVEAL ALL FUNCTION HERE -->
+  const revealAll = async (type: "phone" | "email") => {
+    const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
+    setLoadRow({ type: spinnerKey });
+
+    try {
+      const res: any = await (revealAllFromList as any)({
+        listName,
+        type,
+        userId: user?.id,
+      });
+
+      if (res?.data?.error) {
+        setInsufficientVisible(true);
+        return;
+      }
+      if (res?.data?.stoppedDueToCredits) { 
+        setInsufficientVisible(true); 
+        toast.warning("Partially revealed — ran out of credits"); 
+      }
+      else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
+        toast.success(
+          type === "phone" ? "Revealed all phones" : "Revealed all emails"
+        );
+      } else {
+        toast.success("Reveal queued");
+      }
+
+      if (typeof res?.data?.remainingCredits !== "undefined") {
+        setCreditInfo({
+          id: user?.id ?? "",
+          credits: res?.data?.remainingCredits || 0,
+          subscriptionType: creditInfoValue?.subscriptionType || "FREE",
+        });
+      } else {
+        fetchCredits();
+      }
+
+      await fetchRevealEstimate();
+      await listDetail(pageNumber);
+    } catch (e) {
+      toast.error("Something went wrong. Try again.");
+    } finally {
+      setLoadRow({});
+    }
+  };
 
   const refreshConnections = async () => {
     setCheckingConnections(true);
@@ -665,29 +710,30 @@ export default function ListDetailPage() {
   );
 
   const showOrgIndustry = (rowData: any) => {
-    const v =
-      rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? "";
+    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? rowData?.orgIndustry ?? rowData?.org_industry ?? "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showOrgSize = (rowData: any) => {
-    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? "";
+    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? rowData?.orgSize ?? rowData?.org_size ?? "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showCity = (rowData: any) => (
     <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.City || "")}
+      {TextToCapitalize(rowData?.City || rowData?.city || "")}
     </div>
   );
+
   const showState = (rowData: any) => (
     <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.State || "")}
+      {TextToCapitalize(rowData?.State || rowData?.state || "")}
     </div>
   );
+
   const showCountry = (rowData: any) => (
     <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.Country || "")}
+      {TextToCapitalize(rowData?.Country || rowData?.country || "")}
     </div>
   );
 
@@ -921,7 +967,10 @@ export default function ListDetailPage() {
             
             <button
               disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
-              onClick={() => bulkReveal("phone")}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("phone");
+                else revealAll("phone");
+              }}
               className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
             >
               {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
@@ -944,7 +993,10 @@ export default function ListDetailPage() {
 
             <button
               disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
-              onClick={() => bulkReveal("email")}
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("email");
+                else revealAll("email");
+              }}
               className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
             >
               {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
@@ -1092,8 +1144,10 @@ export default function ListDetailPage() {
             <button
               disabled={phoneDisabled}
               title={phoneDisabledReason || ""}
-              onClick={() => bulkReveal("phone")}
-
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("phone");
+                else revealAll("phone");
+              }}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">
@@ -1114,8 +1168,10 @@ export default function ListDetailPage() {
             <button
               disabled={emailDisabled}
               title={emailDisabledReason || ""}
-              onClick={() => bulkReveal("email")}
-
+              onClick={() => {
+                if (counts.useSelected) bulkReveal("email");
+                else revealAll("email");
+              }}
               className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex flex-col items-start leading-tight">

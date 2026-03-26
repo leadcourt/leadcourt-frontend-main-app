@@ -23,8 +23,10 @@ const renameAList = async (payload: any) => await axios.post(`${baseUrl}/list2/r
 const addSubscriber = async (payload: any) => await axios.post(`${baseUrl.replace('/api', '/auth')}/ext/login`, payload);
 
 // --- BYPASS DELETED ROUTES (Frontend handles this logic now) ---
-const getListRevealEstimate = async () => ({ data: { phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 } });
-const revealAllFromList = async () => ({ data: { error: true, message: "Use bulkReveal" } });
+// const getListRevealEstimate = async () => ({ data: { phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 } });
+// const revealAllFromList = async () => ({ data: { error: true, message: "Use bulkReveal" } });
+const getListRevealEstimate = async (payload: any) => await axios.post(`${baseUrl}/list2/reveal-estimate`, payload);
+const revealAllFromList = async (payload: any) => await axios.post(`${baseUrl}/list2/reveal-all`, payload);
 
 export {
   getAllData, searchOption, searchOptionDesignation, getAllList, getSingleListDetail,
