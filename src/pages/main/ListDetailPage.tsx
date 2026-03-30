@@ -680,14 +680,19 @@ export default function ListDetailPage() {
     );
   };
 
-  const showOrganization = (rowData: any) => (
-    <div className="text-sm text-gray-600">
-      {TextToCapitalize(rowData?.Organization || "")}
-    </div>
-  );
+const showOrganization = (rowData: any) => {
+    const v = 
+      rowData?.Organization ?? 
+      rowData?.organization ?? 
+      rowData?.company ?? 
+      rowData?.Company ?? 
+      rowData?.company_name ?? 
+      rowData?.organization_name ?? 
+      "";
+    return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
+  };
 
-const showOrgIndustry = (rowData: any) => {
-    // Added multiple fallback keys to catch whatever the V2 backend sends
+  const showOrgIndustry = (rowData: any) => {
     const v = 
       rowData?.["Org Industry"] ?? 
       rowData?.["Organization Industry"] ?? 
@@ -695,12 +700,12 @@ const showOrgIndustry = (rowData: any) => {
       rowData?.org_industry ?? 
       rowData?.industry ?? 
       rowData?.Industry ?? 
+      rowData?.company_industry ?? 
       "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showOrgSize = (rowData: any) => {
-    // Added multiple fallback keys to catch whatever the V2 backend sends
     const v = 
       rowData?.["Org Size"] ?? 
       rowData?.["Organization Size"] ?? 
@@ -708,6 +713,9 @@ const showOrgIndustry = (rowData: any) => {
       rowData?.org_size ?? 
       rowData?.size ?? 
       rowData?.Size ?? 
+      rowData?.employees ?? 
+      rowData?.employee_count ?? 
+      rowData?.company_size ?? 
       "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
