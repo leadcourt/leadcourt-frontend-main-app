@@ -686,13 +686,29 @@ export default function ListDetailPage() {
     </div>
   );
 
-  const showOrgIndustry = (rowData: any) => {
-    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? rowData?.orgIndustry ?? rowData?.org_industry ?? "";
+const showOrgIndustry = (rowData: any) => {
+    // Added multiple fallback keys to catch whatever the V2 backend sends
+    const v = 
+      rowData?.["Org Industry"] ?? 
+      rowData?.["Organization Industry"] ?? 
+      rowData?.orgIndustry ?? 
+      rowData?.org_industry ?? 
+      rowData?.industry ?? 
+      rowData?.Industry ?? 
+      "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showOrgSize = (rowData: any) => {
-    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? rowData?.orgSize ?? rowData?.org_size ?? "";
+    // Added multiple fallback keys to catch whatever the V2 backend sends
+    const v = 
+      rowData?.["Org Size"] ?? 
+      rowData?.["Organization Size"] ?? 
+      rowData?.orgSize ?? 
+      rowData?.org_size ?? 
+      rowData?.size ?? 
+      rowData?.Size ?? 
+      "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
