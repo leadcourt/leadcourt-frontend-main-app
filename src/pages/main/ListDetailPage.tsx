@@ -952,7 +952,7 @@ export default function ListDetailPage() {
               Revealed Phones
             </div>
             <div className="text-xs font-semibold text-[#EA580C] mt-0.5 mb-3">
-              ({exportStats.unrevealedPhones} missing)
+              ({exportStats.unrevealedPhones} Left)
             </div>
             
             <button
@@ -978,7 +978,7 @@ export default function ListDetailPage() {
               Revealed Emails
             </div>
             <div className="text-xs font-semibold text-[#2563EB] mt-0.5 mb-3">
-              ({exportStats.unrevealedEmails} missing)
+              ({exportStats.unrevealedEmails} Left)
             </div>
 
             <button
