@@ -488,13 +488,15 @@ export default function DataTablePage() {
     </div>
   );
 
-  const showOrgIndustry = (rowData: any) => {
-    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? "";
+const showOrgIndustry = (rowData: any) => {
+    // Look for all possible key names for industry
+    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? rowData?.orgIndustry ?? rowData?.org_industry ?? "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showOrgSize = (rowData: any) => {
-    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? "";
+    // Look for all possible key names for size
+    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? rowData?.orgSize ?? rowData?.org_size ?? "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
