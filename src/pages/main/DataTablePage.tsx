@@ -600,41 +600,48 @@ const showOrgIndustry = (rowData: any) => {
   };
 
   const getFilterTemplate = (placeholder: string) => (options: any) => {
-    const { filterOptions } = options;
+  const { filterOptions } = options;
+
+  const isLoading = loadingOptions && loadingDataKey === placeholder;
+
+
 
     return (
       <div className="px-5 p-multiselect-filter-container">
-        <div className="p-input-icon-right w-full flex items-center gap-2">
-          <span className="p-input-icon-left flex-1">
-            <input
-              value={selectedFilterValue[placeholder] || ""}
-              onChange={(e) => {
-                filterOptions.filter(e);
-                const value = e.target.value;
+  <div className="relative w-full">
+    
+    {/* INPUT */}
+    <input
+      value={selectedFilterValue[placeholder] || ""}
+      onChange={(e) => {
+        filterOptions.filter(e);
+        const value = e.target.value;
 
-                setSelectedFilterValue((prev: any) => ({
-                  ...prev,
-                  [placeholder]: value,
-                }));
+        setSelectedFilterValue((prev: any) => ({
+          ...prev,
+          [placeholder]: value,
+        }));
 
-                if (placeholder === "Designation" && !String(value || "").trim()) {
-                  setSelectAllDesignation(false);
-                }
+        if (placeholder === "Designation" && !String(value || "").trim()) {
+          setSelectAllDesignation(false);
+        }
 
-                handleFilterSearch(placeholder, value);
-              }}
-              className="w-full m-auto focus:outline-none bg-white text-xs px-3 py-1 my-2 rounded-full"
-              placeholder={
-                placeholder === "Designation"
-                  ? `Please enter "Job Title" or "Keyword"`
-                  : placeholder === "Organization"
-                  ? `Type at least 3 letters to search...`
-                  : `Search ${placeholder}...`
-              }
-            />
-          </span>
-        </div>
-      </div>
+        handleFilterSearch(placeholder, value);
+      }}
+      className="w-full pr-10 focus:outline-none bg-white text-xs px-3 py-2 my-2 rounded-full border"
+      placeholder={
+        placeholder === "Designation"
+          ? `Please enter "Job Title" or "Keyword"`
+          : `Search ${placeholder}...`
+      }
+    />
+
+    {/* LOADING ICON */}
+    {isLoading && (
+      <i className="pi pi-spin pi-spinner absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs" />
+    )}
+  </div>
+</div>
     );
   };
 
@@ -1378,7 +1385,7 @@ const showOrgIndustry = (rowData: any) => {
                 onChange={(e) => updateDraft("Designation", e.value)}
                 filter
                 filterTemplate={getFilterTemplate("Designation")}
-                loading={msLoading("Designation")}
+              
                 placeholder="Designation"
                 maxSelectedLabels={0}
                 selectedItemsLabel={designationSelectedItemsLabel}
