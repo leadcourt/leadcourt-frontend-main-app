@@ -1,44 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { User, Mail, Phone } from 'lucide-react';
-import profileAvatar from '../../assets/profileAvatar.jpg'
 import { useRecoilValue } from 'recoil';
 import { userState } from '../../utils/atom/authAtom';
 import { getPersonalInformation, setPersonalInformation } from '../../utils/api/settingsApi';
 import { toast } from 'react-toastify';
-// interface ProfileImageProps {
-//   imageUrl?: string;
-// }
-
-  const ProfileImage = ({ imageUrl }:any) => {
-  return (
-    <div className="items-center  mt-6">
-      <h3 className="text-gray-600 mb-2">Profile image</h3>
-      <div className="  flex items-center gap-5">
-        <div className="w-15 h-15 rounded-full overflow-hidden bg-orange-100">
-          {imageUrl ? (
-            <img 
-              src={profileAvatar} 
-              alt="Profile" 
-              className="w-full h-full object-cover" 
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-orange-100 text-orange-500">
-              <User size={32} />
-            </div>
-          )}
-        </div>
-        <div className="flex space-x-2 justify-center">
-          <button className="bg-[#F35114] text-white px-7 py-2 rounded-md text-sm">
-            Upload
-          </button>
-          <button className="text-gray-700 bg-gray-100 px-7 py-2 rounded-md text-sm">
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 interface ProfileDetailItemProps {
   icon: React.ReactNode;
@@ -47,15 +12,11 @@ interface ProfileDetailItemProps {
   value: string;
 }
 
-
 interface PayloadData {
   id: string | undefined;
   full_name?: string;
   phone_number?: string; 
 }
-
-
-
 
 const PersonalInformationPage: React.FC = () => {
 
@@ -75,21 +36,60 @@ const PersonalInformationPage: React.FC = () => {
 
   const ProfileDetailItem: React.FC<ProfileDetailItemProps> = ({ icon, iconColor, label, value }) => {
     return (
-      <div className="flex items-start space-x-4 py-4">
+      <div className="flex items-center space-x-4 py-4 flex-1">
         <div className={`${iconColor} p-2 rounded-md`}>
-          <div >
+          <div>
             {icon}
           </div>
         </div>
   
         <div className="flex-1">
           <p className="text-xs uppercase font-medium text-gray-500">{label}</p>
-          {editInfo === label ? 
-          <input value={data[label]} onChange={(e)=>handleDataChange(label, e.target.value)} type="text" autoFocus className='outline-gray-200 outline-1 rounded shadow my-1 py-1 px-2'/>
-          :
-
-          <p className="text-gray-700">{data[label] ?? value}</p>
-        }
+          
+          {editInfo === label ? (
+            label === 'Phone number' ? (
+              // Custom Edit Mode UI for Phone Number
+              <div className="flex gap-2 items-center mt-1 bg-white outline-gray-200 outline-1 rounded shadow p-1">
+                <select 
+                  value={data['countryCode'] || '+91'} 
+                  onChange={(e) => handleDataChange('countryCode', e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm cursor-pointer pl-1 text-gray-700"
+                >
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+971">🇦🇪 +971</option>
+                </select>
+                
+                <div className="h-5 w-[1px] bg-gray-300"></div>
+                
+                <input 
+                  value={data[label] || ''} 
+                  onChange={(e)=>handleDataChange(label, e.target.value)} 
+                  type="text" 
+                  autoFocus 
+                  placeholder="Mobile Number"
+                  className='border-none outline-none flex-1 px-2 py-1 text-gray-700'
+                />
+              </div>
+            ) : (
+              // Default Edit Mode UI for Full Name, etc.
+              <input 
+                value={data[label] || ''} 
+                onChange={(e)=>handleDataChange(label, e.target.value)} 
+                type="text" 
+                autoFocus 
+                className='outline-gray-200 outline-1 rounded shadow my-1 py-1 px-2 w-full text-gray-700'
+              />
+            )
+          ) : (
+            // Non-Edit Mode Display
+            <p className="text-gray-700 mt-1 font-medium">
+              {data[label] 
+                ? (label === 'Phone number' ? `${data['countryCode'] || '+91'} ${data[label]}` : data[label]) 
+                : value}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -107,20 +107,18 @@ const PersonalInformationPage: React.FC = () => {
     }
 
     if (data['Phone number']){
-      payload.phone_number = data['Phone number']
+      // Combine country code and number for the database
+      payload.phone_number = `${data['countryCode'] || '+91'} ${data['Phone number']}`.trim();
     }
-
     
     await setPersonalInformation(payload).then(()=> {
       toast.success('Information updated successfully')
-      
+      setEditInfo('') // Close edit mode after saving automatically
     }).catch(( )=> {
       // console.error("error occured", err);
-      
     })
 
     setSubmitLoading(false)
-
   }
 
   const changeEdit = (info: string) => {
@@ -132,90 +130,95 @@ const PersonalInformationPage: React.FC = () => {
   }
 
   const getInfo = async (payload:any) => {
-    
     await getPersonalInformation(payload.id).then((res)=>{
+      let phoneData = res?.phone_number ?? '';
+      let cCode = '+91';
+      let pNum = phoneData;
       
+      // Auto-extract country code if API returns "+91 9876543210" format
+      if(phoneData.startsWith('+') && phoneData.includes(' ')) {
+          const parts = phoneData.split(' ');
+          cCode = parts[0];
+          pNum = parts.slice(1).join(' ');
+      }
+
       setUserData({
-        profileImage: '/api/placeholder/80/80', // Placeholder image
         FullName: res.full_name ?? user?.email,
         email: user?.email ,
-        phone: res?.phone_number ?? ''
+        phone: phoneData
       })
-
-      console.log(res);
-      
       
       setData({
         "Full name": res?.full_name ?? user?.name,
-        'Phone number': res?.phone_number ?? ''
+        'Phone number': pNum,
+        'countryCode': cCode
       })
 
-     
-
-    // }).catch((err)=>{
+    }).catch((err)=>{
       
     })
   }
 
   useEffect(()=>{
-    getInfo(user)
-  }, [])
+    if(user?.id) {
+      getInfo(user)
+    }
+  }, [user])
  
   return (
-    <div className=" mx-auto"> 
-      
-      <div className=""> 
-        
-        <ProfileImage imageUrl={userData.profileImage} />
-        
-        <div className="mt-6">
-          <h3 className="text-gray-600 mb-2">Profile details</h3>
+    <div className="mx-auto"> 
+      <div className="">         
+        <div className="mt-2">
+          <h3 className="text-gray-600 mb-2 font-semibold">Profile details</h3>
           
-          <div className="flex items-center justify-between  ">
-          <ProfileDetailItem 
-            icon={<User size={20} />}
-            iconColor='bg-blue-100 text-blue-600'
-            label="Full name"
-            value={userData.fullName}
-          />
-          <i 
-            onClick={() => changeEdit("Full name")}
-             className={`pi ${editInfo == 'Full name' ? 'pi-check' : 'pi-pencil'} cursor-pointer p-3 rounded-2xl textlg bg-gray-100 text-gray-400`}></i>
+          <div className="flex items-center justify-between">
+            <ProfileDetailItem 
+              icon={<User size={20} />}
+              iconColor='bg-blue-100 text-blue-600'
+              label="Full name"
+              value={userData.FullName || 'None'}
+            />
+            <i 
+              onClick={() => changeEdit("Full name")}
+              className={`pi ${editInfo == 'Full name' ? 'pi-check text-green-500' : 'pi-pencil'} cursor-pointer p-3 rounded-full shadow-sm text-lg bg-gray-50 text-gray-400 hover:bg-gray-100 ml-4`}
+            ></i>
           </div>
+
           <div className="flex items-center justify-between border-t border-gray-100">
             <ProfileDetailItem 
               icon={<Mail size={20} />}
-            iconColor='bg-red-100 text-red-600'
+              iconColor='bg-red-100 text-red-600'
               label="Email address"
-              value={userData.email}
+              value={userData.email || 'None'}
             />
-            </div>
+            {/* Empty block to keep UI spacing perfectly aligned even without an edit button on Email */}
+            <div className="w-[52px] ml-4"></div>
+          </div>
           
-          <div className="flex items-center justify-between border-t  border-gray-100">
+          <div className="flex items-center justify-between border-t border-gray-100">
             <ProfileDetailItem 
               icon={<Phone size={20} />}
-            iconColor='bg-yellow-100 text-yellow-600'
+              iconColor='bg-yellow-100 text-yellow-600'
               label="Phone number"
               value={userData?.phone ? userData?.phone : 'None'}
-
             />
             <i 
-            onClick={() => changeEdit("Phone number")}
-             className={`pi ${editInfo == 'Phone number' ? 'pi-check' : 'pi-pencil'} cursor-pointer p-3 rounded-2xl textlg bg-gray-100 text-gray-400`}></i>
+              onClick={() => changeEdit("Phone number")}
+              className={`pi ${editInfo == 'Phone number' ? 'pi-check text-green-500' : 'pi-pencil'} cursor-pointer p-3 rounded-full shadow-sm text-lg bg-gray-50 text-gray-400 hover:bg-gray-100 ml-4`}
+            ></i>
           </div>
         </div>
         
         <div className="mt-6">
-    {submitLoading ? 
-
-          <button onClick={onSubmit} className="bg-[#f34f146c] w-full text-white py-3 px-4 rounded-md">
-            <i className='pi pi-spin pi-spinner'></i> <span>Update profile</span>
-          </button>
-    :
-        <button onClick={onSubmit} className="bg-[#F35114] w-full  hover:bg-red-500 hover:cursor-pointer text-white py-3 px-4 rounded-md">
+          {submitLoading ? 
+            <button disabled className="bg-[#f34f146c] w-full text-white py-3 px-4 rounded-md flex justify-center items-center gap-2">
+              <i className='pi pi-spin pi-spinner'></i> <span>Update profile</span>
+            </button>
+          :
+            <button onClick={onSubmit} className="bg-[#F35114] w-full hover:bg-[#de450f] transition-all hover:cursor-pointer text-white py-3 px-4 rounded-md font-medium">
               <span>Update profile</span>
-          </button>
-        }
+            </button>
+          }
         </div>
       </div>
     </div>
