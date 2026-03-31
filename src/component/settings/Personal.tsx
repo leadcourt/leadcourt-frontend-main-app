@@ -149,14 +149,34 @@ const PersonalInformationPage: React.FC = () => {
     }));
   };
 
-  // Custom template to ONLY show "🇦🇫 +93" in the closed dropdown box
+  // Template for the closed dropdown box (Shows just Flag + Code)
   const selectedCountryTemplate = (option: any, props: any) => {
     if (option) {
-      // Split the label to remove the country name in parentheses
       const parts = option.label.split(' ');
-      return <div className="text-sm font-medium">{parts[0]} {parts[1]}</div>;
+      const flag = parts[0];
+      const code = parts[1];
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-xl leading-none">{flag}</span>
+          <span className="text-sm font-medium">{code}</span>
+        </div>
+      );
     }
     return <span>{props.placeholder}</span>;
+  };
+
+  // Template for the dropdown list items (Shows Flag + Code + Country Name)
+  const countryOptionTemplate = (option: any) => {
+    const parts = option.label.split(' ');
+    const flag = parts[0];
+    const text = parts.slice(1).join(' '); // Re-join "+91 (India)"
+    
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-2xl leading-none">{flag}</span>
+        <span className="text-sm">{text}</span>
+      </div>
+    );
   };
 
   const ProfileDetailItem: React.FC<ProfileDetailItemProps> = ({ icon, iconColor, label, value }) => {
@@ -180,16 +200,16 @@ const PersonalInformationPage: React.FC = () => {
                   filter 
                   filterBy="label"
                   filterPlaceholder="Search country..."
-                  valueTemplate={selectedCountryTemplate} // Applies our new compact template
+                  valueTemplate={selectedCountryTemplate}
+                  itemTemplate={countryOptionTemplate}
                   placeholder="Code"
-                  className="w-[100px] shadow border border-gray-200 outline-none rounded flex items-center h-[34px] px-2"
+                  className="w-[110px] shadow border border-gray-200 outline-none rounded flex items-center h-[34px] px-2"
                   pt={{
-                    // Pass-through styling to fix Tailwind breaking the search box
                     filterContainer: { className: 'relative p-2 border-b border-gray-100 bg-gray-50' },
                     filterInput: { className: 'w-full p-2 pr-8 border border-gray-300 rounded-md text-sm outline-none focus:border-orange-500' },
                     filterIcon: { className: 'absolute right-4 top-1/2 -translate-y-1/2 text-gray-400' },
                     list: { className: 'py-2' },
-                    item: { className: 'p-3 text-sm hover:bg-orange-50 cursor-pointer transition-colors' }
+                    item: { className: 'px-3 py-2 text-sm hover:bg-orange-50 cursor-pointer transition-colors' }
                   }}
                 />
                 <input 
@@ -230,7 +250,6 @@ const PersonalInformationPage: React.FC = () => {
     }
 
     if (data['Phone number']){
-      // Attach the country code to the final phone number before sending to backend
       const phoneValue = data['Phone number'];
       if (!phoneValue.startsWith('+')) {
         payload.phone_number = `${countryCode} ${phoneValue}`.trim();
