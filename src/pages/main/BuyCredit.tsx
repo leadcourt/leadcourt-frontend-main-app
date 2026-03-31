@@ -69,11 +69,6 @@ const BuyCredit = () => {
     symbol: "$",
   });
 
-  const currencyConverter = [
-    { rate: 87.65, currency: "inr", symbol: "₹" },
-    { rate: 1, currency: "usd", symbol: "$" },
-  ];
-
   const [urlSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useRecoilState(sidebarOpenState);
 
@@ -83,11 +78,8 @@ const BuyCredit = () => {
   };
 
   const calculatePrice = (credits: number): number => {
-    if (location === "IN") {
-      return Math.round((credits / 1000) * (currencyConverter[0].rate * 10));
-    } else {
-      return Math.round((credits / 1000) * (currencyConverter[1].rate * 10));
-    }
+    // Uses the live rate fetched during location check
+    return Math.round((credits / 1000) * (countryCurrency.rate * 10));
   };
 
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
@@ -108,18 +100,30 @@ const BuyCredit = () => {
 
   const checkLocation = async () => {
     try {
-      const response = await fetch("https://ipapi.co/json/");
-      const data = await response.json();
+      // 1. Detect Location
+      const locResponse = await fetch("https://ipapi.co/json/");
+      const locData = await locResponse.json();
+      const isIndia = locData.country === "IN" || locData.country_name?.toUpperCase() === "INDIA";
       
-      console.log("📍 Location Detected:", data.country_name);
+      // 2. Fetch Live Exchange Rate
+      let liveRate = 1;
+      if (isIndia) {
+        const rateResponse = await fetch("https://open.er-api.com/v6/latest/USD");
+        const rateData = await rateResponse.json();
+        liveRate = rateData.rates.INR || 83.5; // Fallback to 83.5 if API fails
+      }
 
-      const isIndia = data.country === "IN" || data.country_name?.toUpperCase() === "INDIA";
-      
-      setLocation(data.country);
-      setCountryCurrency(isIndia ? currencyConverter[0] : currencyConverter[1]);
+      setLocation(locData.country);
+      setCountryCurrency({
+        rate: liveRate,
+        currency: isIndia ? "inr" : "usd",
+        symbol: isIndia ? "₹" : "$",
+      });
+
+      console.log(`📍 Location: ${locData.country_name} | 💹 Rate: ${liveRate}`);
     } catch (error) {
-      console.error("❌ Location API failed. Defaulting to USD.", error);
-      setCountryCurrency(currencyConverter[1]);
+      console.error("❌ Location/Rate API failed. Defaulting to USD.", error);
+      setCountryCurrency({ rate: 1, currency: "usd", symbol: "$" });
     }
   };
 
@@ -380,7 +384,7 @@ const BuyCredit = () => {
             const isFeatured = planItem.name === "Pro";
             const currentPrice = annualSub
               ? Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate * 12 * 0.8)
-              : parseInt(planItem.dollar_amount) * countryCurrency.rate;
+              : Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate);
 
             return (
               <div key={index} className={`pricing-card ${isFeatured ? "featured" : ""}`}>
@@ -445,11 +449,12 @@ const BuyCredit = () => {
              <p className="text-xs text-gray-500 mb-6 flex-grow">Our enterprise plans offer custom solutions tailored to your specific requirements.</p>
              
              <ul className="features-list mb-6">
-               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Unlimited credits</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Custom integrations</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> SLA guarantee</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Dedicated manager</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Priority onboarding</li>
+               {/* Removed pi-check icon to prevent double-ticks from CSS icons */}
+               <li className="text-sm text-gray-600 flex items-center gap-3">Unlimited credits</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3">Custom integrations</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3">SLA guarantee</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3">Dedicated manager</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3">Priority onboarding</li>
              </ul>
              
              <button onClick={() => displayDialog("Support")} className="w-full py-3.5 border-2 border-[#f34f14] text-[#f34f14] rounded-xl font-bold hover:bg-orange-50 transition-colors mt-auto">
@@ -518,25 +523,25 @@ const BuyCredit = () => {
                  <ul className="space-y-5">
                     <li className="flex justify-between items-start">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Never expire
+                        Never expire
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">Credits roll over forever</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Flexible volume
+                        Flexible volume
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">1,000 to 50,000 at once</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Pay as you go
+                        Pay as you go
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">No recurring commitment</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Best rate at 10k+
+                        Best rate at 10k+
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">{countryCurrency.symbol}{(calculatePrice(10000) / 10000).toFixed(2)} per credit</span>
                     </li>
