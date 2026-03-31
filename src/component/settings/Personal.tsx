@@ -149,6 +149,16 @@ const PersonalInformationPage: React.FC = () => {
     }));
   };
 
+  // Custom template to ONLY show "🇦🇫 +93" in the closed dropdown box
+  const selectedCountryTemplate = (option: any, props: any) => {
+    if (option) {
+      // Split the label to remove the country name in parentheses
+      const parts = option.label.split(' ');
+      return <div className="text-sm font-medium">{parts[0]} {parts[1]}</div>;
+    }
+    return <span>{props.placeholder}</span>;
+  };
+
   const ProfileDetailItem: React.FC<ProfileDetailItemProps> = ({ icon, iconColor, label, value }) => {
     return (
       <div className="flex items-start space-x-4 py-4">
@@ -168,8 +178,19 @@ const PersonalInformationPage: React.FC = () => {
                   options={countryCodes} 
                   onChange={(e) => setCountryCode(e.value)} 
                   filter 
+                  filterBy="label"
+                  filterPlaceholder="Search country..."
+                  valueTemplate={selectedCountryTemplate} // Applies our new compact template
                   placeholder="Code"
-                  className="w-[140px] shadow border border-gray-200 outline-none rounded py-0 px-2 flex items-center h-[34px]"
+                  className="w-[100px] shadow border border-gray-200 outline-none rounded flex items-center h-[34px] px-2"
+                  pt={{
+                    // Pass-through styling to fix Tailwind breaking the search box
+                    filterContainer: { className: 'relative p-2 border-b border-gray-100 bg-gray-50' },
+                    filterInput: { className: 'w-full p-2 pr-8 border border-gray-300 rounded-md text-sm outline-none focus:border-orange-500' },
+                    filterIcon: { className: 'absolute right-4 top-1/2 -translate-y-1/2 text-gray-400' },
+                    list: { className: 'py-2' },
+                    item: { className: 'p-3 text-sm hover:bg-orange-50 cursor-pointer transition-colors' }
+                  }}
                 />
                 <input 
                   value={data[label] || ''} 
@@ -221,7 +242,6 @@ const PersonalInformationPage: React.FC = () => {
     await setPersonalInformation(payload).then(()=> {
       toast.success('Information updated successfully')
     }).catch((_err)=> {
-      // Fixed Vercel TypeScript issue by prefixing with underscore
       toast.error('Failed to update information');
     })
 
@@ -250,7 +270,6 @@ const PersonalInformationPage: React.FC = () => {
       })
 
     }).catch((_err)=>{
-      // Fixed Vercel TypeScript issue
       console.log("Failed to fetch user data");
     })
   }
@@ -264,8 +283,6 @@ const PersonalInformationPage: React.FC = () => {
   return (
     <div className="mx-auto"> 
       <div className=""> 
-        
-        {/* PROFILE IMAGE COMPONENT REMOVED FROM HERE */}
         
         <div className="mt-6">
           <h3 className="text-gray-600 mb-2">Profile details</h3>
