@@ -225,22 +225,23 @@ export default function ListDetailPage() {
     [creditInfoValue?.credits]
   );
 
-  const parseEstimate = (raw: any) => {
+ const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
-    
+
     const phoneCredits = Number(
       d?.phoneCredits ?? d?.phoneCost ?? d?.creditsPhone ?? d?.phone?.credits ?? d?.phone?.cost ?? d?.estimate?.phoneCredits ?? d?.estimate?.phoneCost ?? 0
     );
     const emailCredits = Number(
       d?.emailCredits ?? d?.emailCost ?? d?.creditsEmail ?? d?.email?.credits ?? d?.email?.cost ?? d?.estimate?.emailCredits ?? d?.estimate?.emailCost ?? 0
     );
-    
-    // THE FIX: Added d?.phone?.missing and d?.email?.missing here to catch the backend data!
+
+    // THE FIX: We stop using "missing" and instead use the exact math from the credits!
+    // 1 Phone = 5 Credits, 1 Email = 1 Credit
     const phoneCount = Number(
-      d?.phoneCount ?? d?.unrevealedPhone ?? d?.phoneUnrevealed ?? d?.phone?.count ?? d?.phone?.missing ?? d?.estimate?.phoneCount ?? 0
+      d?.phone?.toCharge ?? d?.phoneCount ?? (phoneCredits / 5)
     );
     const emailCount = Number(
-      d?.emailCount ?? d?.unrevealedEmail ?? d?.emailUnrevealed ?? d?.email?.count ?? d?.email?.missing ?? d?.estimate?.emailCount ?? 0
+      d?.email?.toCharge ?? d?.emailCount ?? emailCredits
     );
 
     return {
