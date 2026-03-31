@@ -7,7 +7,6 @@ import SupportPage from "../../component/settings/SupportPage";
 import { getLocation } from "../../utils/api/location";
 import PaymentInIndia from "../../component/settings/PaymentInIndia";
 
-
 interface PaymentPlanType {
   userId: string | undefined;
   plan: string;
@@ -29,8 +28,14 @@ const LeadCourtCredits2 = () => {
   const [visible, setVisible] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlanType>();
   const [options, setOptions] = useState<string>();
-  // const [locationLoading, setLocationLoading] = useState<boolean>(false)
   const [location, setLocation] = useState<string>('')
+
+  // NEW: State to hold the live rate and symbol
+  const [countryCurrency, setCountryCurrency] = useState({
+    rate: 1,
+    currency: "usd",
+    symbol: "$",
+  });
 
   const [indiaPayment, setIndiaPayment] = useState<PaymentInIndiaData>({
     location : '',
@@ -39,11 +44,15 @@ const LeadCourtCredits2 = () => {
     subscriptionType: '',
   })
 
-
-  // Calculate price based on credits (at $10 per 1000 credits)
+  // Calculate price based on credits (at $10 per 1000 credits) multiplied by live rate
   const calculatePrice = (credits: number): number => {
-    return Math.round((credits / 1000) * 10);
+    return Math.round((credits / 1000) * (10 * countryCurrency.rate));
   };
+
+  // Helper to convert the static $20, $60, $100 amounts based on live rate
+  const convertStaticPrice = (usdAmount: number): number => {
+    return Math.round(usdAmount * countryCurrency.rate);
+  }
 
   // Update price when credit amount changes
   const handleCreditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,18 +61,8 @@ const LeadCourtCredits2 = () => {
   };
 
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
-    if (location.toUpperCase() !== 'IN') {
-      // console.log('In iN', planType);
-      // const payload = {
-      //   amount: planType.amount,
-      //   subscriptionType: planType.plan,
-      // }
-      
-      // await makePayment(payload).then(res=>{
-      //   console.log('res', res.data);
-        
-      // })
-
+    // Check for "IN" to trigger India-specific payment component
+    if (location.toUpperCase() === 'IN') {
       const setIndiaPay ={
         location : 'IN',
         display: true,
@@ -71,37 +70,45 @@ const LeadCourtCredits2 = () => {
         subscriptionType: planType.plan,
       }
       setIndiaPayment(setIndiaPay)
-      // console.log('payload in India', location, setIndiaPay);
-
     } else {
       console.log('payload in not india',location );
-      
       setVisible(true);
       setPaymentPlan(planType);
     }
   };
-
 
   const displayDialog = (info: string) => {
     setOptions(info);
   };
 
   const getUserLocation = async () => {
-    // setLocationLoading(true)
+    try {
+      const res = await getLocation();
+      const countryCode = res?.data?.country;
+      setLocation(countryCode);
 
-    await getLocation().then((res)=>{
-      setLocation(res?.data?.country)
-      console.log('location', res?.data?.country);
-    }).catch(()=>{
-    })
-    // setLocationLoading(false)
-
+      // If India, fetch the latest exchange rate
+      if (countryCode === "IN") {
+        const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
+        const rateData = await rateRes.json();
+        const liveRate = rateData.rates.INR || 83.5; // fallback to 83.5 if API fails
+        
+        setCountryCurrency({
+          rate: liveRate,
+          currency: "inr",
+          symbol: "₹",
+        });
+        console.log('💹 Live INR Rate fetched:', liveRate);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch location or rates', error);
+    }
   }
 
-  // Update price whenever credit amount changes
+  // Update price whenever credit amount OR currency rate changes
   useEffect(() => {
     setTotalPrice(calculatePrice(creditAmount));
-  }, [creditAmount]);
+  }, [creditAmount, countryCurrency.rate]);
 
   useEffect(()=>{
     getUserLocation()
@@ -117,7 +124,6 @@ const LeadCourtCredits2 = () => {
           onHide={() => {
             if (options !== "Support") return;
             setOptions('');
-            
           }}
         > 
           <SupportPage faq={false} />
@@ -132,7 +138,6 @@ const LeadCourtCredits2 = () => {
             setIndiaPayment({location: '', display: false, 
         amount: 0,
         subscriptionType: '',});
-            
           }}
         > 
           <PaymentInIndia paymentData={indiaPayment}/>
@@ -179,7 +184,7 @@ const LeadCourtCredits2 = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-                  $20<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(20).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="mb-6 px-5 flex-grow">
 
@@ -240,7 +245,7 @@ const LeadCourtCredits2 = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "starter".toUpperCase(),
-                      amount: 20,
+                      amount: convertStaticPrice(20),
                       credit: 3000,
                     })
                   }
@@ -260,7 +265,7 @@ const LeadCourtCredits2 = () => {
                   <p className="text-gray-600 mb-4">Ideal for growing teams</p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5">
-                  $60<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(60).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="p-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
@@ -337,7 +342,7 @@ const LeadCourtCredits2 = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "pro".toUpperCase(),
-                      amount: 60,
+                      amount: convertStaticPrice(60),
                       credit: 10000,
                     })
                   }
@@ -356,7 +361,7 @@ const LeadCourtCredits2 = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-                  $100<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(100).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <ul className="px-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
@@ -433,7 +438,7 @@ const LeadCourtCredits2 = () => {
                     handlePaymentPlan({
                       userId: user?.id,
                       plan: "business".toUpperCase(),
-                      amount: 100,
+                      amount: convertStaticPrice(100),
                       credit: 15000,
                     })
                   }
@@ -450,7 +455,6 @@ const LeadCourtCredits2 = () => {
               header="Payment Options"
               visible={visible}
               className="p-2 bg-white w-full max-w-[400px] lg:w-1/2"
-              // style={{ maxWidth: "400px" }}
               onHide={() => {
                 if (!visible) return;
                 setVisible(false);
@@ -503,7 +507,7 @@ const LeadCourtCredits2 = () => {
                       Total Price:
                     </span>
                     <span className="text-3xl font-bold text-orange-500">
-                      ${totalPrice}
+                      {countryCurrency.symbol}{totalPrice.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -529,16 +533,3 @@ const LeadCourtCredits2 = () => {
 };
 
 export default LeadCourtCredits2;
-
-// export default function BuyCredit() {
-//   return (
-//     <div className="p-5">
-
-//       <div className="mb-5">
-//         <h3 className="text-xl font-bold">Choose a plan</h3>
-//         <p className="text-sm text-gray-400">Choose the perfect plan for your business needs.</p>
-//       </div>
-
-//     </div>
-//   )
-// }
