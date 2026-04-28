@@ -290,23 +290,25 @@ const CollaboratorDashboard: React.FC = () => {
  
   const renderProjects = () => (
     allProjects.length ? 
-    <div className="space-y-6 max-w-6xl m-6 shadow rounded-xl p-3">
+    <div className="space-y-6 max-w-6xl m-6 shadow rounded-xl p-6 bg-white border border-gray-100">
       {/* Header */}
-
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">My Projects</h1>
-      <div className="flex items-center justify-between ">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Shared With Me</h1>
+          <p className="text-sm text-gray-500 mt-1">Workspaces and projects you are collaborating on</p>
+        </div>
+        <div className="flex items-center space-x-3">
           <div className="relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search projects..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="Search workspaces..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm w-full md:w-64"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
             <Filter className="w-4 h-4" />
             <span>Filter</span>
           </button>
@@ -318,48 +320,55 @@ const CollaboratorDashboard: React.FC = () => {
         {allProjects.map((project) => (
           <div
             key={project?._id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-lg hover:border-orange-200 transition-all flex flex-col justify-between h-full group"
           >
+            {/* Top Section: Avatar and Name */}
             <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  {project?.ownerName}
-                </h3>
-              </div>
-              {/* <button className="p-1 hover:bg-gray-100 rounded">
-                <MoreVertical className="w-4 h-4 text-gray-400" />
-              </button> */}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => navigateToProject(project)}
-                    className="p-2 py-1 hover:bg-gray-100 bg-gray-200 flex items-center gap-2 rounded-2xl "
-                  >
-                    <Eye className="w-4 h-4 text-gray-700" />
-                    <span className="text-gray-700 text-sm">Open</span>
-                  </button>
-                  {/* <button className="p-1 hover:bg-gray-100 rounded">
-                    <Edit className="w-4 h-4 text-gray-400" />
-                  </button> */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-orange-500/20">
+                  {project?.ownerName ? project.ownerName.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-orange-600 transition-colors">
+                    {project?.ownerName}'s Workspace
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Project Owner</p>
                 </div>
               </div>
-              <span
-                className={`px-2 py-1 mt-4 text-xs font-medium rounded-full ${getStatusColor(
-                  "Active"
-                )}`}
-              >
-                {/* {project.status} */}
+              <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full ${getStatusColor("Active")}`}>
                 Active
               </span>
+            </div>
+
+            {/* Middle Section: Context & Role Badge */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-5 border border-gray-100">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-gray-500 font-medium">Your Access Level:</span>
+                <span className="font-bold text-gray-800 capitalize bg-white px-2.5 py-1 rounded-md border border-gray-200 shadow-sm flex items-center gap-1.5 text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  {project?.permission || "Collaborator"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                You are a collaborator on this account. You can access and view the lists shared within this workspace.
+              </p>
+            </div>
+
+            {/* Bottom Section: Action Button */}
+            <div className="pt-2">
+              <button
+                onClick={() => navigateToProject(project)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 transition-all rounded-lg font-semibold text-sm shadow-sm"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Access Workspace</span>
+              </button>
             </div>
           </div>
         ))}
       </div>
     </div> 
-    : ''
+    : null
   );
 
   const getInvitations = async () => {
