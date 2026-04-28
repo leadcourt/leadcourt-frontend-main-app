@@ -48,82 +48,89 @@ export default function CollaboratorTopbar({
     navigate("/");
   };
 
+  // 🟢 UPGRADED WORKSPACE BADGE 🟢
   const defaultCenter = collabState?.ownerName ? (
-    <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap">
-      {collabState.ownerName}&apos;s Dashboard
+    <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-full pl-1.5 pr-4 py-1.5 shadow-sm">
+      <div className="flex items-center justify-center w-7 h-7 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full text-white text-xs font-bold shadow-sm">
+        {collabState.ownerName.charAt(0).toUpperCase()}
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider leading-none mb-0.5">
+          Viewing Workspace
+        </span>
+        <span className="text-sm font-bold text-gray-900 leading-tight">
+          {collabState.ownerName}&apos;s Dashboard
+        </span>
+      </div>
+      <div className="ml-2 h-6 w-px bg-orange-200"></div>
+      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
+        Role: <span className="text-orange-700">{collabState.permission || 'Collaborator'}</span>
+      </span>
     </div>
   ) : null;
 
   return (
-    <div className="w-full flex flex-col z-50">
-      {/* 🟢 THE NEW DYNAMIC WARNING BANNER 🟢 */}
-      {collabState?.ownerName && (
-        <div className="w-full bg-[#EA580C] text-white px-4 py-2.5 flex items-center justify-center gap-2 shadow-md">
-          <i className="pi pi-info-circle text-lg"></i>
-          <span className="text-sm font-medium tracking-wide">
-            You are viewing <span className="font-black underline decoration-2 underline-offset-2">{collabState.ownerName}'s</span> shared workspace. 
-            <span className="ml-1 opacity-90">(Role: <span className="capitalize font-bold">{collabState.permission || 'Collaborator'}</span>)</span>
+    <header
+      className={`h-20 w-full bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm z-50 ${className}`}
+    >
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="hidden lg:flex items-center min-w-0">{leftSlot}</div>
+        
+        {/* 🟢 DYNAMIC BACK BUTTON 🟢 */}
+        <button
+          onClick={goHome}
+          className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-semibold shadow-sm ${
+            collabState?.ownerName 
+              ? "bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 hover:text-orange-600" 
+              : "bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700"
+          }`}
+          title={collabState?.ownerName ? "Exit Workspace" : "Go Home"}
+        >
+          <i className={`pi ${collabState?.ownerName ? "pi-arrow-left" : "pi-home"} text-sm`} />
+          <span>{collabState?.ownerName ? "Exit Workspace" : "Go Home"}</span>
+        </button>
+
+        {/* Mobile: icon only */}
+        <button
+          onClick={goHome}
+          className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
+          title="Go Home"
+        >
+          <i className={`pi ${collabState?.ownerName ? "pi-arrow-left" : "pi-home"} text-sm`} />
+        </button>
+        
+        <div className="hidden md:block min-w-0 ml-2">{centerSlot ?? defaultCenter}</div>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3">
+        {rightSlot}
+
+        <div className="flex items-center px-3 sm:px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium">
+          <i className="pi pi-wallet text-orange-600 mr-2" />
+          <span className="text-orange-600 font-semibold">
+            {(credit?.credits ?? 0).toLocaleString()}
           </span>
-        </div>
-      )}
-
-      {/* Your original header */}
-      <header
-        className={`h-20 w-full bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm ${className}`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="hidden lg:flex items-center min-w-0">{leftSlot}</div>
-          {/* Desktop: text button */}
-          <button
-            onClick={goHome}
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors text-sm font-medium"
-            title="Go Home"
-          >
-            <i className="pi pi-home text-sm" />
-            <span>Go Home</span>
-          </button>
-
-          {/* Mobile: icon only */}
-          <button
-            onClick={goHome}
-            className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
-            title="Go Home"
-          >
-            <i className="pi pi-home text-sm" />
-          </button>
-          <div className="hidden md:block min-w-0">{centerSlot ?? defaultCenter}</div>
+          <span className="ml-1 hidden sm:inline">credits</span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {rightSlot}
+        <button
+          onClick={logout}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
+          title="Log out"
+        >
+          <i className="pi pi-sign-out text-sm" />
+        </button>
 
-          <div className="flex items-center px-3 sm:px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium">
-            <i className="pi pi-wallet text-orange-600 mr-2" />
-            <span className="text-orange-600 font-semibold">
-              {(credit?.credits ?? 0).toLocaleString()}
-            </span>
-            <span className="ml-1 hidden sm:inline">credits</span>
-          </div>
-
+        {onToggleSidebar ? (
           <button
-            onClick={logout}
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
-            title="Log out"
+            onClick={onToggleSidebar}
+            className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
+            title="Menu"
           >
-            <i className="pi pi-sign-out text-sm" />
+            <i className={`pi ${mobileSidebarOpen ? "pi-times" : "pi-bars"} text-lg`} />
           </button>
-
-          {onToggleSidebar ? (
-            <button
-              onClick={onToggleSidebar}
-              className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition-colors"
-              title="Menu"
-            >
-              <i className={`pi ${mobileSidebarOpen ? "pi-times" : "pi-bars"} text-lg`} />
-            </button>
-          ) : null}
-        </div>
-      </header>
-    </div>
+        ) : null}
+      </div>
+    </header>
   );
 }
