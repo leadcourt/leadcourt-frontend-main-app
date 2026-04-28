@@ -538,8 +538,11 @@ export default function ListDetailPage() {
 
     const payload: any = { listName };
 
+    // 👉 THE FIX: Added the else block to always send IDs!
     if (selectedProfile.length > 0) {
       payload.rowIds = selectedProfile.map(p => p.row_id);
+    } else {
+      payload.rowIds = entries.map(p => p.row_id);
     }
 
     try {
