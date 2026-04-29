@@ -175,7 +175,8 @@ const CollaboratorManager: React.FC = () => {
         id: invite._id,
         name: invite.collaboratorName,
         email: invite?.collaboratorEmail || invite.collaboratorName,
-        role: invite.permission,
+        // 👉 FIX: Temporarily force old "viewer" records to show as "editor"
+        role: invite.permission === "viewer" ? "editor" : (invite.permission || "editor"),
         status: invite.status,
         avatar: invite.collaboratorName.substring(0, 2).toUpperCase(),
         joinedDate: new Date(invite.invitedAt).toISOString().split("T")[0],
@@ -230,9 +231,10 @@ const CollaboratorManager: React.FC = () => {
     }
   };
 
+  // 👉 FIX: Default role is now "editor"
   const initialValues: AddCollaboratorData = {
     email: "",
-    role: "",
+    role: "editor", 
   };
 
   const {
@@ -292,6 +294,7 @@ const CollaboratorManager: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Role
               </label>
+              {/* 👉 FIX: Cleaned up option tags so Formik handles selection properly */}
               <select
                 name="role"
                 value={values.role}
@@ -299,12 +302,9 @@ const CollaboratorManager: React.FC = () => {
                 onBlur={handleBlur}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               >
-                <option value="viewer" disabled>
-                  Viewer - Can view content
-                </option>
-                <option value="editor" selected>
-                  Editor - Can edit content
-                </option>
+                <option value="viewer">Viewer - Can view content</option>
+                <option value="editor">Editor - Can edit content</option>
+                <option value="admin">Admin - Full access</option>
               </select>
             </div>
           </div>
@@ -313,6 +313,7 @@ const CollaboratorManager: React.FC = () => {
             <button
               onClick={() => setShowInviteModal(false)}
               className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              type="button"
             >
               Cancel
             </button>
@@ -439,7 +440,7 @@ const CollaboratorManager: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={
-                        selectedCollaborators?.length === collaborators?.length
+                        selectedCollaborators?.length === collaborators?.length && collaborators?.length > 0
                       }
                       onChange={(e) => {
                         if (e.target.checked) {
