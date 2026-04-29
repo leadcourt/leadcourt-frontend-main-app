@@ -146,7 +146,6 @@ const CollaboratorManager: React.FC = () => {
     }
 
     if (action === "resend") {
-      // no-op for now
     }
   };
 
@@ -175,7 +174,6 @@ const CollaboratorManager: React.FC = () => {
         id: invite._id,
         name: invite.collaboratorName,
         email: invite?.collaboratorEmail || invite.collaboratorName,
-        // 👉 FIX: Temporarily force old "viewer" records to show as "editor"
         role: invite.permission === "viewer" ? "editor" : (invite.permission || "editor"),
         status: invite.status,
         avatar: invite.collaboratorName.substring(0, 2).toUpperCase(),
@@ -231,7 +229,6 @@ const CollaboratorManager: React.FC = () => {
     }
   };
 
-  // 👉 FIX: Default role is now "editor"
   const initialValues: AddCollaboratorData = {
     email: "",
     role: "editor", 
@@ -294,7 +291,6 @@ const CollaboratorManager: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Role
               </label>
-              {/* 👉 FIX: Cleaned up option tags so Formik handles selection properly */}
               <select
                 name="role"
                 value={values.role}
@@ -334,7 +330,6 @@ const CollaboratorManager: React.FC = () => {
       </Dialog>
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex flex-wrap justify-between items-start">
             <div>
@@ -365,7 +360,6 @@ const CollaboratorManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2">
@@ -398,7 +392,6 @@ const CollaboratorManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="relative flex-1 max-w-md">
@@ -430,7 +423,6 @@ const CollaboratorManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Collaborators List */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
