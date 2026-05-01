@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 interface ListType {
   name: string;
   total: number;
-  createdAt?: string;
+  updatedAt?: string;
   description?: string;
 }
 
@@ -31,6 +31,9 @@ export default function ListPage() {
   const [newListName, setNewListName] = useState("");
   const [renameLoading, setRenameLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Checkbox State
+  const [selectedLists, setSelectedLists] = useState<string[]>([]);
 
   const allList = async () => {
     setLoading(true);
@@ -101,6 +104,8 @@ export default function ListPage() {
       .then((res) => {
         if (res?.data?.message?.endsWith("deleted successfully")) {
           toast.success("List deleted successfully");
+          // Remove from selected lists if it was checked
+          setSelectedLists((prev) => prev.filter((l) => l !== name));
           closeModal();
           allList();
         } else {
@@ -111,6 +116,20 @@ export default function ListPage() {
       .finally(() => setDeleteLoading(false));
   };
 
+  const toggleSelectAll = () => {
+    if (selectedLists.length === filteredLists.length) {
+      setSelectedLists([]);
+    } else {
+      setSelectedLists(filteredLists.map((l) => l.name));
+    }
+  };
+
+  const toggleSelect = (name: string) => {
+    setSelectedLists((prev) =>
+      prev.includes(name) ? prev.filter((l) => l !== name) : [...prev, name]
+    );
+  };
+
   const filteredLists = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return existingList || [];
@@ -119,7 +138,6 @@ export default function ListPage() {
     );
   }, [existingList, searchTerm]);
 
-  // Generates the beautiful pastel colors for the file icons
   const getIconStyle = (index: number) => {
     const styles = [
       "bg-purple-100 text-purple-500",
@@ -132,12 +150,11 @@ export default function ListPage() {
     return styles[index % styles.length];
   };
 
-  // Fixes the "Unknown Date" issue for old MongoDB records
   const formatDate = (dateString?: string) => {
     if (!dateString) return { date: "May 15, 2025", time: "10:30 AM" }; // Fallback for old data
     try {
       const d = new Date(dateString);
-      if (isNaN(d.getTime())) return { date: "May 15, 2025", time: "10:30 AM" }; // Fallback for bad data
+      if (isNaN(d.getTime())) return { date: "May 15, 2025", time: "10:30 AM" };
       const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
       return { date, time };
@@ -149,25 +166,26 @@ export default function ListPage() {
   return (
     <div className="px-6 sm:px-10 py-8 bg-[#F9FAFB] min-h-screen font-sans">
       
-      {/* RENAME DIALOG */}
+      {/* RENAME DIALOG (Fixed Padding) */}
       <Dialog
         header="Rename List"
         visible={actionModal.isOpen && actionModal.type === "rename"}
         style={{ width: "400px", borderRadius: "1rem" }}
         onHide={closeModal}
-        contentStyle={{ padding: "1.5rem" }}
+        draggable={false}
+        resizable={false}
       >
-        <form onSubmit={renameList} className="flex flex-col gap-4">
+        <form onSubmit={renameList} className="flex flex-col gap-4 pt-2">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">List Name</label>
             <input
               autoFocus
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-800 outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114]"
             />
           </div>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex justify-end gap-3 mt-4">
             <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition-colors">Cancel</button>
             <button type="submit" disabled={renameLoading} className="px-4 py-2 rounded-lg text-sm text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors">
               {renameLoading && <i className="pi pi-spinner pi-spin" />}
@@ -177,19 +195,20 @@ export default function ListPage() {
         </form>
       </Dialog>
 
-      {/* DELETE DIALOG */}
+      {/* DELETE DIALOG (Fixed Padding) */}
       <Dialog
         header="Delete List"
         visible={actionModal.isOpen && actionModal.type === "delete"}
-        style={{ width: "400px" }}
+        style={{ width: "400px", borderRadius: "1rem" }}
         onHide={closeModal}
-        contentStyle={{ padding: "1.5rem" }}
+        draggable={false}
+        resizable={false}
       >
-        <div className="flex flex-col gap-4">
-          <p className="text-gray-600 text-sm">
+        <div className="flex flex-col gap-4 pt-2">
+          <p className="text-gray-700 text-[15px] leading-relaxed">
             Are you sure you want to delete <span className="font-bold text-gray-900">"{actionModal.listName}"</span>? This action cannot be undone.
           </p>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex justify-end gap-3 mt-4">
             <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition-colors">Cancel</button>
             <button type="button" onClick={deleteList} disabled={deleteLoading} className="px-4 py-2 rounded-lg text-sm text-white bg-red-600 hover:bg-red-700 font-medium flex items-center gap-2 transition-colors">
               {deleteLoading && <i className="pi pi-spinner pi-spin" />}
@@ -235,19 +254,27 @@ export default function ListPage() {
       </div>
 
       {/* MAIN TABLE CARD */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full table-fixed min-w-[900px]">
             <thead className="border-b border-gray-100 bg-white">
               <tr>
-                <th className="w-[35%] text-left text-[13px] font-semibold text-gray-600 py-4 px-6">
+                <th className="w-[5%] py-4 px-4 text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-[#F35114] focus:ring-[#F35114] cursor-pointer"
+                    checked={selectedLists.length > 0 && selectedLists.length === filteredLists.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+                <th className="w-[35%] text-left text-[13px] font-semibold text-gray-600 py-4 px-2">
                   <div className="flex items-center gap-2">Name <i className="pi pi-sort-alt text-gray-300 text-[10px]" /></div>
                 </th>
-                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-600 py-4 px-6">
+                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-600 py-4 px-2">
                   <div className="flex items-center gap-2">Total contacts <i className="pi pi-sort-alt text-gray-300 text-[10px]" /></div>
                 </th>
-                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-600 py-4 px-6">
-                  <div className="flex items-center gap-2">Created at <i className="pi pi-sort-alt text-gray-300 text-[10px]" /></div>
+                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-600 py-4 px-2">
+                  <div className="flex items-center gap-2">Updated at <i className="pi pi-sort-alt text-gray-300 text-[10px]" /></div>
                 </th>
                 <th className="w-[25%] text-left text-[13px] font-semibold text-gray-600 py-4 px-6">
                   Actions
@@ -260,21 +287,14 @@ export default function ListPage() {
                 <>
                   {[1, 2, 3, 4, 5].map((k) => (
                     <tr key={k}>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <Skeleton shape="circle" size="2.5rem" />
-                          <div>
-                            <Skeleton width="10rem" height="1rem" className="mb-2" />
-                            <Skeleton width="6rem" height="0.75rem" />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6"><Skeleton width="5rem" height="1rem" /></td>
-                      <td className="py-4 px-6"><Skeleton width="6rem" height="1rem" /></td>
-                      <td className="py-4 px-6">
-                         <div className="flex gap-3">
-                            <Skeleton width="5rem" height="2rem" borderRadius="6px" />
-                            <Skeleton width="5rem" height="2rem" borderRadius="6px" />
+                      <td className="py-4 px-4 text-center"><Skeleton width="1rem" height="1rem" className="mx-auto"/></td>
+                      <td className="py-4 px-2"><Skeleton width="10rem" height="1.2rem" /></td>
+                      <td className="py-4 px-2"><Skeleton width="4rem" height="1rem" /></td>
+                      <td className="py-4 px-2"><Skeleton width="6rem" height="1rem" /></td>
+                      <td className="py-4 px-2">
+                         <div className="flex gap-2">
+                            <Skeleton width="5rem" height="2rem" borderRadius="16px" />
+                            <Skeleton width="5rem" height="2rem" borderRadius="16px" />
                          </div>
                       </td>
                     </tr>
@@ -285,41 +305,52 @@ export default function ListPage() {
                   const total = Number(item?.total || 0);
                   const name = item?.name || "";
                   const iconStyle = getIconStyle(index);
-                  const { date, time } = formatDate(item.createdAt);
+                  const { date, time } = formatDate(item.updatedAt);
+                  const isSelected = selectedLists.includes(name);
 
                   return (
-                    <tr key={`${name}-${index}`} className="hover:bg-gray-50/50 transition-colors">
-                      
-                      {/* NAME COLUMN */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}>
-                            <i className="pi pi-file text-lg" />
-                          </div>
-                          <div
-                            className="cursor-pointer"
-                            onClick={() => navigate(`/list/${name}/details`)}
-                          >
-                            <div className="text-[15px] font-bold text-gray-900 truncate hover:text-[#F35114] transition-colors">
-                              {name}
+                    <tr 
+                      key={`${name}-${index}`} 
+                      className={`group transition-colors ${isSelected ? 'bg-orange-50/30' : 'hover:bg-gray-50'}`}
+                    >
+                      <td className="py-4 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-[#F35114] focus:ring-[#F35114] cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(name)}
+                        />
+                      </td>
+
+                      <td className="py-4 px-2">
+                        <div
+                          className="cursor-pointer inline-block"
+                          onClick={() => navigate(`/list/${name}/details`)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}>
+                              <i className="pi pi-file text-lg" />
                             </div>
-                            <div className="text-[13px] text-gray-500 mt-0.5 truncate max-w-[250px]">
-                              {item.description || "Default list for contacts"}
+                            <div>
+                              <div className="text-[15px] font-bold text-gray-900 truncate hover:text-[#F35114] transition-colors">
+                                {name}
+                              </div>
+                              <div className="text-[13px] text-gray-500 mt-0.5 truncate max-w-[250px]">
+                                {item.description || "Default list for contacts"}
+                              </div>
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* CONTACTS COLUMN */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-2">
                         <div className="flex items-center gap-2 text-[14px] text-gray-700">
                           <i className="pi pi-users text-indigo-400" />
                           <span>{total.toLocaleString()}</span>
                         </div>
                       </td>
 
-                      {/* CREATED AT COLUMN */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-2">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2 text-[14px] text-gray-700">
                             <i className="pi pi-calendar text-gray-400" />
@@ -329,22 +360,22 @@ export default function ListPage() {
                         </div>
                       </td>
 
-                      {/* ACTIONS COLUMN (Always Visible) */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           
                           <button
                             onClick={() => openRenameModal(name)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-semibold"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-all text-xs font-medium shadow-sm"
                           >
-                            <i className="pi pi-pencil text-[11px]" /> Rename
+                            <i className="pi pi-pencil text-[10px]" /> Rename
                           </button>
                           
                           <button
+                            title="Delete List"
                             onClick={() => openDeleteModal(name)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 transition-all text-xs font-semibold"
+                            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 bg-white text-gray-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all shadow-sm"
                           >
-                            <i className="pi pi-trash text-[11px]" /> Delete
+                            <i className="pi pi-trash text-[11px]" />
                           </button>
 
                         </div>
@@ -354,7 +385,7 @@ export default function ListPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-20 text-center">
+                  <td colSpan={5} className="py-20 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
                       <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
                          <i className="pi pi-inbox text-2xl text-gray-400" />
@@ -370,28 +401,14 @@ export default function ListPage() {
           </table>
         </div>
 
-        {/* BOTTOM PAGINATION FOOTER */}
+        {/* BOTTOM FOOTER (Scrollable List Indicator - No Pagination Buttons) */}
         {!loading && filteredLists.length > 0 && (
-          <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-white">
+          <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-white mt-auto">
             <div className="text-[13px] text-gray-500">
-              Showing 1 to {filteredLists.length} of {filteredLists.length} lists
+              Showing all <span className="font-medium text-gray-900">{filteredLists.length}</span> lists
             </div>
-            <div className="flex items-center gap-1.5">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50" disabled>
-                <i className="pi pi-angle-left text-xs" />
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-100 text-[#F35114] font-medium text-sm">
-                1
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium text-sm">
-                2
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium text-sm">
-                3
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                <i className="pi pi-angle-right text-xs" />
-              </button>
+            <div className="text-[13px] text-gray-400 italic">
+              Scroll down for more
             </div>
           </div>
         )}
