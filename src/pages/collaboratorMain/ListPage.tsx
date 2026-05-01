@@ -6,6 +6,7 @@ import { userState } from "../../utils/atom/authAtom";
 import { collaboration_getAllList_api } from "../../utils/api/collaborationData";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
+// Interface matching the main ListPage for styling consistency
 interface ListType {
   name: string;
   total: number;
@@ -38,17 +39,18 @@ export default function Collab_ListPage() {
 
   useEffect(() => {
     allList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredLists = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return existingList || [];
     return (existingList || []).filter((l) =>
-      (l?.name || "").toLowerCase().includes(q)
+      (l?.name || "").toLowerCase().includes(q),
     );
   }, [existingList, searchTerm]);
 
-  // Styling helpers
+  // CSS Helper for Pastel Icons
   const getIconStyle = (index: number) => {
     const styles = [
       "bg-purple-100 text-purple-600",
@@ -56,159 +58,228 @@ export default function Collab_ListPage() {
       "bg-blue-100 text-blue-600",
       "bg-amber-100 text-amber-600",
       "bg-rose-100 text-rose-600",
+      "bg-teal-100 text-teal-600",
     ];
     return styles[index % styles.length];
   };
 
+  // Date Formatter matching the main file logic
   const formatDateTime = (dateString?: string) => {
-    if (!dateString) return { date: "May 15, 2025", time: "10:30 AM" };
+    if (!dateString) return { date: "—", time: "" };
     try {
       const d = new Date(dateString);
-      if (isNaN(d.getTime())) return { date: "May 15, 2025", time: "10:30 AM" };
-      const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      if (isNaN(d.getTime())) return { date: "—", time: "" };
+
+      const date = d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      const time = d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
       return { date, time };
     } catch {
-      return { date: "May 15, 2025", time: "10:30 AM" };
+      return { date: "—", time: "" };
     }
   };
 
   return (
     <div className="px-6 sm:px-10 py-8 bg-[#F9FAFB] min-h-screen font-sans">
-      
-      {/* HEADER SECTION */}
+      {/* HEADER SECTION - Styled exactly like ListPage */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <div className="w-[52px] h-[52px] rounded-2xl bg-orange-50 text-[#F35114] flex items-center justify-center border border-orange-100">
             <i className="pi pi-users text-2xl" />
           </div>
           <div>
-            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight leading-tight">Shared Lists</h1>
-            <p className="text-[15px] text-gray-500 mt-0.5 font-medium">
-              You have access to <span className="text-gray-800">{existingList?.length} collaboration lists</span>
+            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight leading-tight">
+              Shared Lists
+            </h1>
+            <p className="text-[15px] text-gray-500 mt-0.5">
+              You have{" "}
+              <span className="font-semibold text-gray-700">
+                {existingList?.length} collaboration lists
+              </span>{" "}
+              accessible
             </p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-[320px]">
-            <i className="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          <div className="relative w-full sm:w-[280px]">
+            <i className="pi pi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search shared lists..."
-              className="w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 pl-10 text-[14px] outline-none focus:border-[#F35114] transition-all shadow-sm"
+              placeholder="Search lists..."
+              className="w-full rounded-full border border-gray-200 bg-white py-2.5 px-4 pl-9 text-[14px] outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] transition-all shadow-sm"
             />
           </div>
 
           <button
-            onClick={() => navigate(`/collaboration/${collabProject?._id}/list/new-list`)}
-            className="cursor-pointer bg-[#F35114] hover:bg-[#d84812] shadow-md transition-colors text-white text-[14px] px-8 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold w-full sm:w-auto"
+            onClick={() =>
+              navigate(`/collaboration/${collabProject?._id}/list/new-list`)
+            }
+            className="cursor-pointer bg-[#F35114] hover:bg-[#d84812] shadow-sm transition-colors text-white text-[14px] px-6 py-2.5 rounded-full flex items-center justify-center gap-2 font-medium w-full sm:w-auto"
           >
-            <i className="pi pi-plus font-bold" />
+            <i className="pi pi-plus text-xs" />
             Create new list
           </button>
         </div>
       </div>
 
-      {/* MAIN TABLE CARD */}
-      <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+      {/* MAIN TABLE CARD - Styled exactly like ListPage */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full table-fixed min-w-[900px]">
-            <thead className="bg-white border-b border-gray-100">
+            <thead className="border-b border-gray-100 bg-white">
               <tr>
-                <th className="w-[45%] text-left text-[13px] font-bold text-gray-400 uppercase tracking-wider py-5 px-8">
+                <th className="w-[45%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Name
                 </th>
-                <th className="w-[15%] text-left text-[13px] font-bold text-gray-400 uppercase tracking-wider py-5 px-6">
+                <th className="w-[15%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Total contacts
                 </th>
-                <th className="w-[20%] text-left text-[13px] font-bold text-gray-400 uppercase tracking-wider py-5 px-6">
+                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Updated at
                 </th>
-                <th className="w-[20%] text-center text-[13px] font-bold text-gray-400 uppercase tracking-wider py-5 px-6">
+                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Actions
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <>
                   {[1, 2, 3, 4, 5].map((k) => (
                     <tr key={k}>
-                      <td className="py-6 px-8"><Skeleton width="15rem" height="1.5rem" /></td>
-                      <td className="py-6 px-6"><Skeleton width="5rem" height="1.2rem" /></td>
-                      <td className="py-6 px-6"><Skeleton width="6rem" height="1.2rem" /></td>
-                      <td className="py-6 px-6 text-center"><Skeleton width="8rem" height="2.5rem" className="mx-auto" /></td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-4">
+                          <Skeleton shape="circle" size="2.5rem" />
+                          <div>
+                            <Skeleton
+                              width="10rem"
+                              height="1rem"
+                              className="mb-2"
+                            />
+                            <Skeleton width="6rem" height="0.75rem" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <Skeleton width="5rem" height="1rem" />
+                      </td>
+                      <td className="py-4 px-6">
+                        <Skeleton width="6rem" height="1rem" />
+                      </td>
+                      <td className="py-4 px-6">
+                        <Skeleton
+                          width="6rem"
+                          height="2rem"
+                          borderRadius="8px"
+                        />
+                      </td>
                     </tr>
                   ))}
                 </>
               ) : filteredLists.length ? (
                 filteredLists.map((item, index) => {
-                  const name = item?.name || "";
                   const total = Number(item?.total || 0);
+                  const name = item?.name || "";
                   const iconStyle = getIconStyle(index);
-                  const { date, time } = formatDateTime(item.updatedAt || item.createdAt);
+                  const { date, time } = formatDateTime(
+                    item.updatedAt || item.createdAt,
+                  );
 
                   return (
-                    <tr key={`${name}-${index}`} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="py-6 px-8">
-                        <div 
-                          className="flex items-center gap-4 cursor-pointer" 
-                          onClick={() => navigate(`/collaboration/${collabProject?._id}/list/${item?.name}/details`)}
+                    <tr
+                      key={`${name}-${index}`}
+                      className="hover:bg-gray-50/60 transition-colors"
+                    >
+                      {/* NAME COLUMN */}
+                      <td className="py-4 px-6">
+                        <div
+                          className="cursor-pointer inline-block w-full"
+                          onClick={() =>
+                            navigate(
+                              `/collaboration/${collabProject?._id}/list/${name}/details`,
+                            )
+                          }
                         >
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${iconStyle}`}>
-                            <i className="pi pi-file text-2xl" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-[16px] font-bold text-gray-900 truncate">{name}</div>
-                            <div className="text-[13px] text-gray-400 font-medium truncate mt-0.5">
-                              {item.description || "Shared collaboration list"}
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}
+                            >
+                              <i className="pi pi-file text-xl" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[15px] font-semibold text-gray-900 truncate hover:text-[#F35114] transition-colors">
+                                {name}
+                              </div>
+                              <div className="text-[13px] text-gray-500 mt-0.5 truncate max-w-[280px]">
+                                {item.description ||
+                                  "Collaboration shared list"}
+                              </div>
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      <td className="py-6 px-6">
-                        <div className="flex items-center gap-2 text-[15px] font-bold text-gray-700">
-                          <i className="pi pi-users text-[#8b5cf6] text-sm" />
+                      {/* CONTACTS COLUMN */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                          <i className="pi pi-users text-[#8b5cf6]" />
                           <span>{total.toLocaleString()}</span>
                         </div>
                       </td>
 
-                      <td className="py-6 px-6">
-                        <div className="flex items-start gap-2.5">
-                          <i className="pi pi-calendar text-gray-300 mt-1" />
+                      {/* UPDATED AT COLUMN */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-start gap-2">
+                          <i className="pi pi-calendar text-gray-400 mt-0.5" />
                           <div className="flex flex-col">
-                            <span className="text-[14px] font-bold text-gray-700">{date}</span>
-                            <span className="text-[12px] font-medium text-gray-400">{time}</span>
+                            <span className="text-[14px] text-gray-700">
+                              {date}
+                            </span>
+                            <span className="text-[12px] text-gray-400">
+                              {time}
+                            </span>
                           </div>
                         </div>
                       </td>
 
-                      <td className="py-6 px-6">
-                        <div className="flex items-center justify-center">
-                          <button
-                            onClick={() => navigate(`/collaboration/${collabProject?._id}/list/${item?.name}/details`)}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all text-[13px] font-bold shadow-sm"
-                          >
-                            View Details
-                            <i className="pi pi-angle-right text-xs" />
-                          </button>
-                        </div>
+                      {/* ACTIONS COLUMN - Styled consistently */}
+                      <td className="py-4 px-6">
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/collaboration/${collabProject?._id}/list/${name}/details`,
+                            )
+                          }
+                          className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors text-[13px] font-medium shadow-sm w-[110px]"
+                        >
+                          View Details
+                        </button>
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-24 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-400">
-                      <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4">
-                         <i className="pi pi-inbox text-3xl" />
+                  <td colSpan={4} className="py-20 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                        <i className="pi pi-inbox text-2xl text-gray-400" />
                       </div>
-                      <p className="text-lg font-bold">No shared lists found</p>
+                      <p className="text-sm font-medium">
+                        {searchTerm.trim()
+                          ? "No shared lists found matching your search."
+                          : "No shared lists available yet."}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -217,13 +288,15 @@ export default function Collab_ListPage() {
           </table>
         </div>
 
+        {/* FOOTER */}
         {!loading && filteredLists.length > 0 && (
-          <div className="border-t border-gray-50 px-8 py-6 bg-white flex justify-between items-center mt-auto">
-            <div className="text-[14px] font-bold text-gray-400">
-              Showing <span className="text-gray-900">{filteredLists.length}</span> results
-            </div>
-            <div className="text-[14px] font-medium text-gray-300 italic">
-               Project ID: {collabProject?._id?.substring(0,8)}...
+          <div className="border-t border-gray-100 px-6 py-4 bg-white mt-auto">
+            <div className="text-[13px] text-gray-500">
+              Showing all{" "}
+              <span className="font-medium text-gray-900">
+                {filteredLists.length}
+              </span>{" "}
+              collaboration lists
             </div>
           </div>
         )}
