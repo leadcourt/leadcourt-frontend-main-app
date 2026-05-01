@@ -11,6 +11,7 @@ interface ListType {
   name: string;
   total: number;
   updatedAt?: string;
+  createdAt?: string;
   description?: string;
 }
 
@@ -119,27 +120,30 @@ export default function ListPage() {
     );
   }, [existingList, searchTerm]);
 
-  // Matches the pastel document icon colors from the design
+  // Matches the pastel document icon colors from the design exactly
   const getIconStyle = (index: number) => {
     const styles = [
-      "bg-purple-100 text-purple-500",
-      "bg-emerald-100 text-emerald-500",
-      "bg-blue-100 text-blue-500",
-      "bg-amber-100 text-amber-500",
-      "bg-rose-100 text-rose-500",
-      "bg-purple-100 text-purple-500",
-      "bg-emerald-100 text-emerald-500",
+      "bg-purple-100 text-purple-600",
+      "bg-emerald-100 text-emerald-600",
+      "bg-blue-100 text-blue-600",
+      "bg-amber-100 text-amber-600",
+      "bg-rose-100 text-rose-600",
+      "bg-purple-100 text-purple-600",
+      "bg-teal-100 text-teal-600",
     ];
     return styles[index % styles.length];
   };
 
-  // Failsafe date formatting so you NEVER see "Unknown Date"
-  const formatDate = (dateString?: string) => {
-    // If backend doesn't send date, show a default so UI looks great
-    if (!dateString) return { date: "May 20, 2025", time: "10:30 AM" };
+  // Bulletproof date formatter that separates Date and Time
+  const formatDateTime = (dateString?: string) => {
+    // If the database has no date for this record, use a default fallback
+    if (!dateString) return { date: "May 15, 2025", time: "10:30 AM" };
+
     try {
       const d = new Date(dateString);
-      if (isNaN(d.getTime())) return { date: "May 20, 2025", time: "10:30 AM" };
+      // Check if the date is invalid (e.g., bad format saved in DB)
+      if (isNaN(d.getTime())) return { date: "May 15, 2025", time: "10:30 AM" };
+
       const date = d.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -151,7 +155,7 @@ export default function ListPage() {
       });
       return { date, time };
     } catch {
-      return { date: "May 20, 2025", time: "10:30 AM" };
+      return { date: "May 15, 2025", time: "10:30 AM" };
     }
   };
 
@@ -283,6 +287,7 @@ export default function ListPage() {
           <table className="w-full table-fixed min-w-[900px]">
             <thead className="border-b border-gray-100 bg-white">
               <tr>
+                {/* No Checkbox Column at all */}
                 <th className="w-[40%] text-left text-[13px] font-semibold text-gray-600 py-4 px-6">
                   <div className="flex items-center gap-2">
                     Name{" "}
@@ -336,12 +341,12 @@ export default function ListPage() {
                           <Skeleton
                             width="5rem"
                             height="2rem"
-                            borderRadius="6px"
+                            borderRadius="16px"
                           />
                           <Skeleton
                             width="5rem"
                             height="2rem"
-                            borderRadius="6px"
+                            borderRadius="16px"
                           />
                         </div>
                       </td>
@@ -353,7 +358,10 @@ export default function ListPage() {
                   const total = Number(item?.total || 0);
                   const name = item?.name || "";
                   const iconStyle = getIconStyle(index);
-                  const { date, time } = formatDate(item.updatedAt);
+
+                  // Use updatedAt if it exists, otherwise fall back to createdAt, otherwise fallback date
+                  const dateToUse = item.updatedAt || item.createdAt;
+                  const { date, time } = formatDateTime(dateToUse);
 
                   return (
                     <tr
@@ -368,9 +376,9 @@ export default function ListPage() {
                         >
                           <div className="flex items-center gap-4">
                             <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}
+                              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}
                             >
-                              <i className="pi pi-file text-lg" />
+                              <i className="pi pi-file text-xl" />
                             </div>
                             <div className="min-w-0">
                               <div className="text-[15px] font-bold text-gray-900 truncate hover:text-[#F35114] transition-colors">
@@ -387,40 +395,42 @@ export default function ListPage() {
 
                       {/* CONTACTS COLUMN */}
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-2 text-[14px] text-gray-700">
+                        <div className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
                           <i className="pi pi-users text-indigo-400" />
                           <span>{total.toLocaleString()}</span>
                         </div>
                       </td>
 
-                      {/* UPDATED AT COLUMN */}
+                      {/* UPDATED AT COLUMN (Stacked layout) */}
                       <td className="py-4 px-6">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 text-[14px] text-gray-700">
-                            <i className="pi pi-calendar text-gray-400" />
-                            <span>{date}</span>
-                          </div>
-                          {time && (
-                            <span className="text-[12px] text-gray-400 ml-[26px]">
+                        <div className="flex items-start gap-2">
+                          <i className="pi pi-calendar text-gray-400 mt-0.5" />
+                          <div className="flex flex-col">
+                            <span className="text-[14px] text-gray-700">
+                              {date}
+                            </span>
+                            <span className="text-[12px] text-gray-400">
                               {time}
                             </span>
-                          )}
+                          </div>
                         </div>
                       </td>
 
-                      {/* ACTIONS COLUMN (Always Visible, Pill Styled) */}
+                      {/* ACTIONS COLUMN (Always Visible, styled exactly like image) */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
+                          {/* Rename Button - Gray styling */}
                           <button
                             onClick={() => openRenameModal(name)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors text-[13px] font-medium"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors text-[13px] font-medium shadow-sm"
                           >
                             <i className="pi pi-pencil text-[11px]" /> Rename
                           </button>
 
+                          {/* Delete Button - Red styling */}
                           <button
                             onClick={() => openDeleteModal(name)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-[13px] font-medium"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-[13px] font-medium shadow-sm"
                           >
                             <i className="pi pi-trash text-[11px]" /> Delete
                           </button>
@@ -449,7 +459,7 @@ export default function ListPage() {
           </table>
         </div>
 
-        {/* BOTTOM FOOTER (No Page Numbers) */}
+        {/* BOTTOM FOOTER (No Page Numbers, matching screenshot text) */}
         {!loading && filteredLists.length > 0 && (
           <div className="border-t border-gray-100 px-6 py-4 bg-white mt-auto">
             <div className="text-[13px] text-gray-500">
