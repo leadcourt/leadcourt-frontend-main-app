@@ -116,7 +116,7 @@ export default function ListPage() {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return existingList || [];
     return (existingList || []).filter((l) =>
-      (l?.name || "").toLowerCase().includes(q),
+      (l?.name || "").toLowerCase().includes(q)
     );
   }, [existingList, searchTerm]);
 
@@ -134,19 +134,13 @@ export default function ListPage() {
   };
 
   const formatDateTime = (dateString?: string) => {
-    if (!dateString) return { date: "May 15, 2025", time: "10:30 AM" };
+    if (!dateString) return { date: "May 15, 2025", time: "10:30 AM" }; 
     try {
       const d = new Date(dateString);
       if (isNaN(d.getTime())) return { date: "May 15, 2025", time: "10:30 AM" };
-      const date = d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-      const time = d.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      
+      const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
       return { date, time };
     } catch {
       return { date: "May 15, 2025", time: "10:30 AM" };
@@ -155,23 +149,28 @@ export default function ListPage() {
 
   return (
     <div className="px-6 sm:px-10 py-8 bg-[#F9FAFB] min-h-screen font-sans">
-      {/* RENAME DIALOG */}
+      
+      {/* RENAME DIALOG (Fixed PrimeReact Padding Issue) */}
       <Dialog
-        header={
-          <span className="text-xl font-bold text-gray-900">Rename List</span>
-        }
         visible={actionModal.isOpen && actionModal.type === "rename"}
-        style={{ width: "420px", borderRadius: "12px", overflow: "hidden" }}
+        style={{ width: "420px" }}
         onHide={closeModal}
+        showHeader={false}
+        closable={false}
         draggable={false}
         resizable={false}
+        contentStyle={{ padding: "0", borderRadius: "16px", overflow: "hidden" }}
       >
-        <div className="pt-2">
-          <form onSubmit={renameList} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-gray-700">
-                List Name
-              </label>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Rename List</h2>
+            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <i className="pi pi-times text-lg"></i>
+            </button>
+          </div>
+          <form onSubmit={renameList} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[14px] font-medium text-gray-700">List Name</label>
               <input
                 autoFocus
                 value={newListName}
@@ -179,19 +178,9 @@ export default function ListPage() {
                 className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] text-gray-900 outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] shadow-sm transition-all"
               />
             </div>
-            <div className="flex justify-end gap-3 mt-2">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={renameLoading}
-                className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm"
-              >
+            <div className="flex justify-end gap-3 mt-4">
+              <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors">Cancel</button>
+              <button type="submit" disabled={renameLoading} className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm">
                 {renameLoading && <i className="pi pi-spinner pi-spin" />}
                 Save Changes
               </button>
@@ -200,42 +189,35 @@ export default function ListPage() {
         </div>
       </Dialog>
 
-      {/* DELETE DIALOG */}
+      {/* DELETE DIALOG (Fixed PrimeReact Padding Issue) */}
       <Dialog
-        header={
-          <span className="text-xl font-bold text-gray-900">Delete List</span>
-        }
         visible={actionModal.isOpen && actionModal.type === "delete"}
-        style={{ width: "420px", borderRadius: "12px", overflow: "hidden" }}
+        style={{ width: "420px" }}
         onHide={closeModal}
+        showHeader={false}
+        closable={false}
         draggable={false}
         resizable={false}
+        contentStyle={{ padding: "0", borderRadius: "16px", overflow: "hidden" }}
       >
-        <div className="pt-2 flex flex-col gap-5">
-          <p className="text-gray-700 text-[15px] leading-relaxed">
-            Are you sure you want to delete{" "}
-            <span className="font-bold text-gray-900">
-              "{actionModal.listName}"
-            </span>
-            ? This action cannot be undone.
-          </p>
-          <div className="flex justify-end gap-3 mt-2">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors"
-            >
-              Cancel
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Delete List</h2>
+            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <i className="pi pi-times text-lg"></i>
             </button>
-            <button
-              type="button"
-              onClick={deleteList}
-              disabled={deleteLoading}
-              className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-red-600 hover:bg-red-700 font-medium flex items-center gap-2 transition-colors shadow-sm"
-            >
-              {deleteLoading && <i className="pi pi-spinner pi-spin" />}
-              Delete Permanently
-            </button>
+          </div>
+          <div className="flex flex-col gap-5">
+            <p className="text-gray-700 text-[15px] leading-relaxed">
+              Are you sure you want to delete <span className="font-bold text-gray-900">"{actionModal.listName}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 mt-2">
+              <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors">Cancel</button>
+              <button type="button" onClick={deleteList} disabled={deleteLoading} className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-red-600 hover:bg-red-700 font-medium flex items-center gap-2 transition-colors shadow-sm">
+                {deleteLoading && <i className="pi pi-spinner pi-spin" />}
+                Delete Permanently
+              </button>
+            </div>
           </div>
         </div>
       </Dialog>
@@ -247,15 +229,9 @@ export default function ListPage() {
             <i className="pi pi-list text-2xl" />
           </div>
           <div>
-            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight leading-tight">
-              Lists
-            </h1>
+            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight leading-tight">Lists</h1>
             <p className="text-[15px] text-gray-500 mt-0.5">
-              You have{" "}
-              <span className="font-semibold text-gray-700">
-                {existingList?.length} lists
-              </span>{" "}
-              created
+              You have <span className="font-semibold text-gray-700">{existingList?.length} lists</span> created
             </p>
           </div>
         </div>
@@ -287,10 +263,11 @@ export default function ListPage() {
           <table className="w-full table-fixed min-w-[900px]">
             <thead className="border-b border-gray-100 bg-white">
               <tr>
-                <th className="w-[40%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
+                {/* No arrows, Action column adjusted to the right */}
+                <th className="w-[45%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Name
                 </th>
-                <th className="w-[20%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
+                <th className="w-[15%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
                   Total contacts
                 </th>
                 <th className="w-[20%] text-left text-[13px] font-semibold text-gray-500 py-4 px-6">
@@ -311,34 +288,18 @@ export default function ListPage() {
                         <div className="flex items-center gap-4">
                           <Skeleton shape="circle" size="2.5rem" />
                           <div>
-                            <Skeleton
-                              width="10rem"
-                              height="1rem"
-                              className="mb-2"
-                            />
+                            <Skeleton width="10rem" height="1rem" className="mb-2" />
                             <Skeleton width="6rem" height="0.75rem" />
                           </div>
                         </div>
                       </td>
+                      <td className="py-4 px-6"><Skeleton width="5rem" height="1rem" /></td>
+                      <td className="py-4 px-6"><Skeleton width="6rem" height="1rem" /></td>
                       <td className="py-4 px-6">
-                        <Skeleton width="5rem" height="1rem" />
-                      </td>
-                      <td className="py-4 px-6">
-                        <Skeleton width="6rem" height="1rem" />
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex gap-2">
-                          <Skeleton
-                            width="5rem"
-                            height="2rem"
-                            borderRadius="8px"
-                          />
-                          <Skeleton
-                            width="5rem"
-                            height="2rem"
-                            borderRadius="8px"
-                          />
-                        </div>
+                         <div className="flex gap-2">
+                            <Skeleton width="5rem" height="2rem" borderRadius="8px" />
+                            <Skeleton width="5rem" height="2rem" borderRadius="8px" />
+                         </div>
                       </td>
                     </tr>
                   ))}
@@ -348,24 +309,20 @@ export default function ListPage() {
                   const total = Number(item?.total || 0);
                   const name = item?.name || "";
                   const iconStyle = getIconStyle(index);
-
+                  
                   const dateToUse = item.updatedAt || item.createdAt;
                   const { date, time } = formatDateTime(dateToUse);
 
                   return (
-                    <tr
-                      key={`${name}-${index}`}
-                      className="hover:bg-gray-50/60 transition-colors"
-                    >
+                    <tr key={`${name}-${index}`} className="hover:bg-gray-50/60 transition-colors">
+                      
                       <td className="py-4 px-6">
                         <div
                           className="cursor-pointer inline-block w-full"
                           onClick={() => navigate(`/list/${name}/details`)}
                         >
                           <div className="flex items-center gap-4">
-                            <div
-                              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}
-                            >
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}>
                               <i className="pi pi-file text-xl" />
                             </div>
                             <div className="min-w-0">
@@ -373,8 +330,7 @@ export default function ListPage() {
                                 {name}
                               </div>
                               <div className="text-[13px] text-gray-500 mt-0.5 truncate max-w-[280px]">
-                                {item.description ||
-                                  "Default list for contacts"}
+                                {item.description || "Default list for contacts"}
                               </div>
                             </div>
                           </div>
@@ -392,12 +348,8 @@ export default function ListPage() {
                         <div className="flex items-start gap-2">
                           <i className="pi pi-calendar text-gray-400 mt-0.5" />
                           <div className="flex flex-col">
-                            <span className="text-[14px] text-gray-700">
-                              {date}
-                            </span>
-                            <span className="text-[12px] text-gray-400">
-                              {time}
-                            </span>
+                            <span className="text-[14px] text-gray-700">{date}</span>
+                            <span className="text-[12px] text-gray-400">{time}</span>
                           </div>
                         </div>
                       </td>
@@ -407,19 +359,20 @@ export default function ListPage() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => openRenameModal(name)}
-                            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors text-[13px] font-medium shadow-sm w-[90px]"
+                            className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors text-[13px] font-medium shadow-sm w-[90px]"
                           >
                             <i className="pi pi-pencil text-[12px]" /> Rename
                           </button>
-
+                          
                           <button
                             onClick={() => openDeleteModal(name)}
-                            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-[13px] font-medium shadow-sm w-[90px]"
+                            className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-[13px] font-medium w-[90px]"
                           >
                             <i className="pi pi-trash text-[12px]" /> Delete
                           </button>
                         </div>
                       </td>
+
                     </tr>
                   );
                 })
@@ -428,12 +381,10 @@ export default function ListPage() {
                   <td colSpan={4} className="py-20 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
                       <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-                        <i className="pi pi-inbox text-2xl text-gray-400" />
+                         <i className="pi pi-inbox text-2xl text-gray-400" />
                       </div>
                       <p className="text-sm font-medium">
-                        {searchTerm.trim()
-                          ? "No lists found matching your search."
-                          : "No lists created yet."}
+                        {searchTerm.trim() ? "No lists found matching your search." : "No lists created yet."}
                       </p>
                     </div>
                   </td>
@@ -447,11 +398,7 @@ export default function ListPage() {
         {!loading && filteredLists.length > 0 && (
           <div className="border-t border-gray-100 px-6 py-4 bg-white mt-auto">
             <div className="text-[13px] text-gray-500">
-              Showing all{" "}
-              <span className="font-medium text-gray-900">
-                {filteredLists.length}
-              </span>{" "}
-              lists
+              Showing all <span className="font-medium text-gray-900">{filteredLists.length}</span> lists
             </div>
           </div>
         )}
