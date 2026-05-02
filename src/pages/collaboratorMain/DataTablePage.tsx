@@ -80,6 +80,9 @@ export default function Collab_DataTablePage() {
   const user = useRecoilValue(collabProjectState);
   const navigate = useNavigate();
 
+  // ROLE CHECK
+  const isViewer = user?.permission === "viewer";
+
   const subscriptionType = creditInfoValue?.subscriptionType || "FREE";
   const isFree = subscriptionType === "FREE";
 
@@ -344,6 +347,7 @@ export default function Collab_DataTablePage() {
   };
 
   const handleShowPhoneOrEmail = async (type: string, id: any) => {
+    if (isViewer) return; // Safegaurd against unauthorized reveals
     setLoadRow({ type, row_id: id });
     try {
       const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
@@ -404,18 +408,17 @@ export default function Collab_DataTablePage() {
     <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Designation || "")}</div>
   );
 
-  const revealBtn =
-    "px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-2 text-white transition-colors";
-  const revealBtnStyle = { background: ORANGE as any };
-  const revealBtnHover = "hover:brightness-95";
-
   const showPhone = (rowData: any) => (
     <div>
       {!rowData?.Phone ? (
         <button
-          onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
-          className={`${revealBtn} ${revealBtnHover}`}
-          style={revealBtnStyle}
+          disabled={isViewer}
+          title={isViewer ? "Viewers cannot reveal contacts" : ""}
+          onClick={() => !isViewer && handleShowPhoneOrEmail("phone", rowData.row_id)}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-2 transition-colors ${
+            isViewer ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "text-white hover:brightness-95"
+          }`}
+          style={isViewer ? {} : { background: ORANGE }}
         >
           {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -434,9 +437,13 @@ export default function Collab_DataTablePage() {
     <div>
       {!rowData?.Email ? (
         <button
-          onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
-          className={`${revealBtn} ${revealBtnHover}`}
-          style={revealBtnStyle}
+          disabled={isViewer}
+          title={isViewer ? "Viewers cannot reveal contacts" : ""}
+          onClick={() => !isViewer && handleShowPhoneOrEmail("email", rowData.row_id)}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-2 transition-colors ${
+            isViewer ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "text-white hover:brightness-95"
+          }`}
+          style={isViewer ? {} : { background: ORANGE }}
         >
           {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -845,6 +852,7 @@ export default function Collab_DataTablePage() {
   const rowsToAdd = pagesToAdd * PAGE_SIZE;
 
   const openAddToList = () => {
+    if (isViewer) return; // Safegaurd against unauthorized access
     if (selectedProfile.length > 0) {
       setAddMode("selected");
       setModalVisible(true);
@@ -1180,9 +1188,13 @@ export default function Collab_DataTablePage() {
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button
+              disabled={isViewer}
+              title={isViewer ? "Viewers cannot add leads to lists" : ""}
               onClick={openAddToList}
-              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
-              style={{ background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
+              className={`flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-all ${
+                isViewer ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none border-transparent" : "shadow-lg"
+              }`}
+              style={isViewer ? {} : { background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
             >
               <List className="w-4 h-4" />
               <span>
