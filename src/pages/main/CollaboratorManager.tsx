@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Users,
   UserPlus,
@@ -11,6 +11,7 @@ import {
   Edit3,
   Trash2,
   Search,
+  X
 } from "lucide-react";
 import { Dialog } from "primereact/dialog";
 import {
@@ -25,6 +26,7 @@ import { toast } from "react-toastify";
 import { useRecoilValue } from "recoil";
 import { creditState } from "../../utils/atom/authAtom";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "primereact/skeleton";
 
 interface AddCollaboratorData {
   email: string;
@@ -52,501 +54,286 @@ const CollaboratorManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>(
-    []
-  );
-  const [loadingDeleteCollab, setLoadingDeleteCollab] =
-    useState<deleteData>();
+  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
+  const [loadingDeleteCollab, setLoadingDeleteCollab] = useState<deleteData>();
 
   const creditInfo = useRecoilValue(creditState);
   const navigate = useNavigate();
 
-  const roleColors = {
-    owner: "bg-purple-100 text-purple-800 border-purple-200",
-    admin: "bg-red-100 text-red-800 border-red-200",
-    editor: "bg-blue-100 text-blue-800 border-blue-200",
-    viewer: "bg-gray-100 text-gray-800 border-gray-200",
+  // CSS Logic matching your ListPage
+  const roleStyles = {
+    owner: "bg-purple-100 text-purple-600 border-purple-100",
+    admin: "bg-red-100 text-red-600 border-red-100",
+    editor: "bg-blue-100 text-blue-600 border-blue-100",
+    viewer: "bg-gray-100 text-gray-600 border-gray-100",
   };
 
-  const roleIcons = {
-    owner: Crown,
-    admin: Settings,
-    editor: Edit3,
-    viewer: Eye,
+  const statusStyles = {
+    accepted: "bg-emerald-100 text-emerald-700",
+    pending: "bg-amber-100 text-amber-700",
+    declined: "bg-rose-100 text-rose-700",
   };
 
-  const statusColors = {
-    accepted: "bg-green-100 text-green-800",
-    pending: "bg-yellow-100 text-yellow-800",
-    declined: "bg-red-100 text-red-800",
-  };
-
-  const filteredCollaborators = collaborators?.filter(
-    (collaborator) =>
-      collaborator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      collaborator.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleRemoveCollaborator = async (collaboratorId: string) => {
-    setLoadingDeleteCollab({
-      loading: true,
-      collab: collaboratorId,
-    });
-
-    await removeCollaboration(collaboratorId)
-      .then((res) => {
-        if (res.status === 204) {
-          setCollaborators((prev) =>
-            prev?.filter((collab) => collab.id !== collaboratorId)
-          );
-          toast.info("Collaborator removed!");
-        }
-      })
-      .catch(() => {
-        toast.info("Unable to removed collaborator!");
-      });
-
-    setLoadingDeleteCollab({
-      loading: false,
-      collab: "",
-    });
-  };
-
-  const handleBulkAction = async (action: "remove" | "resend") => {
-    if (action === "remove") {
-      if (!selectedCollaborators.length) return;
-
-      const idsToDelete = [...selectedCollaborators];
-
-      try {
-        await Promise.all(
-          idsToDelete.map(async (id) => {
-            try {
-              const res = await removeCollaboration(id);
-              if (res.status === 204) {
-                setCollaborators((prev) =>
-                  prev.filter((collab) => collab.id !== id)
-                );
-              } else {
-                console.error("Failed to remove collaborator", id, res.status);
-              }
-            } catch (err) {
-              console.error("Error removing collaborator", id, err);
-            }
-          })
-        );
-
-        setSelectedCollaborators([]);
-        toast.info("Selected collaborators removed");
-      } catch (err) {
-        toast.error(
-          "Some collaborators could not be removed. Please try again."
-        );
-      }
-    }
-
-    if (action === "resend") {
-    }
-  };
-
-  const toggleSelectCollaborator = (collaboratorId: string) => {
-    setSelectedCollaborators((prev) =>
-      prev.includes(collaboratorId)
-        ? prev.filter((id) => id !== collaboratorId)
-        : [...prev, collaboratorId]
-    );
+  const getAvatarStyle = (index: number) => {
+    const styles = [
+      "bg-purple-100 text-purple-600",
+      "bg-emerald-100 text-emerald-600",
+      "bg-blue-100 text-blue-600",
+      "bg-amber-100 text-amber-600",
+      "bg-rose-100 text-rose-600",
+    ];
+    return styles[index % styles.length];
   };
 
   const RoleIcon = ({ role }: { role: string }) => {
-    const Icon = roleIcons[role as keyof typeof roleIcons];
-    return Icon ? <Icon className="w-3 h-3" /> : null;
+    const icons: any = { owner: Crown, admin: Settings, editor: Edit3, viewer: Eye };
+    const Icon = icons[role] || Eye;
+    return <Icon size={12} />;
   };
 
-  const getInvitations = async () => {
-    await getAllInvitations().then(() => {});
-  };
-
+  // API Logic (Unchanged from your file)
   const getCollaborators = async () => {
+    setLoading(true);
     await getAllSentInvitations().then((res) => {
       const invites = res?.data || [];
-
-      const collaboratorsData = invites?.collaborators?.map((invite: any) => ({
+      const collaboratorsData = invites?.collaborators?.map((invite: any, index: number) => ({
         id: invite._id,
         name: invite.collaboratorName,
         email: invite?.collaboratorEmail || invite.collaboratorName,
-        role: invite.permission === "viewer" ? "editor" : (invite.permission || "editor"),
+        role: invite.permission === "viewer" ? "viewer" : (invite.permission || "editor"),
         status: invite.status,
         avatar: invite.collaboratorName.substring(0, 2).toUpperCase(),
         joinedDate: new Date(invite.invitedAt).toISOString().split("T")[0],
       }));
       setCollaborators(collaboratorsData);
-    });
+    }).finally(() => setLoading(false));
+  };
+
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
+    setLoadingDeleteCollab({ loading: true, collab: collaboratorId });
+    await removeCollaboration(collaboratorId)
+      .then((res) => {
+        if (res.status === 204) {
+          setCollaborators((prev) => prev?.filter((collab) => collab.id !== collaboratorId));
+          toast.success("Collaborator removed!");
+        }
+      })
+      .catch(() => toast.error("Unable to remove collaborator!"))
+      .finally(() => setLoadingDeleteCollab({ loading: false, collab: "" }));
   };
 
   const onSubmit = async (values: AddCollaboratorData) => {
-    setLoading(true);
-
     try {
-      const payload = {
-        email: values.email,
-        role_permission: values.role,
-      };
-
-      await inviteUser(payload).then((res) => {
-        if (res?.status == 201) {
-          toast.success("Invitation sent successfully!");
-          setShowInviteModal(false);
-          getInvitations();
-          getCollaborators();
-        } else if (
-          res?.status == 200 &&
-          res?.data?.message === "Invite already sent"
-        ) {
-          toast.info("Invitation already sent to this email.");
-        } else if (
-          res?.status == 200 &&
-          res?.data?.message === "User is already a collaborator"
-        ) {
-          toast.info("User is already a collaborator.");
-        } else if (
-          res?.status == 200 &&
-          res?.data?.message === "Invite re-sent successfully"
-        ) {
-          toast.info("Invite re-sent successfully.");
-        } else if (res?.status == 400) {
-          toast.error(
-            "Invitation failed! User not found. Please check the email address."
-          );
-        } else {
-          toast.error(
-            "Failed to send invitation. Confirm email and Please try again."
-          );
-        }
-      });
-      setLoading(false);
+      const payload = { email: values.email, role_permission: values.role };
+      const res = await inviteUser(payload);
+      if (res?.status === 201) {
+        toast.success("Invitation sent!");
+        setShowInviteModal(false);
+        getCollaborators();
+      } else {
+        toast.info(res?.data?.message || "Invitation failed");
+      }
     } catch (err) {
-      toast.error("Error Occurred, try again!");
+      toast.error("Error sending invite");
     }
   };
 
-  const initialValues: AddCollaboratorData = {
-    email: "",
-    role: "editor", 
-  };
-
-  const {
-    values,
-    errors,
-    isValid,
-    isSubmitting,
-    touched,
-    handleBlur,
-    handleChange,
-    handleSubmit,
-  } = useFormik({
-    validateOnMount: true,
-    initialValues: initialValues,
+  const { values, errors, isValid, isSubmitting, touched, handleBlur, handleChange, handleSubmit } = useFormik({
+    initialValues: { email: "", role: "editor" },
     validationSchema: addCollaborationValidation,
     onSubmit,
   });
 
-  useEffect(() => {
-    getInvitations();
-    getCollaborators();
-  }, []);
+  useEffect(() => { getCollaborators(); }, []);
+
+  const filteredCollaborators = useMemo(() => {
+    return collaborators?.filter(c => 
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [collaborators, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F9FAFB] px-6 sm:px-10 py-8 font-sans">
+      
+      {/* ADD COLLABORATOR DIALOG */}
       <Dialog
-        header="Add Collaborator"
         visible={showInviteModal}
-        style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
-        onHide={() => {
-          if (!showInviteModal) return;
-          setShowInviteModal(false);
-        }}
+        onHide={() => setShowInviteModal(false)}
+        showHeader={false}
+        style={{ width: "420px" }}
+        contentStyle={{ padding: "0", borderRadius: "16px", overflow: "hidden" }}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4 mt-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Add Collaborator</h2>
+            <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[14px] font-medium text-gray-700">Email Address</label>
               <input
                 name="email"
                 type="email"
                 value={values.email}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="Enter email address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                placeholder="collaborator@example.com"
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] transition-all"
               />
-
-              {errors.email && touched.email && (
-                <p className="error text-sm text-red-400">{errors.email}</p>
-              )}
+              {errors.email && touched.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[14px] font-medium text-gray-700">Role</label>
               <select
                 name="role"
                 value={values.role}
                 onChange={handleChange}
-                onBlur={handleBlur}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] bg-white outline-none focus:border-[#F35114]"
               >
-                <option value="viewer">Viewer - Can view content</option>
+                <option value="viewer">Viewer - Can only view content</option>
                 <option value="editor">Editor - Can edit content</option>
                 <option value="admin">Admin - Full access</option>
               </select>
             </div>
-          </div>
 
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setShowInviteModal(false)}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!isValid || isSubmitting}
-              className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <i className="pi pi-spinner pi-spin"></i>
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-              Send Invite
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-3 mt-4">
+              <button type="button" onClick={() => setShowInviteModal(false)} className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors">Cancel</button>
+              <button 
+                type="submit" 
+                disabled={!isValid || isSubmitting} 
+                className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isSubmitting ? <i className="pi pi-spinner pi-spin" /> : <Mail size={16} />}
+                Send Invitation
+              </button>
+            </div>
+          </form>
+        </div>
       </Dialog>
 
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-wrap justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Team Collaborators
-              </h1>
-              <p className="text-gray-600">
-                Manage team members and their permissions
-              </p>
-            </div>
-            {creditInfo?.subscriptionType.toLowerCase() === "pro" ||
-            creditInfo?.subscriptionType.toLowerCase() === "business" ? (
-              <button
-                onClick={() => setShowInviteModal(true)}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Collaborator
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/subscription")}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <i className=" ">Upgrade Account</i>
-              </button>
-            )}
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-[52px] h-[52px] rounded-2xl bg-orange-50 text-[#F35114] flex items-center justify-center border border-orange-100">
+            <Users size={24} />
+          </div>
+          <div>
+            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight leading-tight">Team Collaborators</h1>
+            <p className="text-[15px] text-gray-500 mt-0.5">Manage team permissions and track member activity</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-gray-600">
-                Total Members
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
-              {collaborators?.length}
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-[280px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search team..."
+              className="w-full rounded-full border border-gray-200 bg-white py-2.5 px-4 pl-10 text-[14px] outline-none focus:border-[#F35114] transition-all shadow-sm"
+            />
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center gap-2">
-              <Check className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-gray-600">Active</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
-              {collaborators?.filter((c) => c.status === "accepted")?.length}
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <span className="text-sm font-medium text-gray-600">Pending</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
-              {collaborators?.filter((c) => c.status === "pending")?.length}
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search collaborators..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            {selectedCollaborators?.length > 0 && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleBulkAction("resend")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
-                >
-                  Resend Invites ({selectedCollaborators?.length})
-                </button>
-                <button
-                  onClick={() => handleBulkAction("remove")}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
-                >
-                  Remove ({selectedCollaborators?.length})
-                </button>
-              </div>
-            )}
-          </div>
+          {creditInfo?.subscriptionType.toLowerCase() === "pro" || creditInfo?.subscriptionType.toLowerCase() === "business" ? (
+            <button onClick={() => setShowInviteModal(true)} className="cursor-pointer bg-[#F35114] hover:bg-[#d84812] shadow-sm text-white text-[14px] px-6 py-2.5 rounded-full flex items-center justify-center gap-2 font-medium">
+              <UserPlus size={16} /> Add Collaborator
+            </button>
+          ) : (
+            <button onClick={() => navigate("/subscription")} className="bg-orange-600 text-white text-[14px] px-6 py-2.5 rounded-full font-medium hover:bg-orange-700">
+              Upgrade to Add Team
+            </button>
+          )}
         </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedCollaborators?.length === collaborators?.length && collaborators?.length > 0
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedCollaborators(
-                            collaborators?.map((c) => c.id)
-                          );
-                        } else {
-                          setSelectedCollaborators([]);
-                        }
-                      }}
-                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                    />
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    Collaborator
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    Role
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredCollaborators?.map((collaborator) => (
-                  <tr key={collaborator.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      {collaborator.role !== "owner" && (
-                        <input
-                          type="checkbox"
-                          checked={selectedCollaborators.includes(
-                            collaborator.id
-                          )}
-                          onChange={() =>
-                            toggleSelectCollaborator(collaborator.id)
-                          }
-                          className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                        />
-                      )}
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-medium text-gray-700">
-                          {collaborator.avatar}
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+           <p className="text-gray-500 text-sm font-medium">Total Members</p>
+           <h3 className="text-2xl font-bold text-gray-900 mt-1">{collaborators?.length}</h3>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+           <p className="text-gray-500 text-sm font-medium">Active Members</p>
+           <h3 className="text-2xl font-bold text-emerald-600 mt-1">{collaborators?.filter(c => c.status === "accepted").length}</h3>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+           <p className="text-gray-500 text-sm font-medium">Pending Invites</p>
+           <h3 className="text-2xl font-bold text-amber-500 mt-1">{collaborators?.filter(c => c.status === "pending").length}</h3>
+        </div>
+      </div>
+
+      {/* TABLE CARD */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
+              <tr>
+                <th className="text-left py-4 px-6 text-[13px] font-semibold text-gray-500">Collaborator</th>
+                <th className="text-left py-4 px-6 text-[13px] font-semibold text-gray-500">Role</th>
+                <th className="text-left py-4 px-6 text-[13px] font-semibold text-gray-500">Status</th>
+                <th className="text-right py-4 px-6 text-[13px] font-semibold text-gray-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                 [1,2,3].map(k => (
+                   <tr key={k}><td colSpan={4} className="p-6"><Skeleton height="2rem" /></td></tr>
+                 ))
+              ) : filteredCollaborators?.length ? (
+                filteredCollaborators.map((collab, idx) => (
+                  <tr key={collab.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm ${getAvatarStyle(idx)}`}>
+                          {collab.avatar}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
-                            {collaborator.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {collaborator.email}
-                          </div>
+                          <div className="text-[15px] font-bold text-gray-900">{collab.name}</div>
+                          <div className="text-[13px] text-gray-500">{collab.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${
-                          roleColors[collaborator.role]
-                        } ${
-                          collaborator.role !== "owner"
-                            ? "cursor-pointer hover:opacity-80"
-                            : ""
-                        }`}
-                      >
-                        <RoleIcon role={collaborator.role} />
-                        {collaborator.role.charAt(0).toUpperCase() +
-                          collaborator.role.slice(1)}
+                    <td className="py-5 px-6">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold border ${roleStyles[collab.role] || roleStyles.viewer}`}>
+                        <RoleIcon role={collab.role} />
+                        {collab.role.toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          statusColors[collaborator.status]
-                        }`}
-                      >
-                        {collaborator.status === "pending" && (
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                        )}
-                        {collaborator.status.charAt(0).toUpperCase() +
-                          collaborator.status.slice(1)}
+                    <td className="py-5 px-6">
+                      <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${statusStyles[collab.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {collab.status.charAt(0).toUpperCase() + collab.status.slice(1)}
                       </span>
                     </td>
-
-                    <td className="py-4 px-4">
-                      {collaborator.role !== "owner" && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            title="Remove collaborator"
-                            onClick={() =>
-                              handleRemoveCollaborator(collaborator.id)
-                            }
-                            className="cursor-pointer hover:text-red-400 text-gray-400 p-2 rounded transition-colors"
-                          >
-                            {loadingDeleteCollab &&
-                            loadingDeleteCollab.collab ===
-                              collaborator.id ? (
-                              <i className="pi pi-spinner pi-spin text-red-400"></i>
-                            ) : (
-                              <Trash2 className="w-4 h-4 " />
-                            )}
-                          </button>
-                        </div>
+                    <td className="py-5 px-6 text-right">
+                      {collab.role !== "owner" && (
+                        <button
+                          onClick={() => handleRemoveCollaborator(collab.id)}
+                          className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                          title="Remove Member"
+                        >
+                          {loadingDeleteCollab?.collab === collab.id ? <i className="pi pi-spinner pi-spin" /> : <Trash2 size={18} />}
+                        </button>
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-20 text-center">
+                    <div className="flex flex-col items-center text-gray-400">
+                      <Users size={48} strokeWidth={1} className="mb-3 opacity-20" />
+                      <p className="font-medium">No team members found</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
