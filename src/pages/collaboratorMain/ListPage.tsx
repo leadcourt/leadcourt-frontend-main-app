@@ -20,6 +20,9 @@ export default function Collab_ListPage() {
   const user = useRecoilValue(userState);
   const collabProject = useRecoilValue(collabProjectState);
 
+  // CHECK IF VIEWER
+  const isViewer = collabProject?.permission === "viewer";
+
   const [loading, setLoading] = useState(false);
   const [existingList, setExistingList] = useState<ListType[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -119,11 +122,19 @@ export default function Collab_ListPage() {
             />
           </div>
 
+          {/* Create List Button - Disabled for Viewers */}
           <button
+            disabled={isViewer}
+            title={isViewer ? "Viewers cannot create lists" : ""}
             onClick={() =>
+              !isViewer &&
               navigate(`/collaboration/${collabProject?._id}/list/new-list`)
             }
-            className="cursor-pointer bg-[#F35114] hover:bg-[#d84812] shadow-sm transition-colors text-white text-[14px] px-6 py-2.5 rounded-full flex items-center justify-center gap-2 font-medium w-full sm:w-auto"
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-[14px] font-medium transition-colors w-full sm:w-auto shadow-sm ${
+              isViewer
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-[#F35114] hover:bg-[#d84812] text-white cursor-pointer"
+            }`}
           >
             <i className="pi pi-plus text-xs" />
             Create new list
@@ -131,7 +142,7 @@ export default function Collab_ListPage() {
         </div>
       </div>
 
-      {/* MAIN TABLE CARD - Styled exactly like ListPage */}
+      {/* MAIN TABLE CARD */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full table-fixed min-w-[900px]">

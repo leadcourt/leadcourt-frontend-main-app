@@ -80,6 +80,9 @@ export default function Collab_ListDetailPage() {
   const setCreditInfo = useSetRecoilState(collabCreditState);
   const creditInfoValue = useRecoilValue(collabCreditState);
 
+  // CHECK IF VIEWER
+  const isViewer = user?.permission === "viewer";
+
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<Person[]>([]);
@@ -87,7 +90,9 @@ export default function Collab_ListDetailPage() {
   const [loadRow, setLoadRow] = useState<any>({});
   const [insufficientVisible, setInsufficientVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(null);
+  const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(
+    null,
+  );
   const [brevoConnected, setBrevoConnected] = useState<boolean | null>(null);
   const [checkingConnections, setCheckingConnections] = useState(false);
   const [exportingTarget, setExportingTarget] = useState<
@@ -95,7 +100,7 @@ export default function Collab_ListDetailPage() {
   >("");
   const [connectVisible, setConnectVisible] = useState(false);
   const [connectTarget, setConnectTarget] = useState<"hubspot" | "brevo" | "">(
-    ""
+    "",
   );
   const [totalRows, setTotalRows] = useState<number>(0);
   const [loadingTotal, setLoadingTotal] = useState<boolean>(false);
@@ -114,13 +119,15 @@ export default function Collab_ListDetailPage() {
     type: "",
   });
 
-  // --- UPGRADED EXPORT STATS CALCULATOR ---
   const exportStats = useMemo(() => {
-    // If user selected checkboxes (across any pages), calculate those specific rows
     if (selectedProfile.length > 0) {
       const total = selectedProfile.length;
-      const revealedPhones = selectedProfile.filter((p) => hasValue(p.Phone)).length;
-      const revealedEmails = selectedProfile.filter((p) => hasValue(p.Email)).length;
+      const revealedPhones = selectedProfile.filter((p) =>
+        hasValue(p.Phone),
+      ).length;
+      const revealedEmails = selectedProfile.filter((p) =>
+        hasValue(p.Email),
+      ).length;
       return {
         mode: "selected",
         total,
@@ -129,9 +136,7 @@ export default function Collab_ListDetailPage() {
         unrevealedPhones: total - revealedPhones,
         unrevealedEmails: total - revealedEmails,
       };
-    } 
-    // If no checkboxes selected, calculate the ENTIRE saved list
-    else {
+    } else {
       const total = totalRows;
       const unrevealedPhones = listEstimate?.phoneCount || 0;
       const unrevealedEmails = listEstimate?.emailCount || 0;
@@ -149,7 +154,7 @@ export default function Collab_ListDetailPage() {
   const listName = params?.listName;
   const listNamePretty = useMemo(
     () => (listName || "").replace(/-/g, " "),
-    [listName]
+    [listName],
   );
 
   const columns = useMemo(
@@ -166,7 +171,7 @@ export default function Collab_ListDetailPage() {
       { field: "State", header: "STATE" },
       { field: "Country", header: "COUNTRY" },
     ],
-    []
+    [],
   );
 
   const headerCellClass =
@@ -192,29 +197,73 @@ export default function Collab_ListDetailPage() {
   const canGoNext = pageNumber < totalPages;
 
   const counts = useMemo(() => {
-    const allUnrevealedPhone = entries.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
-    const allUnrevealedEmail = entries.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
-    const selUnrevealedPhone = selectedProfile.filter((e) => !hasValue(e.Phone) && !isNil(e.Phone)).length;
-    const selUnrevealedEmail = selectedProfile.filter((e) => !hasValue(e.Email) && !isNil(e.Email)).length;
+    const allUnrevealedPhone = entries.filter(
+      (e) => !hasValue(e.Phone) && !isNil(e.Phone),
+    ).length;
+    const allUnrevealedEmail = entries.filter(
+      (e) => !hasValue(e.Email) && !isNil(e.Email),
+    ).length;
+    const selUnrevealedPhone = selectedProfile.filter(
+      (e) => !hasValue(e.Phone) && !isNil(e.Phone),
+    ).length;
+    const selUnrevealedEmail = selectedProfile.filter(
+      (e) => !hasValue(e.Email) && !isNil(e.Email),
+    ).length;
     const useSelected = selectedProfile.length > 0;
     return {
       useSelected,
-      phoneCost: (useSelected ? selUnrevealedPhone : allUnrevealedPhone) * PHONE_REVEAL_CREDITS,
-      emailCost: (useSelected ? selUnrevealedEmail : allUnrevealedEmail) * EMAIL_REVEAL_CREDITS,
+      phoneCost:
+        (useSelected ? selUnrevealedPhone : allUnrevealedPhone) *
+        PHONE_REVEAL_CREDITS,
+      emailCost:
+        (useSelected ? selUnrevealedEmail : allUnrevealedEmail) *
+        EMAIL_REVEAL_CREDITS,
     };
   }, [entries, selectedProfile]);
 
   const userCredits = useMemo(
     () => Number(creditInfoValue?.credits || 0),
-    [creditInfoValue?.credits]
+    [creditInfoValue?.credits],
   );
 
   const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
-    const phoneCredits = Number(d?.phoneCredits ?? d?.phoneCost ?? d?.creditsPhone ?? d?.phone?.credits ?? d?.phone?.cost ?? d?.estimate?.phoneCredits ?? d?.estimate?.phoneCost ?? 0);
-    const emailCredits = Number(d?.emailCredits ?? d?.emailCost ?? d?.creditsEmail ?? d?.email?.credits ?? d?.email?.cost ?? d?.estimate?.emailCredits ?? d?.estimate?.emailCost ?? 0);
-    const phoneCount = Number(d?.phoneCount ?? d?.unrevealedPhone ?? d?.phoneUnrevealed ?? d?.phone?.count ?? d?.estimate?.phoneCount ?? 0);
-    const emailCount = Number(d?.emailCount ?? d?.unrevealedEmail ?? d?.emailUnrevealed ?? d?.email?.count ?? d?.estimate?.emailCount ?? 0);
+    const phoneCredits = Number(
+      d?.phoneCredits ??
+        d?.phoneCost ??
+        d?.creditsPhone ??
+        d?.phone?.credits ??
+        d?.phone?.cost ??
+        d?.estimate?.phoneCredits ??
+        d?.estimate?.phoneCost ??
+        0,
+    );
+    const emailCredits = Number(
+      d?.emailCredits ??
+        d?.emailCost ??
+        d?.creditsEmail ??
+        d?.email?.credits ??
+        d?.email?.cost ??
+        d?.estimate?.emailCredits ??
+        d?.estimate?.emailCost ??
+        0,
+    );
+    const phoneCount = Number(
+      d?.phoneCount ??
+        d?.unrevealedPhone ??
+        d?.phoneUnrevealed ??
+        d?.phone?.count ??
+        d?.estimate?.phoneCount ??
+        0,
+    );
+    const emailCount = Number(
+      d?.emailCount ??
+        d?.unrevealedEmail ??
+        d?.emailUnrevealed ??
+        d?.email?.count ??
+        d?.estimate?.emailCount ??
+        0,
+    );
     return {
       phoneCredits: Number.isFinite(phoneCredits) ? phoneCredits : 0,
       emailCredits: Number.isFinite(emailCredits) ? emailCredits : 0,
@@ -234,7 +283,10 @@ export default function Collab_ListDetailPage() {
     const payload: ListDetailPayload = { page: pageNum, listName: listName };
     try {
       const res: any = await collaboration_getSingleListDetail_api(payload);
-      const data: Person[] = res?.data?.sort((a: Person, b: Person) => (a?.Name || "").localeCompare(b?.Name || "")) || [];
+      const data: Person[] =
+        res?.data?.sort((a: Person, b: Person) =>
+          (a?.Name || "").localeCompare(b?.Name || ""),
+        ) || [];
       setEntries(data);
       setSelectedProfile([]);
     } catch (e) {
@@ -249,7 +301,9 @@ export default function Collab_ListDetailPage() {
     if (!user?._id) return;
     setLoadingTotal(true);
     try {
-      const res: any = await collaboration_getAllList_api({ projectId: user?._id });
+      const res: any = await collaboration_getAllList_api({
+        projectId: user?._id,
+      });
       const lists: any[] = res?.data || [];
       const match = lists.find((l) => l?.name === listName);
       const t = Number(match?.total || 0);
@@ -265,10 +319,18 @@ export default function Collab_ListDetailPage() {
     if (!listName) return;
     setEstimateLoading(true);
     try {
-      const res: any = await collaboration_getListRevealEstimate_api({ listName, userId: user?._id });
+      const res: any = await collaboration_getListRevealEstimate_api({
+        listName,
+        userId: user?._id,
+      });
       setListEstimate(parseEstimate(res));
     } catch (e) {
-      setListEstimate({ phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 });
+      setListEstimate({
+        phoneCredits: 0,
+        emailCredits: 0,
+        phoneCount: 0,
+        emailCount: 0,
+      });
     } finally {
       setEstimateLoading(false);
     }
@@ -285,7 +347,11 @@ export default function Collab_ListDetailPage() {
     try {
       const res: any = await collaboration_getLinkedInUrl_api({ row_id: id });
       if (res?.data?.linkedin_url) {
-        window.open(`https://${res.data.linkedin_url}`, "popupWindow", "width=600,height=600");
+        window.open(
+          `https://${res.data.linkedin_url}`,
+          "popupWindow",
+          "width=600,height=600",
+        );
       }
     } finally {
       setLoadRow({});
@@ -293,17 +359,26 @@ export default function Collab_ListDetailPage() {
   };
 
   const handleShowPhoneOrEmail = async (type: "phone" | "email", id: any) => {
+    if (isViewer) return; // double safeguard
     setLoadRow({ type, row_id: id });
     try {
-      const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
+      const res: any = await collaboration_showPhoneAndEmail_api(
+        type,
+        [id],
+        user,
+      );
       if (res?.data?.error) {
         setInsufficientVisible(true);
         return;
       }
       const patch = res?.data?.results?.[0] || {};
-      const updatedEntries = entries.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
+      const updatedEntries = entries.map((entry: any) =>
+        entry.row_id === id ? { ...entry, ...patch } : entry,
+      );
       setEntries(updatedEntries);
-      const updatedSelected = selectedProfile.map((entry: any) => entry.row_id === id ? { ...entry, ...patch } : entry);
+      const updatedSelected = selectedProfile.map((entry: any) =>
+        entry.row_id === id ? { ...entry, ...patch } : entry,
+      );
       setSelectedProfile(updatedSelected);
       setCreditInfo({
         id: user?._id ?? "",
@@ -318,6 +393,7 @@ export default function Collab_ListDetailPage() {
   };
 
   const bulkReveal = async (type: "phone" | "email") => {
+    if (isViewer) return; // double safeguard
     const useSelected = selectedProfile.length > 0;
     const source = useSelected ? selectedProfile : entries;
 
@@ -334,7 +410,12 @@ export default function Collab_ListDetailPage() {
       return;
     }
 
-    setRevealProgress({ visible: true, current: 0, total: idsToReveal.length, type });
+    setRevealProgress({
+      visible: true,
+      current: 0,
+      total: idsToReveal.length,
+      type,
+    });
 
     const CHUNK_SIZE = 25;
     let updatedEntries = [...entries];
@@ -344,13 +425,19 @@ export default function Collab_ListDetailPage() {
     for (let i = 0; i < idsToReveal.length; i += CHUNK_SIZE) {
       const chunkIds = idsToReveal.slice(i, i + CHUNK_SIZE);
       try {
-        const res: any = await collaboration_showPhoneAndEmail_api(type, chunkIds, user);
+        const res: any = await collaboration_showPhoneAndEmail_api(
+          type,
+          chunkIds,
+          user,
+        );
         if (res?.data?.error) {
           setInsufficientVisible(true);
           break;
         }
 
-        const resMap = new Map((res?.data?.results || []).map((r: any) => [r.row_id, r]));
+        const resMap = new Map(
+          (res?.data?.results || []).map((r: any) => [r.row_id, r]),
+        );
         updatedEntries = updatedEntries.map((entry: any) => {
           const match: any = resMap.get(entry.row_id);
           return match ? { ...entry, ...match } : entry;
@@ -364,7 +451,10 @@ export default function Collab_ListDetailPage() {
         finalCredits = res?.data?.remainingCredits;
         setEntries(updatedEntries);
         setSelectedProfile(updatedSelected);
-        setRevealProgress((prev) => ({ ...prev, current: Math.min(prev.total, i + CHUNK_SIZE) }));
+        setRevealProgress((prev) => ({
+          ...prev,
+          current: Math.min(prev.total, i + CHUNK_SIZE),
+        }));
       } catch (e) {
         toast.error("An error occurred during bulk reveal. Process paused.");
         break;
@@ -386,6 +476,7 @@ export default function Collab_ListDetailPage() {
   };
 
   const revealAll = async (type: "phone" | "email") => {
+    if (isViewer) return; // double safeguard
     const spinnerKey = type === "phone" ? "revealAllPhone" : "revealAllEmail";
     setLoadRow({ type: spinnerKey });
     try {
@@ -401,8 +492,15 @@ export default function Collab_ListDetailPage() {
       if (res?.data?.stoppedDueToCredits) {
         setInsufficientVisible(true);
         toast.warning("Partially revealed — ran out of credits");
-      } else if (res?.data?.success || res?.data?.ok || res?.data?.revealed || res?.data?.done) {
-        toast.success(type === "phone" ? "Revealed all phones" : "Revealed all emails");
+      } else if (
+        res?.data?.success ||
+        res?.data?.ok ||
+        res?.data?.revealed ||
+        res?.data?.done
+      ) {
+        toast.success(
+          type === "phone" ? "Revealed all phones" : "Revealed all emails",
+        );
       } else {
         toast.success("Reveal queued");
       }
@@ -430,8 +528,12 @@ export default function Collab_ListDetailPage() {
       collaboration_checkHubspotConnection(),
       collaboration_checkBrevoConnection(false),
     ]);
-    setHubspotConnected(hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false);
-    setBrevoConnected(br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false);
+    setHubspotConnected(
+      hs.status === "fulfilled" ? !!(hs.value as any)?.data?.connected : false,
+    );
+    setBrevoConnected(
+      br.status === "fulfilled" ? !!(br.value as any)?.data?.connected : false,
+    );
     setCheckingConnections(false);
   };
 
@@ -446,13 +548,14 @@ export default function Collab_ListDetailPage() {
   };
 
   const exportCurrentList = async (target: "hubspot" | "brevo" | "email") => {
+    if (isViewer) return; // double safeguard
     setExportingTarget(target);
-    
+
     const payload: any = { listName };
 
     // Pass the specific row IDs if the user has checkboxes selected
     if (selectedProfile.length > 0) {
-      payload.rowIds = selectedProfile.map(p => p.row_id);
+      payload.rowIds = selectedProfile.map((p) => p.row_id);
     }
 
     try {
@@ -460,7 +563,12 @@ export default function Collab_ListDetailPage() {
         const res: any = await collaboration_exportToHubspotApi(payload);
         if (res?.data?.success) {
           toast.success("Exported to Hubspot successfully");
-          if (res?.data?.portalId) window.open(`https://app-na2.hubspot.com/import/${res?.data?.portalId}`, "_blank", "noopener,noreferrer");
+          if (res?.data?.portalId)
+            window.open(
+              `https://app-na2.hubspot.com/import/${res?.data?.portalId}`,
+              "_blank",
+              "noopener,noreferrer",
+            );
           setExportModalVisible(false);
         } else {
           toast.error("Unable to export to Hubspot");
@@ -469,7 +577,9 @@ export default function Collab_ListDetailPage() {
       if (target === "brevo") {
         const res: any = await collaboration_exportToBrevoApi(payload);
         if (res?.data?.queued) {
-          const name = res?.data?.targetBrevoListName ? ` (${res?.data?.targetBrevoListName})` : "";
+          const name = res?.data?.targetBrevoListName
+            ? ` (${res?.data?.targetBrevoListName})`
+            : "";
           toast.success(`Queued export to Brevo${name}`);
           setExportModalVisible(false);
         } else if (res?.data?.success) {
@@ -492,7 +602,9 @@ export default function Collab_ListDetailPage() {
     }
   };
 
-  const skeletonLoad = () => <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />;
+  const skeletonLoad = () => (
+    <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />
+  );
 
   const emptyMessageTemplate = () => (
     <div className="h-[60vh] w-full flex items-center justify-center">
@@ -513,17 +625,28 @@ export default function Collab_ListDetailPage() {
   };
 
   const showDesignation = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Designation || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Designation || "")}
+    </div>
   );
 
+  // Individual Reveal Phone - Disabled for Viewers
   const showPhone = (rowData: any) => {
     const v = rowData?.Phone;
     if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
     if (!hasValue(v)) {
       return (
         <button
-          onClick={() => handleShowPhoneOrEmail("phone", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          disabled={isViewer}
+          title={isViewer ? "Viewers cannot reveal contacts" : ""}
+          onClick={() =>
+            !isViewer && handleShowPhoneOrEmail("phone", rowData.row_id)
+          }
+          className={`px-3 py-1.5 text-xs font-semibold rounded-md inline-flex items-center gap-2 ${
+            isViewer
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-orange-500 hover:bg-orange-600 text-white"
+          }`}
         >
           {loadRow?.type === "phone" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -537,14 +660,23 @@ export default function Collab_ListDetailPage() {
     return <span className="text-sm text-gray-900">{v}</span>;
   };
 
+  // Individual Reveal Email - Disabled for Viewers
   const showEmail = (rowData: any) => {
     const v = rowData?.Email;
     if (isNil(v)) return <span className="text-sm text-gray-900"></span>;
     if (!hasValue(v)) {
       return (
         <button
-          onClick={() => handleShowPhoneOrEmail("email", rowData.row_id)}
-          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md inline-flex items-center gap-2"
+          disabled={isViewer}
+          title={isViewer ? "Viewers cannot reveal contacts" : ""}
+          onClick={() =>
+            !isViewer && handleShowPhoneOrEmail("email", rowData.row_id)
+          }
+          className={`px-3 py-1.5 text-xs font-semibold rounded-md inline-flex items-center gap-2 ${
+            isViewer
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-orange-500 hover:bg-orange-600 text-white"
+          }`}
         >
           {loadRow?.type === "email" && loadRow.row_id === rowData.row_id ? (
             <i className="pi pi-spin pi-spinner text-xs" />
@@ -559,24 +691,30 @@ export default function Collab_ListDetailPage() {
   };
 
   const showLinkedIn = (rowData: any) => {
-    const loadingThis = loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
+    const loadingThis =
+      loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
         className="inline-flex items-center justify-center w-9 h-9 bg-blue-50 hover:bg-blue-100 rounded-lg"
         title="Open LinkedIn"
       >
-        <i className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`} />
+        <i
+          className={`pi ${loadingThis ? "pi-spin pi-spinner" : "pi-linkedin"} text-blue-600`}
+        />
       </button>
     );
   };
 
   const showOrganization = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Organization || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Organization || "")}
+    </div>
   );
 
   const showOrgIndustry = (rowData: any) => {
-    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? "";
+    const v =
+      rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
@@ -586,15 +724,21 @@ export default function Collab_ListDetailPage() {
   };
 
   const showCity = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.City || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.City || "")}
+    </div>
   );
 
   const showState = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.State || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.State || "")}
+    </div>
   );
 
   const showCountry = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Country || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Country || "")}
+    </div>
   );
 
   const handleChangePageNumber = (e: any) => {
@@ -613,30 +757,60 @@ export default function Collab_ListDetailPage() {
     }
   };
 
-  const phoneCostToShow = counts.useSelected ? counts.phoneCost : listEstimate.phoneCredits;
-  const emailCostToShow = counts.useSelected ? counts.emailCost : listEstimate.emailCredits;
-  const phoneSpinnerKey = counts.useSelected ? "selectedPhone" : "revealAllPhone";
-  const emailSpinnerKey = counts.useSelected ? "selectedEmail" : "revealAllEmail";
-  const phoneBusy = loadRow?.type === phoneSpinnerKey || loadRow?.type === "pagePhone";
-  const emailBusy = loadRow?.type === emailSpinnerKey || loadRow?.type === "pageEmail";
+  const phoneCostToShow = counts.useSelected
+    ? counts.phoneCost
+    : listEstimate.phoneCredits;
+  const emailCostToShow = counts.useSelected
+    ? counts.emailCost
+    : listEstimate.emailCredits;
+  const phoneSpinnerKey = counts.useSelected
+    ? "selectedPhone"
+    : "revealAllPhone";
+  const emailSpinnerKey = counts.useSelected
+    ? "selectedEmail"
+    : "revealAllEmail";
+  const phoneBusy =
+    loadRow?.type === phoneSpinnerKey || loadRow?.type === "pagePhone";
+  const emailBusy =
+    loadRow?.type === emailSpinnerKey || loadRow?.type === "pageEmail";
 
   const phoneDisabledReason = useMemo(() => {
     if (!listName) return "No list";
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
-    if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
+    if (counts.useSelected ? entries.length === 0 : totalRows === 0)
+      return "No contacts";
     if (phoneCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < phoneCostToShow) return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
+    if (userCredits < phoneCostToShow)
+      return `Insufficient credits (need ${phoneCostToShow}, you have ${userCredits})`;
     return "";
-  }, [counts.useSelected, entries.length, estimateLoading, listName, phoneCostToShow, totalRows, userCredits]);
+  }, [
+    counts.useSelected,
+    entries.length,
+    estimateLoading,
+    listName,
+    phoneCostToShow,
+    totalRows,
+    userCredits,
+  ]);
 
   const emailDisabledReason = useMemo(() => {
     if (!listName) return "No list";
     if (estimateLoading && !counts.useSelected) return "Calculating cost...";
-    if ((counts.useSelected ? entries.length === 0 : totalRows === 0)) return "No contacts";
+    if (counts.useSelected ? entries.length === 0 : totalRows === 0)
+      return "No contacts";
     if (emailCostToShow <= 0) return "Nothing to reveal";
-    if (userCredits < emailCostToShow) return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
+    if (userCredits < emailCostToShow)
+      return `Insufficient credits (need ${emailCostToShow}, you have ${userCredits})`;
     return "";
-  }, [counts.useSelected, entries.length, estimateLoading, listName, emailCostToShow, totalRows, userCredits]);
+  }, [
+    counts.useSelected,
+    entries.length,
+    estimateLoading,
+    listName,
+    emailCostToShow,
+    totalRows,
+    userCredits,
+  ]);
 
   const phoneDisabled = !!phoneDisabledReason || phoneBusy;
   const emailDisabled = !!emailDisabledReason || emailBusy;
@@ -659,7 +833,6 @@ export default function Collab_ListDetailPage() {
 
   return (
     <div className="w-full min-h-[calc(100vh-5rem)] bg-gray-50">
-      
       {/* 1. REVEALING PROGRESS DIALOG */}
       <Dialog
         header="Revealing Contacts"
@@ -673,7 +846,8 @@ export default function Collab_ListDetailPage() {
         <div className="flex flex-col items-center justify-center p-4">
           <i className="pi pi-spin pi-spinner text-4xl text-orange-500 mb-4"></i>
           <div className="text-lg font-semibold text-gray-900 mb-1">
-            Revealing {revealProgress.type === "phone" ? "Phone Numbers" : "Emails"}...
+            Revealing{" "}
+            {revealProgress.type === "phone" ? "Phone Numbers" : "Emails"}...
           </div>
           <div className="text-sm text-gray-500 mb-6 text-center">
             Please don't close or refresh this window.
@@ -681,12 +855,23 @@ export default function Collab_ListDetailPage() {
           <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden">
             <div
               className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%` }}
+              style={{
+                width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%`,
+              }}
             ></div>
           </div>
           <div className="w-full flex justify-between text-xs font-semibold text-gray-600">
-            <span>{revealProgress.current} / {revealProgress.total}</span>
-            <span>{revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%</span>
+            <span>
+              {revealProgress.current} / {revealProgress.total}
+            </span>
+            <span>
+              {revealProgress.total > 0
+                ? Math.round(
+                    (revealProgress.current / revealProgress.total) * 100,
+                  )
+                : 0}
+              %
+            </span>
           </div>
         </div>
       </Dialog>
@@ -708,14 +893,18 @@ export default function Collab_ListDetailPage() {
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
               <span className="text-sm">
-                You haven’t connected {TextToCapitalize(connectTarget)} yet. Connect it from the Integrations page first.
+                You haven’t connected {TextToCapitalize(connectTarget)} yet.
+                Connect it from the Integrations page first.
               </span>
             </p>
           </div>
           <div className="mt-6 flex mb-3">
             <div className="cursor-pointer w-fit m-auto">
               <button
-                onClick={() => { setConnectVisible(false); setConnectTarget(""); }}
+                onClick={() => {
+                  setConnectVisible(false);
+                  setConnectTarget("");
+                }}
                 className="bg-gray-500 cursor-pointer text-white text-md rounded-lg px-6 py-2"
               >
                 Cancel
@@ -752,7 +941,9 @@ export default function Collab_ListDetailPage() {
           <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-              <span className="text-sm">You have insufficient credits to view this profile(s).</span>
+              <span className="text-sm">
+                You have insufficient credits to view this profile(s).
+              </span>
             </p>
           </div>
           <div className="mt-6 flex items-center pb-2">
@@ -780,22 +971,24 @@ export default function Collab_ListDetailPage() {
         draggable={false}
         resizable={false}
       >
-        {/* --- DYNAMIC STATS SUMMARY (WIDER & WITH REVEAL BUTTONS) --- */}
         <div className="mb-6 grid grid-cols-3 gap-4 text-center">
-          
-          {/* TOTAL CARD */}
           <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 flex flex-col items-center justify-center">
-            <div className="text-4xl font-extrabold text-gray-900">{exportStats.total}</div>
+            <div className="text-4xl font-extrabold text-gray-900">
+              {exportStats.total}
+            </div>
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-2">
-              {exportStats.mode === "selected" ? "Selected Contacts" : "Entire List"}
+              {exportStats.mode === "selected"
+                ? "Selected Contacts"
+                : "Entire List"}
             </div>
           </div>
 
-          {/* PHONE CARD */}
           <div className="bg-orange-50 rounded-xl p-4 border border-orange-200 flex flex-col items-center justify-center">
             <div className="flex items-center gap-2">
               <i className="pi pi-phone text-orange-600 text-xl" />
-              <span className="text-3xl font-extrabold text-orange-600">{exportStats.revealedPhones}</span>
+              <span className="text-3xl font-extrabold text-orange-600">
+                {exportStats.revealedPhones}
+              </span>
             </div>
             <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider mt-1">
               Revealed Phones
@@ -803,27 +996,33 @@ export default function Collab_ListDetailPage() {
             <div className="text-xs font-medium text-orange-600 mt-1 mb-4">
               ({exportStats.unrevealedPhones} missing)
             </div>
-            
+
             <button
-              disabled={exportStats.unrevealedPhones === 0 || phoneDisabled}
+              disabled={
+                exportStats.unrevealedPhones === 0 || phoneDisabled || isViewer
+              }
+              title={isViewer ? "Viewers cannot reveal contacts" : ""}
               onClick={() => {
                 if (counts.useSelected) bulkReveal("phone");
                 else revealAll("phone");
               }}
-              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className={`w-full py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                isViewer
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              }`}
             >
-              {phoneBusy ? (
-                <i className="pi pi-spin pi-spinner mr-2" />
-              ) : null}
+              {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
             </button>
           </div>
 
-          {/* EMAIL CARD */}
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex flex-col items-center justify-center">
             <div className="flex items-center gap-2">
               <i className="pi pi-envelope text-blue-600 text-xl" />
-              <span className="text-3xl font-extrabold text-blue-600">{exportStats.revealedEmails}</span>
+              <span className="text-3xl font-extrabold text-blue-600">
+                {exportStats.revealedEmails}
+              </span>
             </div>
             <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mt-1">
               Revealed Emails
@@ -833,16 +1032,21 @@ export default function Collab_ListDetailPage() {
             </div>
 
             <button
-              disabled={exportStats.unrevealedEmails === 0 || emailDisabled}
+              disabled={
+                exportStats.unrevealedEmails === 0 || emailDisabled || isViewer
+              }
+              title={isViewer ? "Viewers cannot reveal contacts" : ""}
               onClick={() => {
                 if (counts.useSelected) bulkReveal("email");
                 else revealAll("email");
               }}
-              className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className={`w-full py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                isViewer
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              }`}
             >
-              {emailBusy ? (
-                <i className="pi pi-spin pi-spinner mr-2" />
-              ) : null}
+              {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
               Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
             </button>
           </div>
@@ -851,68 +1055,113 @@ export default function Collab_ListDetailPage() {
         <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
           <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
           <div className="leading-relaxed">
-            Only the <b>{Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
+            Only the{" "}
+            <b>
+              {Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}
+            </b>{" "}
+            contacts with revealed emails or phone numbers will be included in
+            your export.
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={hubspotLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="HubSpot" />
+              <img
+                src={hubspotLogo}
+                className="w-10 h-10 bg-white rounded border border-gray-100 p-1"
+                alt="HubSpot"
+              />
               <div>
                 <div className="font-bold text-gray-900 text-base">HubSpot</div>
                 <div className="text-xs font-medium text-gray-500">
-                  {hubspotConnected === null ? "Checking connection..." : hubspotConnected ? "Connected" : "Not connected"}
+                  {hubspotConnected === null
+                    ? "Checking connection..."
+                    : hubspotConnected
+                      ? "Connected"
+                      : "Not connected"}
                 </div>
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "hubspot" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={
+                checkingConnections ||
+                exportingTarget === "hubspot" ||
+                (exportStats.revealedPhones === 0 &&
+                  exportStats.revealedEmails === 0)
+              }
               onClick={() => {
                 if (hubspotConnected) exportCurrentList("hubspot");
                 else openConnectDialog("hubspot");
               }}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                exportStats.revealedPhones === 0 &&
+                exportStats.revealedEmails === 0
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : hubspotConnected
-                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "hubspot" ? (
-                <span className="inline-flex items-center gap-2"><i className="pi pi-spin pi-spinner text-xs" /> Exporting</span>
-              ) : hubspotConnected ? ("Export") : ("Connect")}
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" /> Exporting
+                </span>
+              ) : hubspotConnected ? (
+                "Export"
+              ) : (
+                "Connect"
+              )}
             </button>
           </div>
 
           <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-4">
-              <img src={brevoLogo} className="w-10 h-10 bg-white rounded border border-gray-100 p-1" alt="Brevo" />
+              <img
+                src={brevoLogo}
+                className="w-10 h-10 bg-white rounded border border-gray-100 p-1"
+                alt="Brevo"
+              />
               <div>
                 <div className="font-bold text-gray-900 text-base">Brevo</div>
                 <div className="text-xs font-medium text-gray-500">
-                  {brevoConnected === null ? "Checking connection..." : brevoConnected ? "Connected" : "Not connected"}
+                  {brevoConnected === null
+                    ? "Checking connection..."
+                    : brevoConnected
+                      ? "Connected"
+                      : "Not connected"}
                 </div>
               </div>
             </div>
             <button
-              disabled={checkingConnections || exportingTarget === "brevo" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={
+                checkingConnections ||
+                exportingTarget === "brevo" ||
+                (exportStats.revealedPhones === 0 &&
+                  exportStats.revealedEmails === 0)
+              }
               onClick={() => {
                 if (brevoConnected) exportCurrentList("brevo");
                 else openConnectDialog("brevo");
               }}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                exportStats.revealedPhones === 0 &&
+                exportStats.revealedEmails === 0
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : brevoConnected
-                  ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {exportingTarget === "brevo" ? (
-                <span className="inline-flex items-center gap-2"><i className="pi pi-spin pi-spinner text-xs" /> Exporting</span>
-              ) : brevoConnected ? ("Export") : ("Connect")}
+                <span className="inline-flex items-center gap-2">
+                  <i className="pi pi-spin pi-spinner text-xs" /> Exporting
+                </span>
+              ) : brevoConnected ? (
+                "Export"
+              ) : (
+                "Connect"
+              )}
             </button>
           </div>
 
@@ -929,10 +1178,15 @@ export default function Collab_ListDetailPage() {
               </div>
             </div>
             <button
-              disabled={exportingTarget === "email" || (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)}
+              disabled={
+                exportingTarget === "email" ||
+                (exportStats.revealedPhones === 0 &&
+                  exportStats.revealedEmails === 0)
+              }
               onClick={() => exportCurrentList("email")}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                (exportStats.revealedPhones === 0 && exportStats.revealedEmails === 0)
+                exportStats.revealedPhones === 0 &&
+                exportStats.revealedEmails === 0
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-[#F35114] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
               }`}
@@ -982,54 +1236,99 @@ export default function Collab_ListDetailPage() {
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
+            {/* BULK REVEAL PHONE - Disabled for Viewers */}
             <button
-              disabled={phoneDisabled}
-              title={phoneDisabledReason || ""}
+              disabled={phoneDisabled || isViewer}
+              title={
+                isViewer
+                  ? "Viewers cannot reveal contacts"
+                  : phoneDisabledReason || ""
+              }
               onClick={() => {
                 if (counts.useSelected) bulkReveal("phone");
                 else revealAll("phone");
               }}
-              className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-semibold flex items-center transition-colors ${
+                isViewer || phoneDisabled
+                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-orange-50 border-orange-200 text-gray-700 hover:bg-orange-100"
+              }`}
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
-                  {phoneBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
-                  <span>Show {counts.useSelected ? "selected" : "all"} phone</span>
+                  {phoneBusy ? (
+                    <i className="pi pi-spin pi-spinner text-xs" />
+                  ) : null}
+                  <span>
+                    Show {counts.useSelected ? "selected" : "all"} phone
+                  </span>
                 </span>
-                <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
+                <span
+                  className={`mt-1 inline-flex items-center gap-1 font-semibold text-xs ${isViewer || phoneDisabled ? "text-gray-400" : "text-orange-600"}`}
+                >
                   <i className="pi pi-wallet" />
                   <span>
-                    {estimateLoading && !counts.useSelected ? "..." : phoneCostToShow} credits
+                    {estimateLoading && !counts.useSelected
+                      ? "..."
+                      : phoneCostToShow}{" "}
+                    credits
                   </span>
                 </span>
               </span>
             </button>
+
+            {/* BULK REVEAL EMAIL - Disabled for Viewers */}
             <button
-              disabled={emailDisabled}
-              title={emailDisabledReason || ""}
+              disabled={emailDisabled || isViewer}
+              title={
+                isViewer
+                  ? "Viewers cannot reveal contacts"
+                  : emailDisabledReason || ""
+              }
               onClick={() => {
                 if (counts.useSelected) bulkReveal("email");
                 else revealAll("email");
               }}
-              className="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold flex items-center hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-semibold flex items-center transition-colors ${
+                isViewer || emailDisabled
+                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-orange-50 border-orange-200 text-gray-700 hover:bg-orange-100"
+              }`}
             >
               <span className="flex flex-col items-start leading-tight">
                 <span className="inline-flex items-center gap-2">
-                  {emailBusy ? <i className="pi pi-spin pi-spinner text-xs" /> : null}
-                  <span>Show {counts.useSelected ? "selected" : "all"} email</span>
+                  {emailBusy ? (
+                    <i className="pi pi-spin pi-spinner text-xs" />
+                  ) : null}
+                  <span>
+                    Show {counts.useSelected ? "selected" : "all"} email
+                  </span>
                 </span>
-                <span className="mt-1 inline-flex items-center gap-1 text-orange-600 font-semibold text-xs">
+                <span
+                  className={`mt-1 inline-flex items-center gap-1 font-semibold text-xs ${isViewer || emailDisabled ? "text-gray-400" : "text-orange-600"}`}
+                >
                   <i className="pi pi-wallet" />
                   <span>
-                    {estimateLoading && !counts.useSelected ? "..." : emailCostToShow} credits
+                    {estimateLoading && !counts.useSelected
+                      ? "..."
+                      : emailCostToShow}{" "}
+                    credits
                   </span>
                 </span>
               </span>
             </button>
           </div>
+
+          {/* EXPORT BUTTON - Disabled for Viewers */}
           <button
+            disabled={isViewer}
+            title={isViewer ? "Viewers cannot export lists" : ""}
             onClick={openExportModal}
-            className="w-fit flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/20 transition-all"
+            className={`w-fit flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              isViewer
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+            }`}
           >
             Export
           </button>
@@ -1120,26 +1419,26 @@ export default function Collab_ListDetailPage() {
                       col.field === "Name"
                         ? showName
                         : col.field === "Designation"
-                        ? showDesignation
-                        : col.field === "Phone"
-                        ? showPhone
-                        : col.field === "Email"
-                        ? showEmail
-                        : col.field === "LinkedIn"
-                        ? showLinkedIn
-                        : col.field === "Organization"
-                        ? showOrganization
-                        : col.field === "Org Industry"
-                        ? showOrgIndustry
-                        : col.field === "Org Size"
-                        ? showOrgSize
-                        : col.field === "City"
-                        ? showCity
-                        : col.field === "State"
-                        ? showState
-                        : col.field === "Country"
-                        ? showCountry
-                        : undefined
+                          ? showDesignation
+                          : col.field === "Phone"
+                            ? showPhone
+                            : col.field === "Email"
+                              ? showEmail
+                              : col.field === "LinkedIn"
+                                ? showLinkedIn
+                                : col.field === "Organization"
+                                  ? showOrganization
+                                  : col.field === "Org Industry"
+                                    ? showOrgIndustry
+                                    : col.field === "Org Size"
+                                      ? showOrgSize
+                                      : col.field === "City"
+                                        ? showCity
+                                        : col.field === "State"
+                                          ? showState
+                                          : col.field === "Country"
+                                            ? showCountry
+                                            : undefined
                     }
                   />
                 ))}
