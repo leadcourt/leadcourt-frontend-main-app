@@ -105,10 +105,8 @@ const CollaboratorManager: React.FC = () => {
         id: invite._id,
         name: invite.collaboratorName,
         email: invite?.collaboratorEmail || invite.collaboratorName,
-        role:
-          invite.permission === "viewer"
-            ? "viewer"
-            : invite.permission || "editor",
+        // FIX: Just use the exact permission from the backend, default to editor if empty
+        role: invite.permission || "editor", 
         status: invite.status,
         avatar: invite.collaboratorName.substring(0, 2).toUpperCase(),
         joinedDate: new Date(invite.invitedAt).toISOString().split("T")[0],

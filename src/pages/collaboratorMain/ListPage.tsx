@@ -124,53 +124,58 @@ export default function Collab_ListPage() {
 
   return (
     <div className="px-6 sm:px-10 py-8 bg-[#F9FAFB] min-h-screen font-sans">
-      {/* RENAME DIALOG */}
+      {/* RENAME DIALOG (PREMIUM STYLING) */}
       <Dialog
-        header="Rename List"
         visible={renameModalVisible}
-        className="lc-modal w-[92vw] max-w-[400px]"
         onHide={() => setRenameModalVisible(false)}
-        draggable={false}
-        resizable={false}
+        showHeader={false}
+        style={{ width: "420px" }}
+        contentStyle={{ padding: "0", borderRadius: "16px", overflow: "hidden", backgroundColor: "white" }}
       >
-        <div className="flex flex-col gap-4 mt-2">
-          <div>
-            <label className="text-[14px] font-medium text-gray-700 mb-1 block">
-              New List Name
-            </label>
-            <input
-              type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] transition-all"
-              placeholder="Enter new list name"
-              autoFocus
-            />
+        <div className="p-6">
+          {/* Custom Header */}
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Rename List</h2>
+            <button 
+              onClick={() => setRenameModalVisible(false)} 
+              className="text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none"
+            >
+              <i className="pi pi-times text-lg"></i>
+            </button>
           </div>
-          <div className="flex justify-end gap-3 mt-2">
-            <button
-              onClick={() => setRenameModalVisible(false)}
-              className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors"
-              disabled={renaming}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleRenameList}
-              disabled={
-                renaming ||
-                !newListName.trim() ||
-                newListName.trim() === listToRename
-              }
-              className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
-            >
-              {renaming ? (
-                <i className="pi pi-spinner pi-spin" />
-              ) : (
-                <i className="pi pi-check" />
-              )}
-              Save Changes
-            </button>
+          
+          {/* Form Body */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[14px] font-medium text-gray-700">New List Name</label>
+              <input
+                type="text"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] transition-all"
+                placeholder="Enter new list name"
+                autoFocus
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setRenameModalVisible(false)}
+                className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors border-none bg-transparent"
+                disabled={renaming}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameList}
+                disabled={renaming || !newListName.trim() || newListName.trim() === listToRename}
+                className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 border-none"
+              >
+                {renaming ? <i className="pi pi-spinner pi-spin"></i> : <i className="pi pi-check"></i>}
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </Dialog>
