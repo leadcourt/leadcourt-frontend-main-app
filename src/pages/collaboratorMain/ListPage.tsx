@@ -8,6 +8,7 @@ import { userState } from "../../utils/atom/authAtom";
 import {
   collaboration_getAllList_api,
   collaboration_renameAList_api,
+  collaboration_deleteAList_api, // <-- ADDED THIS
 } from "../../utils/api/collaborationData";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
@@ -24,8 +25,11 @@ export default function Collab_ListPage() {
   const user = useRecoilValue(userState);
   const collabProject = useRecoilValue(collabProjectState);
 
-  // CHECK IF VIEWER
+  // --- PERMISSION CHECKS ---
   const isViewer = collabProject?.permission === "viewer";
+  const isEditor = collabProject?.permission === "editor";
+  // Only Admins (and Owners) can delete
+  const canDelete = !isViewer && !isEditor;
 
   const [loading, setLoading] = useState(false);
   const [existingList, setExistingList] = useState<ListType[]>([]);
@@ -36,6 +40,11 @@ export default function Collab_ListPage() {
   const [listToRename, setListToRename] = useState("");
   const [newListName, setNewListName] = useState("");
   const [renaming, setRenaming] = useState(false);
+
+  // Delete Modal State
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [listToDelete, setListToDelete] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const allList = async () => {
     setLoading(true);
@@ -55,6 +64,7 @@ export default function Collab_ListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- HANDLE RENAME ---
   const handleRenameList = async () => {
     if (!newListName.trim() || newListName === listToRename) return;
 
@@ -71,12 +81,31 @@ export default function Collab_ListPage() {
       setRenameModalVisible(false);
       allList(); // Refresh the lists after renaming
     } catch (error: any) {
-      // FIX: Extract the actual error message sent from the backend
       const errorMessage =
         error.response?.data?.error || "Failed to rename list.";
       toast.error(errorMessage);
     } finally {
       setRenaming(false);
+    }
+  };
+
+  // --- HANDLE DELETE ---
+  const handleDeleteList = async () => {
+    if (!listToDelete) return;
+
+    setDeleting(true);
+    try {
+      // Pass the workspace ID so the backend verifies permissions correctly
+      await collaboration_deleteAList_api(listToDelete, collabProject?._id);
+      toast.success("List deleted successfully!");
+      setDeleteModalVisible(false);
+      allList(); // Refresh table
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete list.";
+      toast.error(errorMessage);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -140,7 +169,6 @@ export default function Collab_ListPage() {
         }}
       >
         <div className="p-6">
-          {/* Custom Header */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold text-gray-900">Rename List</h2>
             <button
@@ -150,8 +178,6 @@ export default function Collab_ListPage() {
               <i className="pi pi-times text-lg"></i>
             </button>
           </div>
-
-          {/* Form Body */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[14px] font-medium text-gray-700">
@@ -166,8 +192,6 @@ export default function Collab_ListPage() {
                 autoFocus
               />
             </div>
-
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 mt-4">
               <button
                 onClick={() => setRenameModalVisible(false)}
@@ -191,6 +215,60 @@ export default function Collab_ListPage() {
                   <i className="pi pi-check"></i>
                 )}
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* DELETE DIALOG (PREMIUM STYLING) */}
+      <Dialog
+        visible={deleteModalVisible}
+        onHide={() => setDeleteModalVisible(false)}
+        showHeader={false}
+        style={{ width: "420px" }}
+        contentStyle={{
+          padding: "0",
+          borderRadius: "16px",
+          overflow: "hidden",
+          backgroundColor: "white",
+        }}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Delete List</h2>
+            <button
+              onClick={() => setDeleteModalVisible(false)}
+              className="text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none"
+            >
+              <i className="pi pi-times text-lg"></i>
+            </button>
+          </div>
+          <div className="flex flex-col gap-4">
+            <p className="text-gray-700 text-[15px] leading-relaxed">
+              Are you sure you want to permanently delete{" "}
+              <span className="font-bold text-gray-900">"{listToDelete}"</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setDeleteModalVisible(false)}
+                className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors border-none bg-transparent"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteList}
+                disabled={deleting}
+                className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-red-600 hover:bg-red-700 font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 border-none"
+              >
+                {deleting ? (
+                  <i className="pi pi-spinner pi-spin"></i>
+                ) : (
+                  <i className="pi pi-trash"></i>
+                )}
+                Delete
               </button>
             </div>
           </div>
@@ -368,7 +446,7 @@ export default function Collab_ListPage() {
                         </div>
                       </td>
 
-                      {/* ACTIONS COLUMN - View Details & Rename */}
+                      {/* ACTIONS COLUMN - View Details, Rename & Delete */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2">
                           <button
@@ -382,7 +460,7 @@ export default function Collab_ListPage() {
                             View Details
                           </button>
 
-                          {/* ONLY RENDER RENAME BUTTON IF USER IS NOT A VIEWER */}
+                          {/* RENAME BUTTON - Render for Editor, Admin, and Owner */}
                           {!isViewer && (
                             <button
                               onClick={() => {
@@ -394,6 +472,20 @@ export default function Collab_ListPage() {
                               title="Rename List"
                             >
                               <i className="pi pi-pencil text-sm" />
+                            </button>
+                          )}
+
+                          {/* DELETE BUTTON - Render ONLY for Admin and Owner */}
+                          {canDelete && (
+                            <button
+                              onClick={() => {
+                                setListToDelete(name);
+                                setDeleteModalVisible(true);
+                              }}
+                              className="flex items-center justify-center p-2 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all shadow-sm"
+                              title="Delete List"
+                            >
+                              <i className="pi pi-trash text-sm" />
                             </button>
                           )}
                         </div>

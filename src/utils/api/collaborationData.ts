@@ -37,9 +37,9 @@ const collaboration_showListCursor_api = async (payload: any) => {
   return await axios.post(`${baseUrl}/list/show-cursor`, payload);
 };
 
-const collaboration_deleteAList_api = async (listname: any) => {
+const collaboration_deleteAList_api = async (listname: any, projectId: any) => {
   const safe = encodeURIComponent(String(listname || "").trim());
-  return await axios.delete(`${baseUrl}/list/${safe}`);
+  return await axios.delete(`${baseUrl}/list/${safe}?projectId=${projectId || ""}`);
 };
 
 const collaboration_renameAList_api = async (payload: any) => {
