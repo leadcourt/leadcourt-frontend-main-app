@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { Skeleton } from "primereact/skeleton";
+import { Dialog } from "primereact/dialog";
+import { toast } from "react-toastify";
 import { userState } from "../../utils/atom/authAtom";
-import { collaboration_getAllList_api } from "../../utils/api/collaborationData";
+import { 
+  collaboration_getAllList_api,
+  collaboration_renameAList_api 
+} from "../../utils/api/collaborationData";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
-// Interface matching the main ListPage for styling consistency
 interface ListType {
   name: string;
   total: number;
@@ -27,6 +31,12 @@ export default function Collab_ListPage() {
   const [existingList, setExistingList] = useState<ListType[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Rename Modal State
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [listToRename, setListToRename] = useState("");
+  const [newListName, setNewListName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
   const allList = async () => {
     setLoading(true);
     const payload = { userId: user?.id };
@@ -44,6 +54,29 @@ export default function Collab_ListPage() {
     allList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleRenameList = async () => {
+    if (!newListName.trim() || newListName === listToRename) return;
+
+    setRenaming(true);
+    try {
+      // Pass the necessary IDs depending on how your backend expects collaboration renames
+      const payload = {
+        oldName: listToRename,
+        newName: newListName.trim(),
+        projectId: collabProject?._id,
+      };
+
+      await collaboration_renameAList_api(payload);
+      toast.success("List renamed successfully!");
+      setRenameModalVisible(false);
+      allList(); // Refresh the lists after renaming
+    } catch (error) {
+      toast.error("Failed to rename list. That name might already exist.");
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   const filteredLists = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -66,7 +99,7 @@ export default function Collab_ListPage() {
     return styles[index % styles.length];
   };
 
-  // Date Formatter matching the main file logic
+  // Date Formatter
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return { date: "—", time: "" };
     try {
@@ -91,7 +124,58 @@ export default function Collab_ListPage() {
 
   return (
     <div className="px-6 sm:px-10 py-8 bg-[#F9FAFB] min-h-screen font-sans">
-      {/* HEADER SECTION - Styled exactly like ListPage */}
+      {/* RENAME DIALOG */}
+      <Dialog
+        header="Rename List"
+        visible={renameModalVisible}
+        className="lc-modal w-[92vw] max-w-[400px]"
+        onHide={() => setRenameModalVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          <div>
+            <label className="text-[14px] font-medium text-gray-700 mb-1 block">
+              New List Name
+            </label>
+            <input
+              type="text"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-[15px] outline-none focus:border-[#F35114] focus:ring-1 focus:ring-[#F35114] transition-all"
+              placeholder="Enter new list name"
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <button
+              onClick={() => setRenameModalVisible(false)}
+              className="px-5 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 font-medium transition-colors"
+              disabled={renaming}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRenameList}
+              disabled={
+                renaming ||
+                !newListName.trim() ||
+                newListName.trim() === listToRename
+              }
+              className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {renaming ? (
+                <i className="pi pi-spinner pi-spin" />
+              ) : (
+                <i className="pi pi-check" />
+              )}
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <div className="w-[52px] h-[52px] rounded-2xl bg-orange-50 text-[#F35114] flex items-center justify-center border border-orange-100">
@@ -122,7 +206,6 @@ export default function Collab_ListPage() {
             />
           </div>
 
-          {/* Create List Button - Disabled for Viewers */}
           <button
             disabled={isViewer}
             title={isViewer ? "Viewers cannot create lists" : ""}
@@ -263,18 +346,35 @@ export default function Collab_ListPage() {
                         </div>
                       </td>
 
-                      {/* ACTIONS COLUMN - Styled consistently */}
+                      {/* ACTIONS COLUMN - View Details & Rename */}
                       <td className="py-4 px-6">
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/collaboration/${collabProject?._id}/list/${name}/details`,
-                            )
-                          }
-                          className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors text-[13px] font-medium shadow-sm w-[110px]"
-                        >
-                          View Details
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `/collaboration/${collabProject?._id}/list/${name}/details`,
+                              )
+                            }
+                            className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors text-[13px] font-medium shadow-sm w-[110px]"
+                          >
+                            View Details
+                          </button>
+
+                          {/* ONLY RENDER RENAME BUTTON IF USER IS NOT A VIEWER */}
+                          {!isViewer && (
+                            <button
+                              onClick={() => {
+                                setListToRename(name);
+                                setNewListName(name);
+                                setRenameModalVisible(true);
+                              }}
+                              className="flex items-center justify-center p-2 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-[#F35114] hover:border-orange-200 hover:bg-orange-50 transition-all shadow-sm"
+                              title="Rename List"
+                            >
+                              <i className="pi pi-pencil text-sm" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
