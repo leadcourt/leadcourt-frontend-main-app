@@ -60,11 +60,10 @@ export default function Collab_ListPage() {
 
     setRenaming(true);
     try {
-      // Pass the necessary IDs depending on how your backend expects collaboration renames
       const payload = {
         oldName: listToRename,
         newName: newListName.trim(),
-        projectId: collabProject?._id,
+        projectId: collabProject?._id, // Matches the workspace ID in the backend
       };
 
       await collaboration_renameAList_api(payload);
@@ -72,9 +71,10 @@ export default function Collab_ListPage() {
       setRenameModalVisible(false);
       allList(); // Refresh the lists after renaming
     } catch (error: any) {
-      // This will now show the actual error from the backend instead of the hardcoded one
-      const errorMsg = error.response?.data?.error || "Failed to rename list.";
-      toast.error(errorMsg);
+      // FIX: Extract the actual error message sent from the backend
+      const errorMessage =
+        error.response?.data?.error || "Failed to rename list.";
+      toast.error(errorMessage);
     } finally {
       setRenaming(false);
     }
