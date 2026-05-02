@@ -53,10 +53,9 @@ const CollaboratorManager: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>(
-    []
+    [],
   );
-  const [loadingDeleteCollab, setLoadingDeleteCollab] =
-    useState<deleteData>();
+  const [loadingDeleteCollab, setLoadingDeleteCollab] = useState<deleteData>();
 
   const creditInfo = useRecoilValue(creditState);
   const navigate = useNavigate();
@@ -84,7 +83,7 @@ const CollaboratorManager: React.FC = () => {
   const filteredCollaborators = collaborators?.filter(
     (collaborator) =>
       collaborator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      collaborator.email.toLowerCase().includes(searchTerm.toLowerCase())
+      collaborator.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleRemoveCollaborator = async (collaboratorId: string) => {
@@ -97,7 +96,7 @@ const CollaboratorManager: React.FC = () => {
       .then((res) => {
         if (res.status === 204) {
           setCollaborators((prev) =>
-            prev?.filter((collab) => collab.id !== collaboratorId)
+            prev?.filter((collab) => collab.id !== collaboratorId),
           );
           toast.info("Collaborator removed!");
         }
@@ -125,7 +124,7 @@ const CollaboratorManager: React.FC = () => {
               const res = await removeCollaboration(id);
               if (res.status === 204) {
                 setCollaborators((prev) =>
-                  prev.filter((collab) => collab.id !== id)
+                  prev.filter((collab) => collab.id !== id),
                 );
               } else {
                 console.error("Failed to remove collaborator", id, res.status);
@@ -133,14 +132,14 @@ const CollaboratorManager: React.FC = () => {
             } catch (err) {
               console.error("Error removing collaborator", id, err);
             }
-          })
+          }),
         );
 
         setSelectedCollaborators([]);
         toast.info("Selected collaborators removed");
       } catch (err) {
         toast.error(
-          "Some collaborators could not be removed. Please try again."
+          "Some collaborators could not be removed. Please try again.",
         );
       }
     }
@@ -153,7 +152,7 @@ const CollaboratorManager: React.FC = () => {
     setSelectedCollaborators((prev) =>
       prev.includes(collaboratorId)
         ? prev.filter((id) => id !== collaboratorId)
-        : [...prev, collaboratorId]
+        : [...prev, collaboratorId],
     );
   };
 
@@ -174,7 +173,7 @@ const CollaboratorManager: React.FC = () => {
         id: invite._id,
         name: invite.collaboratorName,
         email: invite?.collaboratorEmail || invite.collaboratorName,
-        role: invite.permission === "viewer" ? "editor" : (invite.permission || "editor"),
+        role: invite.permission || "editor",
         status: invite.status,
         avatar: invite.collaboratorName.substring(0, 2).toUpperCase(),
         joinedDate: new Date(invite.invitedAt).toISOString().split("T")[0],
@@ -215,11 +214,11 @@ const CollaboratorManager: React.FC = () => {
           toast.info("Invite re-sent successfully.");
         } else if (res?.status == 400) {
           toast.error(
-            "Invitation failed! User not found. Please check the email address."
+            "Invitation failed! User not found. Please check the email address.",
           );
         } else {
           toast.error(
-            "Failed to send invitation. Confirm email and Please try again."
+            "Failed to send invitation. Confirm email and Please try again.",
           );
         }
       });
@@ -231,7 +230,7 @@ const CollaboratorManager: React.FC = () => {
 
   const initialValues: AddCollaboratorData = {
     email: "",
-    role: "editor", 
+    role: "editor",
   };
 
   const {
@@ -432,12 +431,13 @@ const CollaboratorManager: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={
-                        selectedCollaborators?.length === collaborators?.length && collaborators?.length > 0
+                        selectedCollaborators?.length ===
+                          collaborators?.length && collaborators?.length > 0
                       }
                       onChange={(e) => {
                         if (e.target.checked) {
                           setSelectedCollaborators(
-                            collaborators?.map((c) => c.id)
+                            collaborators?.map((c) => c.id),
                           );
                         } else {
                           setSelectedCollaborators([]);
@@ -468,7 +468,7 @@ const CollaboratorManager: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={selectedCollaborators.includes(
-                            collaborator.id
+                            collaborator.id,
                           )}
                           onChange={() =>
                             toggleSelectCollaborator(collaborator.id)
@@ -532,8 +532,7 @@ const CollaboratorManager: React.FC = () => {
                             className="cursor-pointer hover:text-red-400 text-gray-400 p-2 rounded transition-colors"
                           >
                             {loadingDeleteCollab &&
-                            loadingDeleteCollab.collab ===
-                              collaborator.id ? (
+                            loadingDeleteCollab.collab === collaborator.id ? (
                               <i className="pi pi-spinner pi-spin text-red-400"></i>
                             ) : (
                               <Trash2 className="w-4 h-4 " />

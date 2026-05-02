@@ -5,9 +5,9 @@ import { Skeleton } from "primereact/skeleton";
 import { Dialog } from "primereact/dialog";
 import { toast } from "react-toastify";
 import { userState } from "../../utils/atom/authAtom";
-import { 
+import {
   collaboration_getAllList_api,
-  collaboration_renameAList_api 
+  collaboration_renameAList_api,
 } from "../../utils/api/collaborationData";
 import { collabProjectState } from "../../utils/atom/collabAuthAtom";
 
@@ -71,8 +71,10 @@ export default function Collab_ListPage() {
       toast.success("List renamed successfully!");
       setRenameModalVisible(false);
       allList(); // Refresh the lists after renaming
-    } catch (error) {
-      toast.error("Failed to rename list. That name might already exist.");
+    } catch (error: any) {
+      // This will now show the actual error from the backend instead of the hardcoded one
+      const errorMsg = error.response?.data?.error || "Failed to rename list.";
+      toast.error(errorMsg);
     } finally {
       setRenaming(false);
     }
@@ -130,24 +132,31 @@ export default function Collab_ListPage() {
         onHide={() => setRenameModalVisible(false)}
         showHeader={false}
         style={{ width: "420px" }}
-        contentStyle={{ padding: "0", borderRadius: "16px", overflow: "hidden", backgroundColor: "white" }}
+        contentStyle={{
+          padding: "0",
+          borderRadius: "16px",
+          overflow: "hidden",
+          backgroundColor: "white",
+        }}
       >
         <div className="p-6">
           {/* Custom Header */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold text-gray-900">Rename List</h2>
-            <button 
-              onClick={() => setRenameModalVisible(false)} 
+            <button
+              onClick={() => setRenameModalVisible(false)}
               className="text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none"
             >
               <i className="pi pi-times text-lg"></i>
             </button>
           </div>
-          
+
           {/* Form Body */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[14px] font-medium text-gray-700">New List Name</label>
+              <label className="text-[14px] font-medium text-gray-700">
+                New List Name
+              </label>
               <input
                 type="text"
                 value={newListName}
@@ -169,10 +178,18 @@ export default function Collab_ListPage() {
               </button>
               <button
                 onClick={handleRenameList}
-                disabled={renaming || !newListName.trim() || newListName.trim() === listToRename}
+                disabled={
+                  renaming ||
+                  !newListName.trim() ||
+                  newListName.trim() === listToRename
+                }
                 className="px-5 py-2.5 rounded-lg text-[14px] text-white bg-[#F35114] hover:bg-[#d84812] font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 border-none"
               >
-                {renaming ? <i className="pi pi-spinner pi-spin"></i> : <i className="pi pi-check"></i>}
+                {renaming ? (
+                  <i className="pi pi-spinner pi-spin"></i>
+                ) : (
+                  <i className="pi pi-check"></i>
+                )}
                 Save Changes
               </button>
             </div>
