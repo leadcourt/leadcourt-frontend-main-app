@@ -17,7 +17,6 @@ import axios from "axios";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
-  const refreshToken = useRecoilValue(refreshTokenState);
   const user: any = useRecoilValue(userState);
   const creditInfoValue: any = useRecoilValue(creditState);
 
@@ -26,10 +25,7 @@ export default function UserLayout() {
   const [stepIndex, setStepIndex] = useState(0);
 
   const location = useLocation();
-  const hideTopbarOnPaths = ["/subscription"];
-  const hideTopbar = hideTopbarOnPaths.includes(location.pathname);
-
-  const auth = { access: accessToken, token: refreshToken };
+  const hideTopbar = ["/subscription"].includes(location.pathname);
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
@@ -44,7 +40,7 @@ export default function UserLayout() {
       setTimeout(() => {
         setStepIndex(0);
         setRunTour(true);
-      }, 1500); // 1.5s delay to allow initial data fetch
+      }, 1500);
     }
   }, [user, creditInfoValue]);
 
@@ -53,51 +49,50 @@ export default function UserLayout() {
       target: "#tour-filters",
       title: "Step 1 of 8: 👉 Find High-Quality Leads",
       content:
-        "Use these filters to narrow down 14M+ leads. Select countries, specific titles, or company sizes to find your exact ideal customer.",
+        "Use these filters to narrow down 14M+ leads. Select countries, specific titles, or company sizes.",
       disableBeacon: true,
     },
     {
       target: "#tour-bulk-add-btn",
-      title: "Step 2 of 8: ⚡ Bulk Add Leads in Seconds",
+      title: "Step 2 of 8: ⚡ Bulk Add Leads",
       content:
-        "Skip the manual work. Click here to select multiple pages of results and save hundreds of leads to your lists instantly.",
+        "Click here to select multiple pages and save hundreds of leads instantly.",
     },
     {
       target: "#tour-page-range",
       title: "Step 3 of 8: 📄 Select Page Range",
-      content:
-        "Each page holds 25 leads. Enter a start and end page to grab huge batches at once.",
+      content: "Enter a start and end page to grab huge batches at once.",
     },
     {
       target: "#tour-proceed-btn",
       title: "Step 4 of 8: ✅ Confirm Selection",
       content:
-        "Once you’ve selected your page range, click proceed to securely save these leads.",
+        "Once you’ve selected your page range, click proceed to save these leads.",
     },
     {
       target: "#tour-list-selection",
       title: "Step 5 of 8: 📂 Save to a List",
       content:
-        "Choose where to store them. Select an existing list from the dropdown, or toggle to create a brand new one.",
+        "Choose where to store them. Select an existing list or create a new one.",
     },
     {
       target: "#tour-credits",
       title: "Step 6 of 8: 💳 Your Credits",
       content:
-        "Keep an eye on this! Credits are only deducted when you reveal verified contact details like emails or direct phone numbers.",
+        "Credits are only deducted when you reveal verified contact details.",
     },
     {
       target: "#tour-navigation",
       title: "Step 7 of 8: 📌 Explore Your Dashboard",
       content:
-        "Access your Saved Lists, Team Members, API Integrations, and Billing settings right here.",
+        "Access your Saved Lists, Team Members, and API Integrations here.",
       placement: "right",
     },
     {
       target: "#tour-support",
       title: "Step 8 of 8: 🤝 Need Help?",
       content:
-        "If you ever get stuck, reach out to our support team. We're here to make sure you get the most out of the platform!",
+        "If you get stuck, reach out to our support team. We're here to help!",
       placement: "center",
     },
   ];
@@ -107,12 +102,11 @@ export default function UserLayout() {
     const check = () => {
       if (document.querySelector(selector)) {
         callback();
-      } else if (attempts < 60) {
-        // 3 seconds max
+      } else if (attempts < 50) {
         attempts++;
         setTimeout(check, 50);
       } else {
-        callback(); // Fallback
+        callback();
       }
     };
     check();
@@ -130,7 +124,9 @@ export default function UserLayout() {
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
-          { headers: { Authorization: `Bearer ${accessToken}` } },
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          },
         );
       } catch (err) {
         console.error(err);
@@ -140,22 +136,17 @@ export default function UserLayout() {
 
     if (type === "step:after" && action === "next") {
       if (index === 0) {
-        // MOVE TO STEP 2: Wait for search results to load
         waitForElement("#tour-bulk-add-btn", () => setStepIndex(index + 1));
       } else if (index === 1) {
-        // MOVE TO STEP 3: Open Bulk Modal
         window.dispatchEvent(new Event("tour:open-bulk"));
         waitForElement("#tour-page-range", () => setStepIndex(index + 1));
       } else if (index === 3) {
-        // MOVE TO STEP 5: Open Add Modal
         window.dispatchEvent(new Event("tour:open-add"));
         waitForElement("#tour-list-selection", () => setStepIndex(index + 1));
       } else if (index === 4) {
-        // MOVE TO STEP 6: Close all Modals
         window.dispatchEvent(new Event("tour:close-modals"));
         waitForElement("#tour-credits", () => setStepIndex(index + 1));
       } else if (index === 5) {
-        // MOVE TO STEP 7: Point to Sidebar
         waitForElement("#tour-navigation", () => setStepIndex(index + 1));
       } else {
         setStepIndex(index + 1);
@@ -165,7 +156,7 @@ export default function UserLayout() {
     }
   };
 
-  if (auth?.access && !!user?.email && user?.verify) {
+  if (accessToken && !!user?.email && user?.verify) {
     return (
       <div className="flex h-screen overflow-hidden bg-gray-50">
         <Joyride
@@ -176,10 +167,10 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
-          // ADD THESE THREE PROPS TO PREVENT FREEZING:
-          disableScrolling={true}
-          disableScrollParentFix={true}
-          spotlightClicks={true}
+          // CRITICAL FIXES FOR FREEZING:
+          disableScrolling={true} // Stops Joyride from fighting your CSS
+          disableScrollParentFix={true} // Stops Joyride from messing with body overflow
+          spotlightClicks={true} // Allows clicking through the spotlight
           styles={
             {
               options: {
@@ -221,14 +212,10 @@ export default function UserLayout() {
 
           <div
             id="tour-support"
-            className="flex-1 min-w-0 min-h-0 overflow-y-auto"
+            className={`flex-1 min-w-0 min-h-0 ${displaySide ? "overflow-hidden" : "overflow-y-auto"}`}
           >
             <Outlet />
           </div>
-        </div>
-
-        <div className="fixed z-50 bottom-5 right-5">
-          <ScrollButtons />
         </div>
       </div>
     );
