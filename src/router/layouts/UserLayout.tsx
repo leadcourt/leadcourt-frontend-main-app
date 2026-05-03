@@ -44,7 +44,12 @@ export default function UserLayout() {
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
 
     // FIXED: Checking creditInfoValue?.hasSeenTour instead of user
-    if (user && creditInfoValue && !creditInfoValue.hasSeenTour && !localDismissed) {
+    if (
+      user &&
+      creditInfoValue &&
+      !creditInfoValue.hasSeenTour &&
+      !localDismissed
+    ) {
       setTimeout(() => setRunTour(true), 800); // Small delay to let data load
     }
   }, [user, creditInfoValue]); // <-- ADDED creditInfoValue to dependencies
@@ -118,7 +123,7 @@ export default function UserLayout() {
         // If VITE_BE_URL already includes "/api", use "/list/mark-tour".
         // If VITE_BE_URL does NOT include "/api", use "/api/list/mark-tour".
         await axios.post(
-          `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`, 
+          `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
           {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -153,17 +158,20 @@ export default function UserLayout() {
           steps={steps}
           run={runTour}
           continuous={true}
+          // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
-          styles={{
-            options: {
-              primaryColor: "#F35114",
-              zIndex: 10000, // Very high so it stays above PrimeReact Modals
-            },
-            tooltipContainer: { textAlign: "left" },
-            buttonNext: { borderRadius: "8px", outline: "none" },
-            buttonBack: { marginRight: "8px" },
-          }}
+          styles={
+            {
+              options: {
+                primaryColor: "#F35114",
+                zIndex: 10000, // Very high so it stays above PrimeReact Modals
+              },
+              tooltipContainer: { textAlign: "left" },
+              buttonNext: { borderRadius: "8px", outline: "none" },
+              buttonBack: { marginRight: "8px" },
+            } as any
+          }
         />
 
         <div className="fixed z-50 bottom-5 right-5">
