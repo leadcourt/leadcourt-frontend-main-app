@@ -5,6 +5,9 @@ import { atom, selector } from 'recoil';
 import axios from 'axios';
 import { collabProjectState } from './collabAuthAtom';
 
+/**
+ * Interfaces
+ */
 export interface User {
   id: string;
   email: string;
@@ -12,13 +15,27 @@ export interface User {
   verify: boolean;
 }
 
+export interface AuthState {
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: User | null;
+  isAuthenticated: boolean;
+}
+
 export interface Credit {
   id: string;
   credits: number;
   subscriptionType: 'FREE' | 'STARTER' | 'PRO' | 'BUSINESS';
-  hasSeenTour?: boolean;
+  expiresAt?: string;             // Restored for build
+  starterRemainingDays?: number;  // Restored for build
+  proRemainingDays?: number;      // Restored for build
+  isLTD?: boolean;                // Restored for build
+  hasSeenTour?: boolean; 
 }
 
+/**
+ * Persistence Configuration
+ */
 const cookieStorage = (keyPrefix = '') => ({
   setItem: (key: string, value: string) => {
     Cookies.set(`${keyPrefix}${key}`, value, {
@@ -27,8 +44,12 @@ const cookieStorage = (keyPrefix = '') => ({
       sameSite: 'strict',
     });
   },
-  getItem: (key: string) => Cookies.get(`${keyPrefix}${key}`) || null,
-  removeItem: (key: string) => Cookies.remove(`${keyPrefix}${key}`),
+  getItem: (key: string) => {
+    return Cookies.get(`${keyPrefix}${key}`) || null;
+  },
+  removeItem: (key: string) => {
+    Cookies.remove(`${keyPrefix}${key}`);
+  },
 });
 
 export const { persistAtom } = recoilPersist({
@@ -36,7 +57,9 @@ export const { persistAtom } = recoilPersist({
   storage: cookieStorage('auth_'),
 });
 
-// --- PERSISTENT TOUR STATE ---
+/**
+ * Tour State Atoms
+ */
 export const tourStepIndexState = atom<number>({
   key: 'tourStepIndexState',
   default: 0,
@@ -55,7 +78,9 @@ export const tourHasStartedState = atom<boolean>({
   effects_UNSTABLE: [persistAtom],
 });
 
-// --- AUTH ATOMS ---
+/**
+ * Auth Atoms
+ */
 export const refreshTokenState = atom<string | null>({
   key: 'refreshTokenState',
   default: null,
@@ -80,19 +105,31 @@ export const accessTokenState = atom<string | null>({
   effects_UNSTABLE: [persistAtom],
 });
 
+/**
+ * Token Selector
+ */
 export const attachToken = selector({
   key: "useToken",
   get: ({ get }) => {
     const acc_token = get(accessTokenState);
     const collab_token = get(collabProjectState);
+
     if (acc_token) {
       return axios.interceptors.request.use(function (config) {
+        const token = acc_token;
         const decodedToken = jwtDecode<any>(acc_token);
-        if (decodedToken?.exp && decodedToken?.exp * 1000 < new Date().getTime()) { 
+        const dateNow = new Date();
+
+        if (decodedToken?.exp && decodedToken?.exp * 1000 < dateNow.getTime()) {
           return Promise.reject('Token expired');
         }
-        config.headers.Authorization = `Bearer ${acc_token}`;
-        if (collab_token) config.headers['X-Collab-ID'] = collab_token?._id;
+
+        config.headers.Authorization = `Bearer ${token}`;
+        
+        if (collab_token) {
+          config.headers['X-Collab-ID'] = collab_token?._id;
+        }
+
         return config;
       });
     }
