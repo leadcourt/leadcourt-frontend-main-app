@@ -459,6 +459,7 @@ function AddToListComponent({
         </button>
 
         <button
+          id="tour-proceed-btn"
           onClick={submit}
           disabled={!canSubmit}
           className="px-7 py-3 rounded-xl text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"

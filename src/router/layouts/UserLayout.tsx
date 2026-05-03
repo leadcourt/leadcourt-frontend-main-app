@@ -4,8 +4,10 @@ import {
   accessTokenState,
   userState,
   creditState,
+  tourStepIndexState, // New Atom
+  tourRunningState, // New Atom
 } from "../../utils/atom/authAtom";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
@@ -19,8 +21,10 @@ export default function UserLayout() {
   const creditInfoValue: any = useRecoilValue(creditState);
 
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
-  const [runTour, setRunTour] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+
+  // Use Recoil for Tour State to survive Layout Remounts
+  const [stepIndex, setStepIndex] = useRecoilState(tourStepIndexState);
+  const [runTour, setRunTour] = useRecoilState(tourRunningState);
 
   const tourStartedRef = useRef(false);
   const location = useLocation();
@@ -28,7 +32,6 @@ export default function UserLayout() {
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
-  // 1. MEMOIZE STEPS: Prevents Joyride from resetting on every render
   const steps: Step[] = useMemo(
     () => [
       {
@@ -84,11 +87,9 @@ export default function UserLayout() {
     document.documentElement.style.scrollBehavior = "auto";
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
 
-    // Check if the target actually exists in DOM before starting
     const startTourSequence = () => {
       const target = document.querySelector("#tour-filters");
-      if (target && !tourStartedRef.current) {
-        console.log("[TOUR] Target found, starting sequence...");
+      if (target && !tourStartedRef.current && !localDismissed) {
         tourStartedRef.current = true;
         setStepIndex(0);
         setRunTour(true);
@@ -100,25 +101,24 @@ export default function UserLayout() {
       creditInfoValue &&
       !creditInfoValue.hasSeenTour &&
       !localDismissed &&
-      !tourStartedRef.current
+      !runTour
     ) {
-      // Wait for the app to settle
-      const timer = setTimeout(startTourSequence, 2500);
+      const timer = setTimeout(startTourSequence, 2000);
       return () => clearTimeout(timer);
     }
-  }, [user?.id, creditInfoValue]);
+  }, [user?.id, creditInfoValue, runTour, setRunTour, setStepIndex]);
 
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    if (type !== "tooltip") {
-      console.log(
-        `[TOUR EVENT] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
-      );
-    }
+    // Enhanced Logging
+    console.log(
+      `[RECOIL TOUR] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
+    );
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
+      setStepIndex(0);
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
       try {
@@ -135,17 +135,16 @@ export default function UserLayout() {
       return;
     }
 
-    // Logic for Step Transitions
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
           setStepIndex(1);
         } else if (index === 1) {
           window.dispatchEvent(new Event("tour:open-bulk"));
-          setTimeout(() => setStepIndex(2), 300); // Increased delay
+          setTimeout(() => setStepIndex(2), 400);
         } else if (index === 3) {
           window.dispatchEvent(new Event("tour:open-add"));
-          setTimeout(() => setStepIndex(4), 300);
+          setTimeout(() => setStepIndex(4), 400);
         } else if (index === 4) {
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
