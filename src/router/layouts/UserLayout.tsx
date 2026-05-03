@@ -103,7 +103,10 @@ export default function UserLayout() {
       const check = () => {
         const el = document.querySelector(selector);
         if (el) {
-          requestAnimationFrame(() => callback());
+          // Essential: wait for the next frame to avoid layout thrashing
+          requestAnimationFrame(() => {
+            setTimeout(callback, 50);
+          });
         } else if (attempts < 80) {
           attempts++;
           setTimeout(check, 50);
@@ -137,7 +140,8 @@ export default function UserLayout() {
       return;
     }
 
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+    // Use STEP_AFTER to trigger the manual index move
+    if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
           waitForElement("#tour-bulk-add-btn", () => setStepIndex(1));
@@ -170,12 +174,12 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
+          // CRITICAL: Disable internal scrolling to prevent the loop
           disableScrolling={true}
           disableScrollParentFix={true}
           spotlightClicks={true}
-          disableOverlayClose={true}
           floaterProps={{
-            disableAnimation: true,
+            disableAnimation: true, // Prevents the floating tooltip from looping
           }}
           styles={
             {
