@@ -4,8 +4,8 @@ import {
   accessTokenState,
   userState,
   creditState,
-  tourStepIndexState, // New Atom
-  tourRunningState, // New Atom
+  tourStepIndexState,
+  tourRunningState,
 } from "../../utils/atom/authAtom";
 import { useEffect, useRef, useMemo } from "react";
 import Sidebar from "../../component/Sidebar";
@@ -111,7 +111,6 @@ export default function UserLayout() {
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    // Enhanced Logging
     console.log(
       `[RECOIL TOUR] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
     );
@@ -125,9 +124,7 @@ export default function UserLayout() {
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
+          { headers: { Authorization: `Bearer ${accessToken}` } },
         );
       } catch (err) {
         console.error(err);
@@ -135,17 +132,31 @@ export default function UserLayout() {
       return;
     }
 
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+    // 1. FORCED PROGRESSION: If a target is missing, jump to the next step
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      console.warn(
+        `[TOUR] Target #${steps[index]?.target} not found. Forcing next step.`,
+      );
+      setStepIndex(index + 1);
+      return;
+    }
+
+    // 2. LOGIC FOR STEP TRANSITIONS
+    if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
+          // Moving from Filters to Bulk Add Button
           setStepIndex(1);
         } else if (index === 1) {
+          // Open Bulk Modal and move to Page Range
           window.dispatchEvent(new Event("tour:open-bulk"));
-          setTimeout(() => setStepIndex(2), 400);
+          setTimeout(() => setStepIndex(2), 500);
         } else if (index === 3) {
+          // Open List Selection Modal
           window.dispatchEvent(new Event("tour:open-add"));
-          setTimeout(() => setStepIndex(4), 400);
+          setTimeout(() => setStepIndex(4), 500);
         } else if (index === 4) {
+          // Close Modals and move to Credits in Topbar
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
         } else {

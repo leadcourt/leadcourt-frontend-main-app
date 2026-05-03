@@ -180,7 +180,7 @@ export default function DataTablePage() {
     const base: any = { row_id: "" };
     for (const c of columns) base[c.field] = "";
     return base;
-  }, []);
+  }, [columns]);
 
   const loadingRows = useMemo(() => {
     return Array.from({ length: 10 }, (_, i) => ({
@@ -216,25 +216,19 @@ export default function DataTablePage() {
   const loadData = useCallback(
     async (pageNo: number, { filter }: LoadDataOptions = {}) => {
       const fetchId = ++fetchIdRef.current;
-
       setLoading(true);
-
       try {
         const payload = {
           filters: filter ?? selectedFilters,
           page: pageNo,
           limit: PAGE_SIZE,
         };
-
         const res = await getAllData(payload);
-
         if (fetchId !== fetchIdRef.current) return;
-
         const data =
           res?.data?.cleaned?.sort((a: Person, b: Person) =>
             (a?.Name || "").localeCompare(b?.Name || ""),
           ) || [];
-
         setTotalDataCount(res?.data?.count || 0);
         setEntries(data);
       } catch (err) {
@@ -793,11 +787,25 @@ export default function DataTablePage() {
   // --- JOYRIDE EVENT LISTENERS ---
   useEffect(() => {
     const openBulk = () => setBulkConfigVisible(true);
+
     const openAdd = () => {
       setBulkConfigVisible(false);
+
+      // SAFETY FIX: If the tour forces the modal open,
+      // provide a default payload so the component doesn't crash
+      setBulkPayload((prev: any) => {
+        if (prev) return prev;
+        return {
+          filters: selectedFilters,
+          take: 25,
+          startRowId: entries[0]?.row_id || 1,
+        };
+      });
+
       setAddMode("bulk");
       setModalVisible(true);
     };
+
     const closeAll = () => {
       setBulkConfigVisible(false);
       setModalVisible(false);
@@ -812,7 +820,7 @@ export default function DataTablePage() {
       window.removeEventListener("tour:open-add", openAdd);
       window.removeEventListener("tour:close-modals", closeAll);
     };
-  }, []);
+  }, [selectedFilters, entries]);
 
   const headerCellClass =
     "bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4";
@@ -984,7 +992,13 @@ export default function DataTablePage() {
       invalidateStartIdResolver();
       setResolvingStartId(false);
     };
-  }, [bulkConfigVisible]);
+  }, [
+    bulkConfigVisible,
+    pageNumber,
+    kickResolveStartId,
+    invalidateStartIdResolver,
+    debouncedResolveStartRowIdForPage,
+  ]);
 
   useEffect(() => {
     if (!bulkConfigVisible) return;
@@ -992,7 +1006,15 @@ export default function DataTablePage() {
     clearStartIdCache();
     invalidateStartIdResolver();
     kickResolveStartId(bulkStartPage, bulkStartPage === pageNumber);
-  }, [selectedFilters]);
+  }, [
+    selectedFilters,
+    bulkConfigVisible,
+    bulkStartPage,
+    clearStartIdCache,
+    invalidateStartIdResolver,
+    kickResolveStartId,
+    pageNumber,
+  ]);
 
   useEffect(() => {
     if (!bulkConfigVisible) return;
@@ -1019,6 +1041,9 @@ export default function DataTablePage() {
     entries,
     startRowId,
     filtersKey,
+    invalidateStartIdResolver,
+    debouncedResolveStartRowIdForPage,
+    minRowIdFromRows,
   ]);
 
   const handleBulkStartPageChange = (e: any) => {
@@ -1358,39 +1383,40 @@ export default function DataTablePage() {
         </div>
       </Dialog>
 
-      <div className="flex items-center gap-3 flex-wrap min-w-0">
-        {/* The stable wrapper for the tour step */}
-        <div id="tour-bulk-add-btn" className="inline-block">
-          <button
-            onClick={openAddToList}
-            className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
-            style={{
-              background: "#F35114",
-              boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
-            }}
-          >
-            <List className="w-4 h-4" />
-            <span>
-              {selectedProfile.length > 0
-                ? `Add to List (${selectedProfile.length})`
-                : "Add multiple pages to list"}
-            </span>
-          </button>
-        </div>
-
-        {/* Search Input */}
-        <div className="relative w-full sm:w-[380px] min-w-0">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            value={globalFilterValue}
-            onChange={onGlobalFilterChange}
-            placeholder="Search leads by name, company, or role..."
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-          />
-        </div>
-      </div>
-
       <div className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4 flex-wrap min-w-0">
+          <div className="flex items-center gap-3 flex-wrap min-w-0">
+            {/* The stable wrapper for the tour step */}
+            <div id="tour-bulk-add-btn" className="inline-block">
+              <button
+                onClick={openAddToList}
+                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+                style={{
+                  background: "#F35114",
+                  boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+                }}
+              >
+                <List className="w-4 h-4" />
+                <span>
+                  {selectedProfile.length > 0
+                    ? `Add to List (${selectedProfile.length})`
+                    : "Add multiple pages to list"}
+                </span>
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-[380px] min-w-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                value={globalFilterValue}
+                onChange={onGlobalFilterChange}
+                placeholder="Search leads by name, company, or role..."
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
         <style>{`
           .lc-pill.p-multiselect { border-radius: 14px; border: 1px solid #e5e7eb; background: #fff; height: 44px; }
           .lc-pill.p-multiselect:not(.p-disabled):hover { border-color: #d1d5db; }
@@ -1414,13 +1440,13 @@ export default function DataTablePage() {
           .lc-panel .p-multiselect-filter-container input { min-width: 220px; text-overflow: ellipsis; }
         `}</style>
 
-        <div id="tour-filters" className="flex items-center gap-4">
+        <div id="tour-filters" className="mt-6 flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700 text-sm font-medium whitespace-nowrap">
             <FilterIcon className="w-4 h-4 text-gray-600" />
             <span>Filters:</span>
           </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto flex-1 pb-1">
+          <div className="flex items-center gap-3 overflow-x-auto flex-1 pb-1 scrollbar-hide">
             <div className="relative min-w-[140px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Globe className="w-4 h-4 text-gray-500" />
