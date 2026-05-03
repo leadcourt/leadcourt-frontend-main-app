@@ -29,14 +29,9 @@ export default function UserLayout() {
   const hideTopbarOnPaths = ["/subscription"];
   const hideTopbar = hideTopbarOnPaths.includes(location.pathname);
 
-  const auth = {
-    access: accessToken,
-    token: refreshToken,
-  };
+  const auth = { access: accessToken, token: refreshToken };
 
-  const handleSideBar = () => {
-    setDisplaySide((prev) => !prev);
-  };
+  const handleSideBar = () => setDisplaySide((prev) => !prev);
 
   useEffect(() => {
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
@@ -49,7 +44,7 @@ export default function UserLayout() {
       setTimeout(() => {
         setStepIndex(0);
         setRunTour(true);
-      }, 1000); // 1 second delay to ensure everything is loaded first
+      }, 1500); // 1.5s delay to allow initial data fetch
     }
   }, [user, creditInfoValue]);
 
@@ -71,7 +66,7 @@ export default function UserLayout() {
       target: "#tour-page-range",
       title: "Step 3 of 8: 📄 Select Page Range",
       content:
-        "Each page holds 25 leads. Enter a start and end page (e.g., Pages 1–20 = 500 leads) to grab huge batches at once.",
+        "Each page holds 25 leads. Enter a start and end page to grab huge batches at once.",
     },
     {
       target: "#tour-proceed-btn",
@@ -107,17 +102,17 @@ export default function UserLayout() {
     },
   ];
 
-  // --- SMART HELPER: Waits for an element to appear in the DOM ---
   const waitForElement = (selector: string, callback: () => void) => {
     let attempts = 0;
     const check = () => {
       if (document.querySelector(selector)) {
-        callback(); // Element found! Move to the next step
-      } else if (attempts < 40) {
+        callback();
+      } else if (attempts < 60) {
+        // 3 seconds max
         attempts++;
-        setTimeout(check, 50); // Check again in 50ms (up to 2 seconds total)
+        setTimeout(check, 50);
       } else {
-        callback(); // Fallback if it takes too long
+        callback(); // Fallback
       }
     };
     check();
@@ -131,7 +126,6 @@ export default function UserLayout() {
       setStepIndex(0);
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
-
       try {
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
@@ -139,37 +133,35 @@ export default function UserLayout() {
           { headers: { Authorization: `Bearer ${accessToken}` } },
         );
       } catch (err) {
-        console.error("Failed to mark tour as seen", err);
+        console.error(err);
       }
       return;
     }
 
     if (type === "step:after" && action === "next") {
-      if (index === 1) {
+      if (index === 0) {
+        // MOVE TO STEP 2: Wait for search results to load
+        waitForElement("#tour-bulk-add-btn", () => setStepIndex(index + 1));
+      } else if (index === 1) {
+        // MOVE TO STEP 3: Open Bulk Modal
         window.dispatchEvent(new Event("tour:open-bulk"));
         waitForElement("#tour-page-range", () => setStepIndex(index + 1));
       } else if (index === 3) {
+        // MOVE TO STEP 5: Open Add Modal
         window.dispatchEvent(new Event("tour:open-add"));
         waitForElement("#tour-list-selection", () => setStepIndex(index + 1));
       } else if (index === 4) {
+        // MOVE TO STEP 6: Close all Modals
         window.dispatchEvent(new Event("tour:close-modals"));
         waitForElement("#tour-credits", () => setStepIndex(index + 1));
+      } else if (index === 5) {
+        // MOVE TO STEP 7: Point to Sidebar
+        waitForElement("#tour-navigation", () => setStepIndex(index + 1));
       } else {
         setStepIndex(index + 1);
       }
     } else if (type === "step:after" && action === "prev") {
-      if (index === 2) {
-        window.dispatchEvent(new Event("tour:close-modals"));
-        waitForElement("#tour-bulk-add-btn", () => setStepIndex(index - 1));
-      } else if (index === 4) {
-        window.dispatchEvent(new Event("tour:open-bulk"));
-        waitForElement("#tour-proceed-btn", () => setStepIndex(index - 1));
-      } else if (index === 5) {
-        window.dispatchEvent(new Event("tour:open-add"));
-        waitForElement("#tour-list-selection", () => setStepIndex(index - 1));
-      } else {
-        setStepIndex(index - 1);
-      }
+      setStepIndex(index - 1);
     }
   };
 
@@ -194,15 +186,11 @@ export default function UserLayout() {
           }
         />
 
-        <div className="fixed z-50 bottom-5 right-5">
-          <ScrollButtons />
-        </div>
-
         <div className="hidden lg:block h-screen shrink-0">
           <Sidebar />
         </div>
 
-        {displaySide ? (
+        {displaySide && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
               className="absolute inset-0 bg-black/30"
@@ -212,32 +200,32 @@ export default function UserLayout() {
               <Sidebar forceExpanded onRequestClose={handleSideBar} />
             </div>
           </div>
-        ) : null}
+        )}
 
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          {!hideTopbar ? (
+          {!hideTopbar && (
             <div className="shrink-0 bg-white border-b-gray-100 border-b-2">
               <Topbar
                 onToggleSidebar={handleSideBar}
                 mobileSidebarOpen={displaySide}
               />
             </div>
-          ) : null}
+          )}
 
           <div
             id="tour-support"
-            className={`flex-1 min-w-0 min-h-0 ${displaySide ? "overflow-hidden" : "overflow-y-auto"}`}
+            className="flex-1 min-w-0 min-h-0 overflow-y-auto"
           >
             <Outlet />
           </div>
+        </div>
+
+        <div className="fixed z-50 bottom-5 right-5">
+          <ScrollButtons />
         </div>
       </div>
     );
   }
 
-  if (auth?.access && !!user?.email && !user?.verify) {
-    return <VerifyEmail />;
-  }
-
-  return <Navigate to="/" />;
+  return user?.verify === false ? <VerifyEmail /> : <Navigate to="/" />;
 }

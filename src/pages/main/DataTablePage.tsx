@@ -1360,23 +1360,25 @@ export default function DataTablePage() {
 
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-20 flex items-center shadow-sm">
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* WRAPPER DIV for Tour Step 2 */}
           <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <button
-              id="tour-bulk-add-btn"
-              onClick={openAddToList}
-              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
-              style={{
-                background: "#F35114",
-                boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
-              }}
-            >
-              <List className="w-4 h-4" />
-              <span>
-                {selectedProfile.length > 0
-                  ? `Add to List (${selectedProfile.length})`
-                  : "Add multiple pages to list"}
-              </span>
-            </button>
+            <div id="tour-bulk-add-btn">
+              <button
+                onClick={openAddToList}
+                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+                style={{
+                  background: "#F35114",
+                  boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+                }}
+              >
+                <List className="w-4 h-4" />
+                <span>
+                  {selectedProfile.length > 0
+                    ? `Add to List (${selectedProfile.length})`
+                    : "Add multiple pages to list"}
+                </span>
+              </button>
+            </div>
 
             <div className="relative w-full sm:w-[380px] min-w-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -1414,45 +1416,20 @@ export default function DataTablePage() {
           .lc-pill .p-multiselect-label { padding: 0.6rem 0.85rem 0.6rem 2.45rem; color: #111827; font-weight: 600; }
           .lc-pill .p-multiselect-trigger { width: 2.6rem; }
           .lc-pill .p-placeholder { color: #6b7280; font-weight: 500; }
-
           .lc-panel .p-multiselect-header { padding: 10px 10px; border-bottom: 1px solid #f3f4f6; }
           .lc-panel .p-multiselect-items-wrapper { padding: 6px; }
           .lc-panel .p-multiselect-items { padding: 4px; }
           .lc-panel .p-multiselect-item { border-radius: 12px; }
           .lc-panel .p-multiselect-item:hover { background: rgba(243,81,20,0.08); }
-
-          .lc-table .p-checkbox .p-checkbox-box {
-            border: 1.5px solid #9ca3af !important;
-            border-radius: 8px !important;
-            background: #fff !important;
-          }
-
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight,
-          .lc-table .p-checkbox.p-highlight .p-checkbox-box {
-            background: #F35114 !important;
-            border-color: #F35114 !important;
-          }
-
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
-          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon,
-          .lc-table .p-checkbox.p-highlight .p-checkbox-icon,
-          .lc-table .p-checkbox.p-highlight .p-icon {
-            color: #fff !important;
-          }
-
+          .lc-table .p-checkbox .p-checkbox-box { border: 1.5px solid #9ca3af !important; border-radius: 8px !important; background: #fff !important; }
+          .lc-table .p-checkbox .p-checkbox-box.p-highlight, .lc-table .p-checkbox.p-highlight .p-checkbox-box { background: #F35114 !important; border-color: #F35114 !important; }
+          .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon, .lc-table .p-checkbox .p-checkbox-box.p-highlight .p-icon, .lc-table .p-checkbox.p-highlight .p-checkbox-icon, .lc-table .p-checkbox.p-highlight .p-icon { color: #fff !important; }
           .lc-modal.p-dialog { border-radius: 26px; overflow: hidden; box-shadow: 0 22px 70px rgba(0,0,0,0.20); }
           .lc-modal .p-dialog-header { padding: 18px 18px 12px; border-bottom: 1px solid #f1f5f9; }
           .lc-modal .p-dialog-content { padding: 18px; }
-          .lc-modal .p-dialog-header-icons .p-dialog-header-icon {
-            width: 40px; height: 40px; border-radius: 14px;
-            background: #f3f4f6; color: #111827;
-          }
+          .lc-modal .p-dialog-header-icons .p-dialog-header-icon { width: 40px; height: 40px; border-radius: 14px; background: #f3f4f6; color: #111827; }
           .lc-modal .p-dialog-header-icons .p-dialog-header-icon:hover { background: #e5e7eb; }
-          
-          .lc-panel .p-multiselect-filter-container input {
-            min-width: 220px;
-            text-overflow: ellipsis;
-          }
+          .lc-panel .p-multiselect-filter-container input { min-width: 220px; text-overflow: ellipsis; }
         `}</style>
 
         <div id="tour-filters" className="flex items-center gap-4">
@@ -1616,22 +1593,6 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={
-                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 &&
-                  (selectedFilterValue["orgIndustry"]?.length || 0) < 3
-                    ? "Keep typing to search..."
-                    : loadingDataKey === "orgIndustry"
-                      ? "Searching..."
-                      : "No industries found"
-                }
-                emptyFilterMessage={
-                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 &&
-                  (selectedFilterValue["orgIndustry"]?.length || 0) < 3
-                    ? "Keep typing to search..."
-                    : loadingDataKey === "orgIndustry"
-                      ? "Searching..."
-                      : "No industries found"
-                }
               />
             </div>
 
@@ -1663,22 +1624,6 @@ export default function DataTablePage() {
                 panelClassName="lc-panel rounded-2xl"
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
-                emptyMessage={
-                  (selectedFilterValue["orgSize"]?.length || 0) > 0 &&
-                  (selectedFilterValue["orgSize"]?.length || 0) < 3
-                    ? "Keep typing to search..."
-                    : loadingDataKey === "orgSize"
-                      ? "Searching..."
-                      : "No sizes found"
-                }
-                emptyFilterMessage={
-                  (selectedFilterValue["orgSize"]?.length || 0) > 0 &&
-                  (selectedFilterValue["orgSize"]?.length || 0) < 3
-                    ? "Keep typing to search..."
-                    : loadingDataKey === "orgSize"
-                      ? "Searching..."
-                      : "No sizes found"
-                }
               />
             </div>
           </div>

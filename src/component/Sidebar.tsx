@@ -31,13 +31,7 @@ const normalize = (l?: string | null) => {
 };
 
 const findActiveParent = (links: MenuLink[], path: string) => {
-  let best:
-    | {
-        text: string;
-        matchLen: number;
-        hasSub: boolean;
-      }
-    | null = null;
+  let best: { text: string; matchLen: number; hasSub: boolean } | null = null;
 
   for (const m of links) {
     const parent = normalize(m.link ?? null);
@@ -61,7 +55,6 @@ const findActiveParent = (links: MenuLink[], path: string) => {
   if (path.startsWith("/user/setting")) {
     return { text: "Settings", matchLen: 999, hasSub: false };
   }
-
   return best;
 };
 
@@ -73,14 +66,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [menuItem, setMenuItem] = useState<string | null>(null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetAccessToken = useResetRecoilState(accessTokenState);
   const resetRefreshToken = useResetRecoilState(refreshTokenState);
   const resetUser = useResetRecoilState(userState);
   const resetCredit = useResetRecoilState(creditState);
-
   const resetCollabcreditInfo = useResetRecoilState(collabCreditState);
   const resetCollabState = useResetRecoilState(collabProjectState);
 
@@ -89,9 +80,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const menuList = useMemo(
     () => menu[0] as { role: string; links: MenuLink[] },
-    []
+    [],
   );
-
   const expanded = forceExpanded ? true : sidebarExpanded;
 
   const clearCloseTimer = () => {
@@ -101,9 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  useEffect(() => {
-    return () => clearCloseTimer();
-  }, []);
+  useEffect(() => () => clearCloseTimer(), []);
 
   const handleEnter = () => {
     if (forceExpanded) return;
@@ -119,11 +107,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const dropMenuItem = (text: string) => {
     setMenuItem((prev) => {
-      if (prev === text) {
-        setMenuItemDrop((d) => !d);
-      } else {
-        setMenuItemDrop(true);
-      }
+      if (prev === text) setMenuItemDrop((d) => !d);
+      else setMenuItemDrop(true);
       return text;
     });
   };
@@ -159,9 +144,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-  className={`h-screen bg-white border-r border-gray-200 shadow-sm z-40 flex flex-col transition-[width] duration-300 ease-in-out will-change-[width] lg:sticky lg:top-0 lg:self-start ${
-    expanded ? "w-64" : "w-20"
-  } ${className}`}
+      id="tour-navigation" // <--- TOUR TARGET STEP 7
+      className={`h-screen bg-white border-r border-gray-200 shadow-sm z-40 flex flex-col transition-[width] duration-300 ease-in-out lg:sticky lg:top-0 lg:self-start ${
+        expanded ? "w-64" : "w-20"
+      } ${className}`}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
@@ -174,9 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <img
             src={expanded ? logo : logoSmall}
             alt="LeadCourt"
-            className={`object-contain transition-all ${
-              expanded ? "h-12 w-auto" : "h-8 w-10"
-            }`}
+            className={`object-contain transition-all ${expanded ? "h-12 w-auto" : "h-8 w-10"}`}
           />
         </Link>
       </div>
@@ -206,17 +190,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <i className={`pi ${item.img ?? ""} text-lg`} />
                   {expanded && (
-                    <span className="ml-4 text-sm font-medium whitespace-nowrap">
+                    <span className="ml-4 text-sm font-medium">
                       {item.text}
                     </span>
                   )}
                   {expanded && hasSub && (
                     <i
-                      className={`pi ml-auto text-xs opacity-70 ${
-                        active && menuItemDrop
-                          ? "pi-chevron-down"
-                          : "pi-chevron-right"
-                      }`}
+                      className={`pi ml-auto text-xs opacity-70 ${active && menuItemDrop ? "pi-chevron-down" : "pi-chevron-right"}`}
                     />
                   )}
                 </div>
@@ -229,17 +209,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                     const isSubActive =
                       location.pathname === subTo ||
                       location.pathname.startsWith(`${subTo}/`);
-
                     return (
                       <Link
                         key={`${s.text}-${sIdx}`}
                         to={subTo}
                         onClick={maybeCloseDrawer}
-                        className={`text-sm transition-colors ${
-                          isSubActive
-                            ? "text-orange-600 font-semibold"
-                            : "text-gray-500 hover:text-gray-900"
-                        }`}
+                        className={`text-sm transition-colors ${isSubActive ? "text-orange-600 font-semibold" : "text-gray-500 hover:text-gray-900"}`}
                       >
                         {s.text}
                       </Link>
@@ -260,17 +235,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             }}
           >
             <div
-              className={`flex items-center h-12 px-4 rounded-lg cursor-pointer transition-all ${
-                settingsActive
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/30"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              }`}
+              className={`flex items-center h-12 px-4 rounded-lg cursor-pointer transition-all ${settingsActive ? "bg-orange-500 text-white shadow-md shadow-orange-500/30" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
             >
               <i className="pi pi-cog text-lg" />
               {expanded && (
-                <span className="ml-4 text-sm font-medium whitespace-nowrap">
-                  Settings
-                </span>
+                <span className="ml-4 text-sm font-medium">Settings</span>
               )}
             </div>
           </Link>
@@ -280,9 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 border-t border-gray-200">
         <button
           onClick={logout}
-          className={`w-full flex items-center justify-center gap-3 h-12 rounded-lg border transition-all ${
-            expanded ? "px-4" : "px-0"
-          } bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700`}
+          className={`w-full flex items-center justify-center gap-3 h-12 rounded-lg border transition-all bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700 ${expanded ? "px-4" : "px-0"}`}
         >
           <i className="pi pi-sign-out text-base" />
           {expanded && <span className="text-sm font-medium">Log out</span>}
