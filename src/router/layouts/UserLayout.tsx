@@ -8,7 +8,7 @@ import {
   tourRunningState,
   tourHasStartedState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useMemo } from "react"; // REMOVED useRef HERE
+import { useEffect, useMemo } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
@@ -20,10 +20,9 @@ export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
   const user: any = useRecoilValue(userState);
   const creditInfoValue: any = useRecoilValue(creditState);
-
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
 
-  // Global Tour State
+  // Persistent Tour State via Recoil
   const [stepIndex, setStepIndex] = useRecoilState(tourStepIndexState);
   const [runTour, setRunTour] = useRecoilState(tourRunningState);
   const [tourHasStarted, setTourHasStarted] =
@@ -31,9 +30,9 @@ export default function UserLayout() {
 
   const location = useLocation();
   const hideTopbar = ["/subscription"].includes(location.pathname);
-
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
+  // Memoize steps to ensure Joyride doesn't re-calculate on every state change
   const steps: Step[] = useMemo(
     () => [
       {
@@ -86,26 +85,23 @@ export default function UserLayout() {
   );
 
   useEffect(() => {
+    // 1. Disable global smooth scrolling to prevent Joyride calculation loops
     document.documentElement.style.scrollBehavior = "auto";
+
+    if (!user?.id || !creditInfoValue) return;
+
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
 
-    const startTourSequence = () => {
-      const target = document.querySelector("#tour-filters");
-      if (target && !tourHasStarted && !localDismissed) {
-        setTourHasStarted(true);
-        setStepIndex(0);
-        setRunTour(true);
-      }
-    };
-
-    if (
-      user?.id &&
-      creditInfoValue &&
-      !creditInfoValue.hasSeenTour &&
-      !localDismissed &&
-      !tourHasStarted
-    ) {
-      const timer = setTimeout(startTourSequence, 2000);
+    // 2. Trigger Logic: Only start if not seen, not dismissed, and not already started in this session
+    if (!creditInfoValue.hasSeenTour && !localDismissed && !tourHasStarted) {
+      const timer = setTimeout(() => {
+        const target = document.querySelector("#tour-filters");
+        if (target) {
+          setTourHasStarted(true); // LOCK initialization to prevent Step 0 loops
+          setStepIndex(0);
+          setRunTour(true);
+        }
+      }, 3000); // 3s delay ensures table and PrimeReact styles are fully painted
       return () => clearTimeout(timer);
     }
   }, [
@@ -120,12 +116,12 @@ export default function UserLayout() {
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
+    // Log events for debugging transitions
     if (type !== "tooltip") {
-      console.log(
-        `[RECOIL TOUR] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
-      );
+      console.log(`[TOUR] ${type} | Index: ${index} | Action: ${action}`);
     }
 
+    // Handle Closing/Completion
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunTour(false);
       setStepIndex(0);
@@ -136,7 +132,9 @@ export default function UserLayout() {
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
-          { headers: { Authorization: `Bearer ${accessToken}` } },
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          },
         );
       } catch (err) {
         console.error(err);
@@ -144,21 +142,23 @@ export default function UserLayout() {
       return;
     }
 
+    // 3. Forced Progression: If an ID is missing (like a modal not opening fast enough), don't freeze
     if (type === EVENTS.TARGET_NOT_FOUND) {
       setStepIndex(index + 1);
       return;
     }
 
+    // 4. Manual Navigation Logic for Modals
     if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
           setStepIndex(1);
         } else if (index === 1) {
           window.dispatchEvent(new Event("tour:open-bulk"));
-          setTimeout(() => setStepIndex(2), 500);
+          setTimeout(() => setStepIndex(2), 600);
         } else if (index === 3) {
           window.dispatchEvent(new Event("tour:open-add"));
-          setTimeout(() => setStepIndex(4), 500);
+          setTimeout(() => setStepIndex(4), 600);
         } else if (index === 4) {
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
@@ -183,10 +183,11 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton
           callback={handleJoyrideCallback}
-          disableScrolling
-          disableScrollParentFix
-          spotlightClicks
-          disableOverlayClose
+          // THE ANTI-FREEZE PROPS
+          disableScrolling={true}
+          disableScrollParentFix={true}
+          spotlightClicks={true}
+          disableOverlayClose={true}
           floaterProps={{ disableAnimation: true }}
           styles={
             {
