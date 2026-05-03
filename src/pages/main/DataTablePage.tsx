@@ -1358,53 +1358,35 @@ export default function DataTablePage() {
         </div>
       </Dialog>
 
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-20 flex items-center shadow-sm">
-        <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {/* WRAPPER DIV for Tour Step 2 */}
-          <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <div id="tour-bulk-add-btn">
-              <button
-                onClick={openAddToList}
-                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
-                style={{
-                  background: "#F35114",
-                  boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
-                }}
-              >
-                <List className="w-4 h-4" />
-                <span>
-                  {selectedProfile.length > 0
-                    ? `Add to List (${selectedProfile.length})`
-                    : "Add multiple pages to list"}
-                </span>
-              </button>
-            </div>
+      <div className="flex items-center gap-3 flex-wrap min-w-0">
+        {/* The stable wrapper for the tour step */}
+        <div id="tour-bulk-add-btn" className="inline-block">
+          <button
+            onClick={openAddToList}
+            className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
+            style={{
+              background: "#F35114",
+              boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+            }}
+          >
+            <List className="w-4 h-4" />
+            <span>
+              {selectedProfile.length > 0
+                ? `Add to List (${selectedProfile.length})`
+                : "Add multiple pages to list"}
+            </span>
+          </button>
+        </div>
 
-            <div className="relative w-full sm:w-[380px] min-w-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                value={globalFilterValue}
-                onChange={onGlobalFilterChange}
-                placeholder="Search leads by name, company, or role..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-            <div
-              className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
-              style={{
-                background: "rgba(243,81,20,0.06)",
-                border: "1px solid rgba(243,81,20,0.20)",
-              }}
-            >
-              <span className="font-semibold" style={{ color: "#F35114" }}>
-                {totalDataCount?.toLocaleString()}
-              </span>{" "}
-              people
-            </div>
-          </div>
+        {/* Search Input */}
+        <div className="relative w-full sm:w-[380px] min-w-0">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            value={globalFilterValue}
+            onChange={onGlobalFilterChange}
+            placeholder="Search leads by name, company, or role..."
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+          />
         </div>
       </div>
 

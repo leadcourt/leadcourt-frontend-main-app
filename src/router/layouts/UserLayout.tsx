@@ -176,9 +176,16 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
+          // ADD THESE THREE PROPS TO PREVENT FREEZING:
+          disableScrolling={true}
+          disableScrollParentFix={true}
+          spotlightClicks={true}
           styles={
             {
-              options: { primaryColor: "#F35114", zIndex: 10000 },
+              options: {
+                primaryColor: "#F35114",
+                zIndex: 10000,
+              },
               tooltipContainer: { textAlign: "left" },
               buttonNext: { borderRadius: "8px", outline: "none" },
               buttonBack: { marginRight: "8px" },
