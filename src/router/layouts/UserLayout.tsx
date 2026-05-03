@@ -10,7 +10,7 @@ import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
-import { Joyride, STATUS, ACTIONS, EVENTS, LIFECYCLE } from "react-joyride";
+import { Joyride, STATUS, ACTIONS, EVENTS } from "react-joyride";
 import axios from "axios";
 
 export default function UserLayout() {
@@ -103,7 +103,6 @@ export default function UserLayout() {
       const check = () => {
         const el = document.querySelector(selector);
         if (el) {
-          // Use requestAnimationFrame to ensure the DOM update is painted
           requestAnimationFrame(() => callback());
         } else if (attempts < 80) {
           attempts++;
@@ -118,7 +117,7 @@ export default function UserLayout() {
   );
 
   const handleJoyrideCallback = async (data: any) => {
-    const { action, index, status, type, lifecycle } = data;
+    const { action, index, status, type } = data;
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
@@ -138,8 +137,6 @@ export default function UserLayout() {
       return;
     }
 
-    // Use LIFECYCLE.COMPLETE to ensure the step has fully finished rendering
-    // before we try to transition state, preventing calculation loops.
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
@@ -173,13 +170,12 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
-          // NO-FREEZE CONFIGURATION
           disableScrolling={true}
           disableScrollParentFix={true}
           spotlightClicks={true}
           disableOverlayClose={true}
           floaterProps={{
-            disableAnimation: true, // Crucial: prevents floater recalculation loops
+            disableAnimation: true,
           }}
           styles={
             {
@@ -190,7 +186,6 @@ export default function UserLayout() {
               tooltipContainer: { textAlign: "left" },
               buttonNext: { borderRadius: "8px", outline: "none" },
               buttonBack: { marginRight: "8px" },
-              // Add pointerEvents auto to the spotlight specifically
               spotlight: { pointerEvents: "auto" },
             } as any
           }
