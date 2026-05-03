@@ -102,6 +102,11 @@ export const accessTokenState = atom<string | null>({
   effects_UNSTABLE: [persistAtom],
 });
 
+export const tourHasStartedState = atom<boolean>({
+  key: 'tourHasStartedState',
+  default: false,
+});
+
 /**
  * Token Selector
  * Automatically attaches the Bearer token to Axios requests

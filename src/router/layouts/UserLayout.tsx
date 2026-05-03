@@ -6,6 +6,7 @@ import {
   creditState,
   tourStepIndexState,
   tourRunningState,
+  tourHasStartedState, // Ensure this atom exists in your authAtom.ts
 } from "../../utils/atom/authAtom";
 import { useEffect, useRef, useMemo } from "react";
 import Sidebar from "../../component/Sidebar";
@@ -22,16 +23,18 @@ export default function UserLayout() {
 
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
 
-  // Use Recoil for Tour State to survive Layout Remounts
+  // Global Tour State to survive Layout Remounts
   const [stepIndex, setStepIndex] = useRecoilState(tourStepIndexState);
   const [runTour, setRunTour] = useRecoilState(tourRunningState);
+  const [tourHasStarted, setTourHasStarted] =
+    useRecoilState(tourHasStartedState);
 
-  const tourStartedRef = useRef(false);
   const location = useLocation();
   const hideTopbar = ["/subscription"].includes(location.pathname);
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
+  // Memoize steps to prevent Joyride from resetting due to reference changes
   const steps: Step[] = useMemo(
     () => [
       {
@@ -89,8 +92,9 @@ export default function UserLayout() {
 
     const startTourSequence = () => {
       const target = document.querySelector("#tour-filters");
-      if (target && !tourStartedRef.current && !localDismissed) {
-        tourStartedRef.current = true;
+      // Check for target and ensure we haven't already started/locked the session
+      if (target && !tourHasStarted && !localDismissed) {
+        setTourHasStarted(true); // LOCK: Prevents resetting to step 0 on remount
         setStepIndex(0);
         setRunTour(true);
       }
@@ -101,23 +105,33 @@ export default function UserLayout() {
       creditInfoValue &&
       !creditInfoValue.hasSeenTour &&
       !localDismissed &&
-      !runTour
+      !tourHasStarted
     ) {
       const timer = setTimeout(startTourSequence, 2000);
       return () => clearTimeout(timer);
     }
-  }, [user?.id, creditInfoValue, runTour, setRunTour, setStepIndex]);
+  }, [
+    user?.id,
+    creditInfoValue,
+    tourHasStarted,
+    setTourHasStarted,
+    setStepIndex,
+    setRunTour,
+  ]);
 
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    console.log(
-      `[RECOIL TOUR] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
-    );
+    if (type !== "tooltip") {
+      console.log(
+        `[RECOIL TOUR] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
+      );
+    }
 
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunTour(false);
       setStepIndex(0);
+      setTourHasStarted(false); // Reset session lock for next login/trigger
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
       try {
@@ -134,9 +148,6 @@ export default function UserLayout() {
 
     // 1. FORCED PROGRESSION: If a target is missing, jump to the next step
     if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn(
-        `[TOUR] Target #${steps[index]?.target} not found. Forcing next step.`,
-      );
       setStepIndex(index + 1);
       return;
     }
@@ -145,18 +156,14 @@ export default function UserLayout() {
     if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
-          // Moving from Filters to Bulk Add Button
           setStepIndex(1);
         } else if (index === 1) {
-          // Open Bulk Modal and move to Page Range
           window.dispatchEvent(new Event("tour:open-bulk"));
           setTimeout(() => setStepIndex(2), 500);
         } else if (index === 3) {
-          // Open List Selection Modal
           window.dispatchEvent(new Event("tour:open-add"));
           setTimeout(() => setStepIndex(4), 500);
         } else if (index === 4) {
-          // Close Modals and move to Credits in Topbar
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
         } else {
