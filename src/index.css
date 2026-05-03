@@ -1,23 +1,28 @@
+html, body {
+  scroll-behavior: auto !important;
+  /* This ensures the browser can always calculate height for Joyride */
+  min-height: 100% !important; 
+}
+
+/* 2. LIBRARY IMPORTS */
+@import "tailwindcss";
 @import 'primeicons/primeicons.css';
 @import "primereact/resources/primereact.min.css";
 @import "primereact/resources/themes/lara-light-indigo/theme.css";
 
-@import "tailwindcss";
-
-/* Add this to the top of index.css */
-html, body {
-  scroll-behavior: auto !important;
-}
-
-/* Also ensure the tour overlay doesn't eat clicks it shouldn't */
+/* 3. JOYRIDE SPECIFIC OVERRIDES */
 .react-joyride__overlay {
-  pointer-events: none !important;
+  /* This prevents the dark area from "eating" your clicks if the layout shifts */
+  pointer-events: none !important; 
 }
 
 .react-joyride__spotlight {
+  /* This ensures the highlighted area (like your button) stays clickable */
   pointer-events: auto !important;
+  cursor: pointer;
 }
 
+/* 4. BRAND VARIABLES */
 :root {
   --primary-color: #F35114;
   --primary-tr-color: #f34f146c;
