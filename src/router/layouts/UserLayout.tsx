@@ -5,12 +5,12 @@ import {
   userState,
   creditState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
-import { Joyride, STATUS, ACTIONS, EVENTS } from "react-joyride";
+import { Joyride, STATUS, ACTIONS, EVENTS, Step } from "react-joyride";
 import axios from "axios";
 
 export default function UserLayout() {
@@ -28,11 +28,72 @@ export default function UserLayout() {
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
-  useEffect(() => {
-    // Kill smooth scrolling globally during the session to stop calculation loops
-    document.documentElement.style.scrollBehavior = "auto";
+  // 1. MEMOIZE STEPS: Prevents Joyride from resetting on every render
+  const steps: Step[] = useMemo(
+    () => [
+      {
+        target: "#tour-filters",
+        title: "Step 1 of 8: 👉 Find Leads",
+        content: "Use these filters to narrow down 14M+ leads.",
+        disableBeacon: true,
+        placement: "bottom",
+      },
+      {
+        target: "#tour-bulk-add-btn",
+        title: "Step 2 of 8: ⚡ Bulk Add Leads",
+        content: "Click here to save hundreds of leads at once.",
+        placement: "bottom",
+      },
+      {
+        target: "#tour-page-range",
+        title: "Step 3 of 8: 📄 Page Range",
+        content: "Enter a start and end page to grab batches.",
+      },
+      {
+        target: "#tour-proceed-btn",
+        title: "Step 4 of 8: ✅ Confirm Selection",
+        content: "Click proceed to securely save leads.",
+      },
+      {
+        target: "#tour-list-selection",
+        title: "Step 5 of 8: 📂 Save to a List",
+        content: "Choose where to store them.",
+      },
+      {
+        target: "#tour-credits",
+        title: "Step 6 of 8: 💳 Your Credits",
+        content: "Credits are only deducted for revealed contact details.",
+      },
+      {
+        target: "#tour-navigation",
+        title: "Step 7 of 8: 📌 Dashboard",
+        content: "Access your lists and settings here.",
+        placement: "right",
+      },
+      {
+        target: "#tour-support",
+        title: "Step 8 of 8: 🤝 Need Help?",
+        content: "Reach out to our support team anytime!",
+        placement: "center",
+      },
+    ],
+    [],
+  );
 
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = "auto";
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
+
+    // Check if the target actually exists in DOM before starting
+    const startTourSequence = () => {
+      const target = document.querySelector("#tour-filters");
+      if (target && !tourStartedRef.current) {
+        console.log("[TOUR] Target found, starting sequence...");
+        tourStartedRef.current = true;
+        setStepIndex(0);
+        setRunTour(true);
+      }
+    };
 
     if (
       user?.id &&
@@ -41,68 +102,15 @@ export default function UserLayout() {
       !localDismissed &&
       !tourStartedRef.current
     ) {
-      tourStartedRef.current = true;
-      console.log("[TOUR] Triggering Start Sequence...");
-      const timer = setTimeout(() => {
-        setStepIndex(0);
-        setRunTour(true);
-      }, 2000); // Increased delay to 2s to ensure table data is fully painted
+      // Wait for the app to settle
+      const timer = setTimeout(startTourSequence, 2500);
       return () => clearTimeout(timer);
     }
   }, [user?.id, creditInfoValue]);
 
-  const steps: any[] = [
-    {
-      target: "#tour-filters",
-      title: "Step 1 of 8: 👉 Find Leads",
-      content: "Use these filters to narrow down 14M+ leads.",
-      disableBeacon: true,
-      placement: "bottom" as const,
-    },
-    {
-      target: "#tour-bulk-add-btn",
-      title: "Step 2 of 8: ⚡ Bulk Add Leads",
-      content: "Click here to save hundreds of leads to your lists instantly.",
-      placement: "bottom" as const,
-    },
-    {
-      target: "#tour-page-range",
-      title: "Step 3 of 8: 📄 Select Page Range",
-      content: "Enter a start and end page to grab huge batches at once.",
-    },
-    {
-      target: "#tour-proceed-btn",
-      title: "Step 4 of 8: ✅ Confirm Selection",
-      content: "Once you’ve selected your page range, click proceed.",
-    },
-    {
-      target: "#tour-list-selection",
-      title: "Step 5 of 8: 📂 Save to a List",
-      content: "Choose where to store them or create a new list.",
-    },
-    {
-      target: "#tour-credits",
-      title: "Step 6 of 8: 💳 Your Credits",
-      content: "Credits are only deducted when you reveal contact details.",
-    },
-    {
-      target: "#tour-navigation",
-      title: "Step 7 of 8: 📌 Explore Dashboard",
-      content: "Access your lists and settings right here.",
-      placement: "right" as const,
-    },
-    {
-      target: "#tour-support",
-      title: "Step 8 of 8: 🤝 Need Help?",
-      content: "Reach out to our support team anytime!",
-      placement: "center" as const,
-    },
-  ];
-
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    // This will print detailed info in your console to help us debug
     if (type !== "tooltip") {
       console.log(
         `[TOUR EVENT] Type: ${type} | Index: ${index} | Action: ${action} | Status: ${status}`,
@@ -127,17 +135,17 @@ export default function UserLayout() {
       return;
     }
 
-    // Handle "Next" clicks OR if Joyride can't find the element (to prevent freezing)
+    // Logic for Step Transitions
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
           setStepIndex(1);
         } else if (index === 1) {
           window.dispatchEvent(new Event("tour:open-bulk"));
-          setTimeout(() => setStepIndex(2), 200);
+          setTimeout(() => setStepIndex(2), 300); // Increased delay
         } else if (index === 3) {
           window.dispatchEvent(new Event("tour:open-add"));
-          setTimeout(() => setStepIndex(4), 200);
+          setTimeout(() => setStepIndex(4), 300);
         } else if (index === 4) {
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
@@ -157,15 +165,15 @@ export default function UserLayout() {
           steps={steps}
           run={runTour}
           stepIndex={stepIndex}
-          continuous={true}
-          debug={true} // <--- ENABLE THIS: Detailed logs in console
+          continuous
+          debug={true}
           // @ts-ignore
-          showSkipButton={true}
+          showSkipButton
           callback={handleJoyrideCallback}
-          disableScrolling={true}
-          disableScrollParentFix={true}
-          spotlightClicks={true}
-          disableOverlayClose={true}
+          disableScrolling
+          disableScrollParentFix
+          spotlightClicks
+          disableOverlayClose
           floaterProps={{ disableAnimation: true }}
           styles={
             {
