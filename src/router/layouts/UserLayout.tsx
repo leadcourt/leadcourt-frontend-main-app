@@ -22,8 +22,6 @@ export default function UserLayout() {
   const creditInfoValue: any = useRecoilValue(creditState);
 
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
-
-  // --- ADDED: stepIndex state to control the tour manually ---
   const [runTour, setRunTour] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -40,10 +38,8 @@ export default function UserLayout() {
     setDisplaySide((prev) => !prev);
   };
 
-  // --- TOUR CONFIGURATION ---
   useEffect(() => {
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
-
     if (
       user &&
       creditInfoValue &&
@@ -51,9 +47,9 @@ export default function UserLayout() {
       !localDismissed
     ) {
       setTimeout(() => {
-        setStepIndex(0); // Ensure it starts at 0
+        setStepIndex(0);
         setRunTour(true);
-      }, 800);
+      }, 1000); // 1 second delay to ensure everything is loaded first
     }
   }, [user, creditInfoValue]);
 
@@ -111,11 +107,25 @@ export default function UserLayout() {
     },
   ];
 
-  // --- UPDATED: Manual Step Control with deliberate delays for modals ---
+  // --- SMART HELPER: Waits for an element to appear in the DOM ---
+  const waitForElement = (selector: string, callback: () => void) => {
+    let attempts = 0;
+    const check = () => {
+      if (document.querySelector(selector)) {
+        callback(); // Element found! Move to the next step
+      } else if (attempts < 40) {
+        attempts++;
+        setTimeout(check, 50); // Check again in 50ms (up to 2 seconds total)
+      } else {
+        callback(); // Fallback if it takes too long
+      }
+    };
+    check();
+  };
+
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    // Handle Finish or Skip
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunTour(false);
       setStepIndex(0);
@@ -134,41 +144,30 @@ export default function UserLayout() {
       return;
     }
 
-    // Handle moving FORWARD
     if (type === "step:after" && action === "next") {
       if (index === 1) {
-        // Going from Step 2 to Step 3: Open Bulk Modal, wait 400ms for animation
         window.dispatchEvent(new Event("tour:open-bulk"));
-        setTimeout(() => setStepIndex(index + 1), 400);
+        waitForElement("#tour-page-range", () => setStepIndex(index + 1));
       } else if (index === 3) {
-        // Going from Step 4 to Step 5: Close Bulk, Open Add Modal, wait 400ms
         window.dispatchEvent(new Event("tour:open-add"));
-        setTimeout(() => setStepIndex(index + 1), 400);
+        waitForElement("#tour-list-selection", () => setStepIndex(index + 1));
       } else if (index === 4) {
-        // Going from Step 5 to Step 6: Close all Modals, wait 400ms
         window.dispatchEvent(new Event("tour:close-modals"));
-        setTimeout(() => setStepIndex(index + 1), 400);
+        waitForElement("#tour-credits", () => setStepIndex(index + 1));
       } else {
-        // Normal steps (no modals involved)
         setStepIndex(index + 1);
       }
-    }
-    // Handle moving BACKWARD
-    else if (type === "step:after" && action === "prev") {
+    } else if (type === "step:after" && action === "prev") {
       if (index === 2) {
-        // Back from Step 3 to Step 2: Close modals, wait 400ms
         window.dispatchEvent(new Event("tour:close-modals"));
-        setTimeout(() => setStepIndex(index - 1), 400);
+        waitForElement("#tour-bulk-add-btn", () => setStepIndex(index - 1));
       } else if (index === 4) {
-        // Back from Step 5 to Step 4: Open Bulk Modal, wait 400ms
         window.dispatchEvent(new Event("tour:open-bulk"));
-        setTimeout(() => setStepIndex(index - 1), 400);
+        waitForElement("#tour-proceed-btn", () => setStepIndex(index - 1));
       } else if (index === 5) {
-        // Back from Step 6 to Step 5: Open Add Modal, wait 400ms
         window.dispatchEvent(new Event("tour:open-add"));
-        setTimeout(() => setStepIndex(index - 1), 400);
+        waitForElement("#tour-list-selection", () => setStepIndex(index - 1));
       } else {
-        // Normal backward steps
         setStepIndex(index - 1);
       }
     }
@@ -180,17 +179,14 @@ export default function UserLayout() {
         <Joyride
           steps={steps}
           run={runTour}
-          stepIndex={stepIndex} // <-- ADDED: Now we control the steps!
+          stepIndex={stepIndex}
           continuous={true}
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
           styles={
             {
-              options: {
-                primaryColor: "#F35114",
-                zIndex: 10000,
-              },
+              options: { primaryColor: "#F35114", zIndex: 10000 },
               tooltipContainer: { textAlign: "left" },
               buttonNext: { borderRadius: "8px", outline: "none" },
               buttonBack: { marginRight: "8px" },
