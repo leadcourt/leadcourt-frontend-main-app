@@ -4,7 +4,7 @@ import {
   accessTokenState,
   refreshTokenState,
   userState,
-  creditState, // <-- ADDED: Importing creditState to check the tour flag
+  creditState,
 } from "../../utils/atom/authAtom";
 import { useEffect, useState } from "react";
 import Sidebar from "../../component/Sidebar";
@@ -12,18 +12,20 @@ import Topbar from "../../component/Topbar";
 import ScrollButtons from "../../component/ScrollButtons";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
-// FIXED: Removed CallBackProps from import
 import { Joyride, STATUS } from "react-joyride";
-import axios from "axios"; // <-- FIXED: Uncommented axios!
+import axios from "axios";
 
 export default function UserLayout() {
   const accessToken = useRecoilValue(accessTokenState);
   const refreshToken = useRecoilValue(refreshTokenState);
   const user: any = useRecoilValue(userState);
-  const creditInfoValue: any = useRecoilValue(creditState); // <-- ADDED: Grabbing credit info
+  const creditInfoValue: any = useRecoilValue(creditState);
 
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
+
+  // --- ADDED: stepIndex state to control the tour manually ---
   const [runTour, setRunTour] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
 
   const location = useLocation();
   const hideTopbarOnPaths = ["/subscription"];
@@ -40,21 +42,21 @@ export default function UserLayout() {
 
   // --- TOUR CONFIGURATION ---
   useEffect(() => {
-    // Show only if user hasn't seen it and hasn't locally dismissed it
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
 
-    // FIXED: Checking creditInfoValue?.hasSeenTour instead of user
     if (
       user &&
       creditInfoValue &&
       !creditInfoValue.hasSeenTour &&
       !localDismissed
     ) {
-      setTimeout(() => setRunTour(true), 800); // Small delay to let data load
+      setTimeout(() => {
+        setStepIndex(0); // Ensure it starts at 0
+        setRunTour(true);
+      }, 800);
     }
-  }, [user, creditInfoValue]); // <-- ADDED creditInfoValue to dependencies
+  }, [user, creditInfoValue]);
 
-  // FIXED: Changed Step[] to any[] to fix the disableBeacon TS error
   const steps: any[] = [
     {
       target: "#tour-filters",
@@ -109,25 +111,22 @@ export default function UserLayout() {
     },
   ];
 
-  // FIXED: Changed 'data: CallBackProps' to 'data: any'
+  // --- UPDATED: Manual Step Control with deliberate delays for modals ---
   const handleJoyrideCallback = async (data: any) => {
-    const { status, index, type } = data;
+    const { action, index, status, type } = data;
 
+    // Handle Finish or Skip
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunTour(false);
+      setStepIndex(0);
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
 
       try {
-        // Ensure VITE_BE_URL and the path combined matches your backend properly.
-        // If VITE_BE_URL already includes "/api", use "/list/mark-tour".
-        // If VITE_BE_URL does NOT include "/api", use "/api/list/mark-tour".
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
+          { headers: { Authorization: `Bearer ${accessToken}` } },
         );
       } catch (err) {
         console.error("Failed to mark tour as seen", err);
@@ -135,17 +134,42 @@ export default function UserLayout() {
       return;
     }
 
-    // --- PROGRAMMATIC MODAL CONTROL ---
-    if (type === "step:before") {
-      if (index === 2) {
-        // Going to Step 3: Open the Bulk Config Modal
+    // Handle moving FORWARD
+    if (type === "step:after" && action === "next") {
+      if (index === 1) {
+        // Going from Step 2 to Step 3: Open Bulk Modal, wait 400ms for animation
         window.dispatchEvent(new Event("tour:open-bulk"));
-      } else if (index === 4) {
-        // Going to Step 5: Close Bulk, Open Add-to-List Modal
+        setTimeout(() => setStepIndex(index + 1), 400);
+      } else if (index === 3) {
+        // Going from Step 4 to Step 5: Close Bulk, Open Add Modal, wait 400ms
         window.dispatchEvent(new Event("tour:open-add"));
-      } else if (index === 5 || index === 1) {
-        // Going to Credits OR backing up to Step 2: Ensure modals are closed
+        setTimeout(() => setStepIndex(index + 1), 400);
+      } else if (index === 4) {
+        // Going from Step 5 to Step 6: Close all Modals, wait 400ms
         window.dispatchEvent(new Event("tour:close-modals"));
+        setTimeout(() => setStepIndex(index + 1), 400);
+      } else {
+        // Normal steps (no modals involved)
+        setStepIndex(index + 1);
+      }
+    }
+    // Handle moving BACKWARD
+    else if (type === "step:after" && action === "prev") {
+      if (index === 2) {
+        // Back from Step 3 to Step 2: Close modals, wait 400ms
+        window.dispatchEvent(new Event("tour:close-modals"));
+        setTimeout(() => setStepIndex(index - 1), 400);
+      } else if (index === 4) {
+        // Back from Step 5 to Step 4: Open Bulk Modal, wait 400ms
+        window.dispatchEvent(new Event("tour:open-bulk"));
+        setTimeout(() => setStepIndex(index - 1), 400);
+      } else if (index === 5) {
+        // Back from Step 6 to Step 5: Open Add Modal, wait 400ms
+        window.dispatchEvent(new Event("tour:open-add"));
+        setTimeout(() => setStepIndex(index - 1), 400);
+      } else {
+        // Normal backward steps
+        setStepIndex(index - 1);
       }
     }
   };
@@ -153,10 +177,10 @@ export default function UserLayout() {
   if (auth?.access && !!user?.email && user?.verify) {
     return (
       <div className="flex h-screen overflow-hidden bg-gray-50">
-        {/* --- JOYRIDE COMPONENT --- */}
         <Joyride
           steps={steps}
           run={runTour}
+          stepIndex={stepIndex} // <-- ADDED: Now we control the steps!
           continuous={true}
           // @ts-ignore
           showSkipButton={true}
@@ -165,7 +189,7 @@ export default function UserLayout() {
             {
               options: {
                 primaryColor: "#F35114",
-                zIndex: 10000, // Very high so it stays above PrimeReact Modals
+                zIndex: 10000,
               },
               tooltipContainer: { textAlign: "left" },
               buttonNext: { borderRadius: "8px", outline: "none" },
@@ -204,7 +228,6 @@ export default function UserLayout() {
             </div>
           ) : null}
 
-          {/* ADDED #tour-support ID to center stage */}
           <div
             id="tour-support"
             className={`flex-1 min-w-0 min-h-0 ${displaySide ? "overflow-hidden" : "overflow-y-auto"}`}
