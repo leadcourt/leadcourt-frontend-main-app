@@ -5,12 +5,12 @@ import {
   userState,
   creditState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
-import { Joyride, STATUS } from "react-joyride";
+import { Joyride, STATUS, ACTIONS, EVENTS, LIFECYCLE } from "react-joyride";
 import axios from "axios";
 
 export default function UserLayout() {
@@ -23,8 +23,7 @@ export default function UserLayout() {
   const [stepIndex, setStepIndex] = useState(0);
 
   const location = useLocation();
-  const hideTopbarOnPaths = ["/subscription"];
-  const hideTopbar = hideTopbarOnPaths.includes(location.pathname);
+  const hideTopbar = ["/subscription"].includes(location.pathname);
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
@@ -36,10 +35,11 @@ export default function UserLayout() {
       !creditInfoValue.hasSeenTour &&
       !localDismissed
     ) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setStepIndex(0);
         setRunTour(true);
       }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [user, creditInfoValue]);
 
@@ -48,14 +48,15 @@ export default function UserLayout() {
       target: "#tour-filters",
       title: "Step 1 of 8: 👉 Find High-Quality Leads",
       content:
-        "Use these filters to narrow down 14M+ leads. Select countries, specific titles, or company sizes to find your exact ideal customer.",
+        "Use these filters to narrow down 14M+ leads. Select countries, specific titles, or company sizes.",
       disableBeacon: true,
     },
     {
       target: "#tour-bulk-add-btn",
-      title: "Step 2 of 8: ⚡ Bulk Add Leads in Seconds",
+      title: "Step 2 of 8: ⚡ Bulk Add Leads",
       content:
-        "Skip the manual work. Click here to select multiple pages of results and save hundreds of leads to your lists instantly.",
+        "Click here to select multiple pages and save hundreds of leads instantly.",
+      placement: "bottom" as const,
     },
     {
       target: "#tour-page-range",
@@ -73,58 +74,63 @@ export default function UserLayout() {
       target: "#tour-list-selection",
       title: "Step 5 of 8: 📂 Save to a List",
       content:
-        "Choose where to store them. Select an existing list from the dropdown, or toggle to create a brand new one.",
+        "Choose where to store them. Select an existing list or create a new one.",
     },
     {
       target: "#tour-credits",
       title: "Step 6 of 8: 💳 Your Credits",
       content:
-        "Keep an eye on this! Credits are only deducted when you reveal verified contact details like emails or direct phone numbers.",
+        "Credits are only deducted when you reveal verified contact details.",
     },
     {
       target: "#tour-navigation",
       title: "Step 7 of 8: 📌 Explore Your Dashboard",
       content:
-        "Access your Saved Lists, Team Members, API Integrations, and Billing settings right here.",
-      placement: "right",
+        "Access your Saved Lists, Team Members, and API Integrations here.",
+      placement: "right" as const,
     },
     {
       target: "#tour-support",
       title: "Step 8 of 8: 🤝 Need Help?",
-      content:
-        "If you ever get stuck, reach out to our support team. We're here to make sure you get the most out of the platform!",
-      placement: "center",
+      content: "If you ever get stuck, reach out to our support team!",
+      placement: "center" as const,
     },
   ];
 
-  const waitForElement = (selector: string, callback: () => void) => {
-    let attempts = 0;
-    const check = () => {
-      if (document.querySelector(selector)) {
-        callback();
-      } else if (attempts < 60) {
-        attempts++;
-        setTimeout(check, 50);
-      } else {
-        callback();
-      }
-    };
-    check();
-  };
+  const waitForElement = useCallback(
+    (selector: string, callback: () => void) => {
+      let attempts = 0;
+      const check = () => {
+        const el = document.querySelector(selector);
+        if (el) {
+          // Use requestAnimationFrame to ensure the DOM update is painted
+          requestAnimationFrame(() => callback());
+        } else if (attempts < 80) {
+          attempts++;
+          setTimeout(check, 50);
+        } else {
+          callback();
+        }
+      };
+      check();
+    },
+    [],
+  );
 
   const handleJoyrideCallback = async (data: any) => {
-    const { action, index, status, type } = data;
+    const { action, index, status, type, lifecycle } = data;
 
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
-      setStepIndex(0);
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
       try {
         await axios.post(
           `${import.meta.env.VITE_BE_URL}/api/list/mark-tour`,
           {},
-          { headers: { Authorization: `Bearer ${accessToken}` } },
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          },
         );
       } catch (err) {
         console.error(err);
@@ -132,25 +138,27 @@ export default function UserLayout() {
       return;
     }
 
-    if (type === "step:after" && action === "next") {
-      if (index === 0) {
-        waitForElement("#tour-bulk-add-btn", () => setStepIndex(index + 1));
-      } else if (index === 1) {
-        window.dispatchEvent(new Event("tour:open-bulk"));
-        waitForElement("#tour-page-range", () => setStepIndex(index + 1));
-      } else if (index === 3) {
-        window.dispatchEvent(new Event("tour:open-add"));
-        waitForElement("#tour-list-selection", () => setStepIndex(index + 1));
-      } else if (index === 4) {
-        window.dispatchEvent(new Event("tour:close-modals"));
-        waitForElement("#tour-credits", () => setStepIndex(index + 1));
-      } else if (index === 5) {
-        waitForElement("#tour-navigation", () => setStepIndex(index + 1));
-      } else {
-        setStepIndex(index + 1);
+    // Use LIFECYCLE.COMPLETE to ensure the step has fully finished rendering
+    // before we try to transition state, preventing calculation loops.
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      if (action === ACTIONS.NEXT) {
+        if (index === 0) {
+          waitForElement("#tour-bulk-add-btn", () => setStepIndex(1));
+        } else if (index === 1) {
+          window.dispatchEvent(new Event("tour:open-bulk"));
+          waitForElement("#tour-page-range", () => setStepIndex(2));
+        } else if (index === 3) {
+          window.dispatchEvent(new Event("tour:open-add"));
+          waitForElement("#tour-list-selection", () => setStepIndex(4));
+        } else if (index === 4) {
+          window.dispatchEvent(new Event("tour:close-modals"));
+          setStepIndex(5);
+        } else {
+          setStepIndex(index + 1);
+        }
+      } else if (action === ACTIONS.PREV) {
+        setStepIndex(index - 1);
       }
-    } else if (type === "step:after" && action === "prev") {
-      setStepIndex(index - 1);
     }
   };
 
@@ -165,15 +173,25 @@ export default function UserLayout() {
           // @ts-ignore
           showSkipButton={true}
           callback={handleJoyrideCallback}
+          // NO-FREEZE CONFIGURATION
           disableScrolling={true}
           disableScrollParentFix={true}
           spotlightClicks={true}
+          disableOverlayClose={true}
+          floaterProps={{
+            disableAnimation: true, // Crucial: prevents floater recalculation loops
+          }}
           styles={
             {
-              options: { primaryColor: "#F35114", zIndex: 10000 },
+              options: {
+                primaryColor: "#F35114",
+                zIndex: 10000,
+              },
               tooltipContainer: { textAlign: "left" },
               buttonNext: { borderRadius: "8px", outline: "none" },
               buttonBack: { marginRight: "8px" },
+              // Add pointerEvents auto to the spotlight specifically
+              spotlight: { pointerEvents: "auto" },
             } as any
           }
         />

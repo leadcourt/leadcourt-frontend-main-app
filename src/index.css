@@ -4,6 +4,20 @@
 
 @import "tailwindcss";
 
+/* Add this to the top of index.css */
+html, body {
+  scroll-behavior: auto !important;
+}
+
+/* Also ensure the tour overlay doesn't eat clicks it shouldn't */
+.react-joyride__overlay {
+  pointer-events: none !important;
+}
+
+.react-joyride__spotlight {
+  pointer-events: auto !important;
+}
+
 :root {
   --primary-color: #F35114;
   --primary-tr-color: #f34f146c;
