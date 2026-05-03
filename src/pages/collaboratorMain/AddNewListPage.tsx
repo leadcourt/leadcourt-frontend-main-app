@@ -10,33 +10,35 @@ export default function Collab_AddnewListPage() {
   const user: any = useRecoilValue(userState);
   const navigate = useNavigate();
   const [listName, setListName] = useState("");
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-  const collab = useRecoilValue(collabProjectState)
+  const collab = useRecoilValue(collabProjectState);
 
   const handleSubmit = async () => {
-    setLoading(true)
+    if (!listName.trim()) {
+      toast.error("List name cannot be empty");
+      return;
+    }
+
+    setLoading(true);
     const payload = {
       userId: user.id,
-      listName: listName,
+      listName: listName.trim(),
+      projectId: collab?._id,
     };
 
-    
-    await collaboration_createNewList_api(payload)
-      .then((res) => {
-        console.log(res);
-        
-        toast.success("List created successfully");
-        navigate(`/collaboration/${collab?._id}/list`);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        
-        toast.error(err.response.data.error);
-      });
-
-    setLoading(false)
-
+    try {
+      const res = await collaboration_createNewList_api(payload);
+      console.log(res);
+      toast.success("List created successfully");
+      navigate(`/collaboration/${collab?._id}/list`);
+    } catch (err: any) {
+      console.log(err.response);
+      const errorMsg = err.response?.data?.error || "Failed to create list";
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,20 +52,22 @@ export default function Collab_AddnewListPage() {
               onChange={(e) => setListName(e.target.value)}
               className="my-3 rounded-full text-xs text-gray-500 border w-full lg:w-[400px] px-6 py-3"
               placeholder="Enter list name.."
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
             <div className="w-fit m-auto">
               <button
                 onClick={handleSubmit}
-                className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-2"
+                disabled={loading}
+                className="cursor-pointer bg-[#F35114] text-white text-sm px-6 py-2 rounded-full flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? 
-                <i className="pi pi-spin pi-spinner">
-                  </i>
-                  :
-                <i className="pi pi-user-edit">
-                  </i>
-                }
-                  Create new list
+                {loading ? (
+                  <i className="pi pi-spin pi-spinner"></i>
+                ) : (
+                  <i className="pi pi-user-edit"></i>
+                )}
+                Create new list
               </button>
             </div>
           </div>

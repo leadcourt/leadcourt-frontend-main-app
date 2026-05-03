@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { addByFilterToList, addProfilesToList, getAllList } from "../utils/api/data";
+import {
+  addByFilterToList,
+  addProfilesToList,
+  getAllList,
+} from "../utils/api/data";
 import { Dropdown } from "primereact/dropdown";
 import { toast } from "react-toastify";
 
@@ -64,7 +68,8 @@ function AddToListComponent({
   }, [bulkPagesInfo]);
 
   const displayCountLabel = useMemo(() => {
-    if (!isBulk) return `${selectedCount} contact${selectedCount === 1 ? "" : "s"}`;
+    if (!isBulk)
+      return `${selectedCount} contact${selectedCount === 1 ? "" : "s"}`;
     const take = Number(bulkMeta?.take || 0);
     return `${take} rows (${bulkPagesLabel})`;
   }, [isBulk, bulkMeta, bulkPagesLabel, selectedCount]);
@@ -89,7 +94,9 @@ function AddToListComponent({
 
   useEffect(() => {
     const hasLists =
-      (existingList || []).some((l: any) => String(l?.name || "").trim().length > 0) || false;
+      (existingList || []).some(
+        (l: any) => String(l?.name || "").trim().length > 0,
+      ) || false;
     if (!loadingLists && !hasLists) setTargetMode("new");
   }, [loadingLists, existingList]);
 
@@ -110,18 +117,28 @@ function AddToListComponent({
   }, [existingList]);
 
   const selectedExistingMeta = useMemo(() => {
-    return (existingList || []).find((x: any) => x?.name === selectedExisting) || null;
+    return (
+      (existingList || []).find((x: any) => x?.name === selectedExisting) ||
+      null
+    );
   }, [existingList, selectedExisting]);
 
   const submit = async () => {
     const listName =
-      targetMode === "existing" ? normalizeName(selectedExisting) : normalizeName(newListName);
+      targetMode === "existing"
+        ? normalizeName(selectedExisting)
+        : normalizeName(newListName);
 
     if (!listName) {
-      return toast.error(targetMode === "existing" ? "Please select a list" : "Enter a list name");
+      return toast.error(
+        targetMode === "existing"
+          ? "Please select a list"
+          : "Enter a list name",
+      );
     }
 
-    if (isBulk && (!bulkMeta || !bulkMeta.take)) return toast.error("Missing bulk config");
+    if (isBulk && (!bulkMeta || !bulkMeta.take))
+      return toast.error("Missing bulk config");
 
     setLoadingAddToList(true);
     try {
@@ -159,7 +176,12 @@ function AddToListComponent({
       className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
       style={{ borderColor: checked ? ORANGE : "#D1D5DB" }}
     >
-      {checked ? <div className="w-2.5 h-2.5 rounded-full" style={{ background: ORANGE }} /> : null}
+      {checked ? (
+        <div
+          className="w-2.5 h-2.5 rounded-full"
+          style={{ background: ORANGE }}
+        />
+      ) : null}
     </div>
   );
 
@@ -199,7 +221,10 @@ function AddToListComponent({
     const name = option?.label || option?.value || selectedExisting || "";
     if (!name) return <span className="text-gray-400">Select a list</span>;
 
-    const total = selectedExistingMeta?.total != null ? Number(selectedExistingMeta.total) : null;
+    const total =
+      selectedExistingMeta?.total != null
+        ? Number(selectedExistingMeta.total)
+        : null;
 
     return (
       <div className="w-full flex items-center justify-between gap-3">
@@ -216,7 +241,9 @@ function AddToListComponent({
           </div>
 
           <div className="min-w-0">
-            <div className="text-sm font-extrabold text-gray-900 truncate">{name}</div>
+            <div className="text-sm font-extrabold text-gray-900 truncate">
+              {name}
+            </div>
             <div className="text-[11px] text-gray-500">
               {total != null ? `${total} contacts` : "Existing list"}
             </div>
@@ -245,7 +272,9 @@ function AddToListComponent({
           </div>
 
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-gray-900 truncate">{name}</div>
+            <div className="text-sm font-semibold text-gray-900 truncate">
+              {name}
+            </div>
             <div className="text-[11px] text-gray-500">
               {total != null ? `${Number(total)} contacts` : "Existing list"}
             </div>
@@ -270,7 +299,7 @@ function AddToListComponent({
   }
 
   return (
-    <div className="w-full">
+    <div id="tour-list-selection" className="w-full">
       <style>{`
         .lc-dd.p-dropdown {
           width: 100%;
@@ -312,7 +341,9 @@ function AddToListComponent({
         >
           {displayCountLabel}
         </span>
-        {isBulk ? <span className="text-gray-500"> with current filters</span> : null}
+        {isBulk ? (
+          <span className="text-gray-500"> with current filters</span>
+        ) : null}
       </div>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -335,7 +366,9 @@ function AddToListComponent({
           <>
             {listOptions.length ? (
               <>
-                <div className="text-xs font-semibold tracking-wider text-gray-500">SELECT LIST</div>
+                <div className="text-xs font-semibold tracking-wider text-gray-500">
+                  SELECT LIST
+                </div>
 
                 <div
                   className="mt-2 rounded-2xl p-4"
@@ -363,11 +396,16 @@ function AddToListComponent({
                     <div className="mt-3 flex items-center justify-between text-xs">
                       <div className="text-gray-600">
                         Selected:{" "}
-                        <span className="font-semibold text-gray-900">{selectedExisting}</span>
+                        <span className="font-semibold text-gray-900">
+                          {selectedExisting}
+                        </span>
                       </div>
                       <div
                         className="px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: "rgba(243,81,20,0.10)", color: ORANGE }}
+                        style={{
+                          background: "rgba(243,81,20,0.10)",
+                          color: ORANGE,
+                        }}
                       >
                         {selectedExistingMeta?.total != null
                           ? `${Number(selectedExistingMeta.total)} contacts`
@@ -375,13 +413,17 @@ function AddToListComponent({
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-3 text-xs text-gray-500">Pick a list to continue.</div>
+                    <div className="mt-3 text-xs text-gray-500">
+                      Pick a list to continue.
+                    </div>
                   )}
                 </div>
               </>
             ) : (
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="text-sm font-semibold text-gray-800">No lists yet.</div>
+                <div className="text-sm font-semibold text-gray-800">
+                  No lists yet.
+                </div>
                 <div className="text-xs text-gray-500 mt-1">
                   Switch to “Create new list” above to save these contacts.
                 </div>
@@ -390,7 +432,9 @@ function AddToListComponent({
           </>
         ) : (
           <>
-            <div className="text-xs font-semibold tracking-wider text-gray-500">NEW LIST NAME</div>
+            <div className="text-xs font-semibold tracking-wider text-gray-500">
+              NEW LIST NAME
+            </div>
 
             <input
               type="text"
@@ -407,7 +451,10 @@ function AddToListComponent({
       </div>
 
       <div className="mt-6 flex items-center justify-between">
-        <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-800">
+        <button
+          onClick={onClose}
+          className="text-sm text-gray-500 hover:text-gray-800"
+        >
           Cancel
         </button>
 
@@ -415,7 +462,10 @@ function AddToListComponent({
           onClick={submit}
           disabled={!canSubmit}
           className="px-7 py-3 rounded-xl text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: ORANGE, boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
+          style={{
+            background: ORANGE,
+            boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+          }}
         >
           {loadingAddToList ? (
             <span className="inline-flex items-center gap-2">

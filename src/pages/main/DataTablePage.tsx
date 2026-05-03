@@ -232,7 +232,7 @@ export default function DataTablePage() {
 
         const data =
           res?.data?.cleaned?.sort((a: Person, b: Person) =>
-            (a?.Name || "").localeCompare(b?.Name || "")
+            (a?.Name || "").localeCompare(b?.Name || ""),
           ) || [];
 
         setTotalDataCount(res?.data?.count || 0);
@@ -245,7 +245,7 @@ export default function DataTablePage() {
         if (fetchId === fetchIdRef.current) setLoading(false);
       }
     },
-    [selectedFilters]
+    [selectedFilters],
   );
 
   const selectedFiltersRef = useRef<any>(selectedFilters);
@@ -262,7 +262,7 @@ export default function DataTablePage() {
   const debouncedGoToPage = useRef(
     debounce((num: number) => {
       loadDataRef.current(num, { filter: selectedFiltersRef.current });
-    }, 600)
+    }, 600),
   ).current;
 
   useEffect(() => {
@@ -274,7 +274,8 @@ export default function DataTablePage() {
   const updateDraft = (key: string, value: any) => {
     setDraftFilters((prev: any) => ({ ...prev, [key]: value }));
     setIsDirtyFilters(true);
-    if (key !== "Designation" && selectAllDesignation) setSelectAllDesignation(false);
+    if (key !== "Designation" && selectAllDesignation)
+      setSelectAllDesignation(false);
   };
 
   const runSearch = () => {
@@ -355,7 +356,9 @@ export default function DataTablePage() {
       if (res?.data?.error) setVisible(true);
 
       const updated = entries.map((entry: any) =>
-        entry.row_id === id ? { ...entry, ...(res?.data?.results?.[0] || {}) } : entry
+        entry.row_id === id
+          ? { ...entry, ...(res?.data?.results?.[0] || {}) }
+          : entry,
       );
 
       setCreditInfo({
@@ -380,7 +383,7 @@ export default function DataTablePage() {
         window.open(
           `https://${res.data.linkedin_url}`,
           "popupWindow",
-          "width=600,height=600"
+          "width=600,height=600",
         );
       }
     } finally {
@@ -466,7 +469,8 @@ export default function DataTablePage() {
   );
 
   const showLinkedIn = (rowData: any) => {
-    const loadingThis = loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
+    const loadingThis =
+      loadRow?.type === "linkedIn" && loadRow.row_id === rowData.row_id;
     return (
       <button
         onClick={() => openLinkedInPopup(rowData.row_id)}
@@ -488,29 +492,45 @@ export default function DataTablePage() {
     </div>
   );
 
-const showOrgIndustry = (rowData: any) => {
-    // Look for all possible key names for industry
-    const v = rowData?.["Org Industry"] ?? rowData?.["Organization Industry"] ?? rowData?.orgIndustry ?? rowData?.org_industry ?? "";
+  const showOrgIndustry = (rowData: any) => {
+    const v =
+      rowData?.["Org Industry"] ??
+      rowData?.["Organization Industry"] ??
+      rowData?.orgIndustry ??
+      rowData?.org_industry ??
+      "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showOrgSize = (rowData: any) => {
-    // Look for all possible key names for size
-    const v = rowData?.["Org Size"] ?? rowData?.["Organization Size"] ?? rowData?.orgSize ?? rowData?.org_size ?? "";
+    const v =
+      rowData?.["Org Size"] ??
+      rowData?.["Organization Size"] ??
+      rowData?.orgSize ??
+      rowData?.org_size ??
+      "";
     return <div className="text-sm text-gray-600">{TextToCapitalize(v)}</div>;
   };
 
   const showCity = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.City || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.City || "")}
+    </div>
   );
   const showState = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.State || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.State || "")}
+    </div>
   );
   const showCountry = (rowData: any) => (
-    <div className="text-sm text-gray-600">{TextToCapitalize(rowData?.Country || "")}</div>
+    <div className="text-sm text-gray-600">
+      {TextToCapitalize(rowData?.Country || "")}
+    </div>
   );
 
-  const skeletonLoad = () => <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />;
+  const skeletonLoad = () => (
+    <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />
+  );
 
   const emptyMessageTemplate = () => (
     <div className="h-[60vh] w-full flex items-center justify-center">
@@ -528,38 +548,62 @@ const showOrgIndustry = (rowData: any) => {
 
         if (query.length >= 3 && field !== "Designation") {
           const res: any = await searchOption(payload);
-          const dataInfo = res?.data?.map((item: string) => TextToCapitalize(item));
+          const dataInfo = res?.data?.map((item: string) =>
+            TextToCapitalize(item),
+          );
           if (!dataInfo) return;
 
           if (field === "Country") {
-            const unique = dedupe([...(baseRef.current.Country || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.Country || []),
+              ...dataInfo,
+            ]);
             baseRef.current.Country = unique;
             setCountryOptions(unique);
           } else if (field === "State") {
-            const unique = dedupe([...(baseRef.current.State || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.State || []),
+              ...dataInfo,
+            ]);
             baseRef.current.State = unique;
             setStateOptions(unique);
           } else if (field === "City") {
-            const unique = dedupe([...(baseRef.current.City || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.City || []),
+              ...dataInfo,
+            ]);
             baseRef.current.City = unique;
             setCityOptions(unique);
           } else if (field === "Organization") {
-            const unique = dedupe([...(baseRef.current.Organization || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.Organization || []),
+              ...dataInfo,
+            ]);
             baseRef.current.Organization = unique;
             setOrganizationOptions(unique);
           } else if (field === "orgSize") {
-            const unique = dedupe([...(baseRef.current.orgSize || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.orgSize || []),
+              ...dataInfo,
+            ]);
             baseRef.current.orgSize = unique;
             setOrgSizeOptions(unique);
           } else if (field === "orgIndustry") {
-            const unique = dedupe([...(baseRef.current.orgIndustry || []), ...dataInfo]);
+            const unique = dedupe([
+              ...(baseRef.current.orgIndustry || []),
+              ...dataInfo,
+            ]);
             baseRef.current.orgIndustry = unique;
             setOrgIndustryOptions(unique);
           }
         } else if (query.length >= 3 && field === "Designation") {
           const res: any = await searchOptionDesignation(payload);
-          const dataInfo: any = res?.data?.map((item: string) => TextToCapitalize(item)) || [];
-          const unique = dedupe([...(baseRef.current.Designation || []), ...dataInfo]);
+          const dataInfo: any =
+            res?.data?.map((item: string) => TextToCapitalize(item)) || [];
+          const unique = dedupe([
+            ...(baseRef.current.Designation || []),
+            ...dataInfo,
+          ]);
           baseRef.current.Designation = unique;
           setDesignationOptions(unique);
         }
@@ -569,7 +613,7 @@ const showOrgIndustry = (rowData: any) => {
         setLoadingDataKey("");
         setLoadingOptions(false);
       }
-    }, 2000)
+    }, 2000),
   ).current;
 
   const handleFilterSearch = (field: string, query: string) => {
@@ -579,10 +623,13 @@ const showOrgIndustry = (rowData: any) => {
       if (field === "Country") setCountryOptions(baseRef.current.Country);
       else if (field === "State") setStateOptions(baseRef.current.State);
       else if (field === "City") setCityOptions(baseRef.current.City);
-      else if (field === "Organization") setOrganizationOptions(baseRef.current.Organization);
-      else if (field === "Designation") setDesignationOptions(baseRef.current.Designation);
+      else if (field === "Organization")
+        setOrganizationOptions(baseRef.current.Organization);
+      else if (field === "Designation")
+        setDesignationOptions(baseRef.current.Designation);
       else if (field === "orgSize") setOrgSizeOptions(baseRef.current.orgSize);
-      else if (field === "orgIndustry") setOrgIndustryOptions(baseRef.current.orgIndustry);
+      else if (field === "orgIndustry")
+        setOrgIndustryOptions(baseRef.current.orgIndustry);
 
       setLoadingDataKey("");
       setLoadingOptions(false);
@@ -600,48 +647,44 @@ const showOrgIndustry = (rowData: any) => {
   };
 
   const getFilterTemplate = (placeholder: string) => (options: any) => {
-  const { filterOptions } = options;
-
-  const isLoading = loadingOptions && loadingDataKey === placeholder;
-
-
+    const { filterOptions } = options;
+    const isLoading = loadingOptions && loadingDataKey === placeholder;
 
     return (
       <div className="px-5 p-multiselect-filter-container">
-  <div className="relative w-full">
-    
-    {/* INPUT */}
-    <input
-      value={selectedFilterValue[placeholder] || ""}
-      onChange={(e) => {
-        filterOptions.filter(e);
-        const value = e.target.value;
+        <div className="relative w-full">
+          <input
+            value={selectedFilterValue[placeholder] || ""}
+            onChange={(e) => {
+              filterOptions.filter(e);
+              const value = e.target.value;
 
-        setSelectedFilterValue((prev: any) => ({
-          ...prev,
-          [placeholder]: value,
-        }));
+              setSelectedFilterValue((prev: any) => ({
+                ...prev,
+                [placeholder]: value,
+              }));
 
-        if (placeholder === "Designation" && !String(value || "").trim()) {
-          setSelectAllDesignation(false);
-        }
+              if (
+                placeholder === "Designation" &&
+                !String(value || "").trim()
+              ) {
+                setSelectAllDesignation(false);
+              }
 
-        handleFilterSearch(placeholder, value);
-      }}
-      className="w-full pr-10 focus:outline-none bg-white text-xs px-3 py-2 my-2 rounded-full border"
-      placeholder={
-        placeholder === "Designation"
-          ? `Please enter "Job Title" or "Keyword"`
-          : `Search ${placeholder}...`
-      }
-    />
-
-    {/* LOADING ICON */}
-    {isLoading && (
-      <i className="pi pi-spin pi-spinner absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs" />
-    )}
-  </div>
-</div>
+              handleFilterSearch(placeholder, value);
+            }}
+            className="w-full pr-10 focus:outline-none bg-white text-xs px-3 py-2 my-2 rounded-full border"
+            placeholder={
+              placeholder === "Designation"
+                ? `Please enter "Job Title" or "Keyword"`
+                : `Search ${placeholder}...`
+            }
+          />
+          {isLoading && (
+            <i className="pi pi-spin pi-spinner absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs" />
+          )}
+        </div>
+      </div>
     );
   };
 
@@ -655,7 +698,9 @@ const showOrgIndustry = (rowData: any) => {
     }
 
     const filterValues = (designationOptions || []).filter((opt: any) =>
-      String(opt || "").toLowerCase().includes(searchQuery)
+      String(opt || "")
+        .toLowerCase()
+        .includes(searchQuery),
     );
 
     const current = draftFilters["Designation"] ?? [];
@@ -663,7 +708,10 @@ const showOrgIndustry = (rowData: any) => {
     if (selectAllDesignation) {
       updateDraft("Designation", []);
     } else {
-      updateDraft("Designation", dedupe([...(current || []), ...(filterValues || [])]));
+      updateDraft(
+        "Designation",
+        dedupe([...(current || []), ...(filterValues || [])]),
+      );
     }
 
     setSelectAllDesignation(!selectAllDesignation);
@@ -675,19 +723,37 @@ const showOrgIndustry = (rowData: any) => {
   const msLoading = (key: string) => loadingOptions && loadingDataKey === key;
 
   useEffect(() => {
-    const initialCountries = (countries_data?.Country || []).map((x: string) => TextToCapitalize(x));
-    const initialStates = (state_data?.State || []).map((x: string) => TextToCapitalize(x));
-    const initialCities = (cities_data?.City || []).map((x: string) => TextToCapitalize(x));
+    const initialCountries = (countries_data?.Country || []).map((x: string) =>
+      TextToCapitalize(x),
+    );
+    const initialStates = (state_data?.State || []).map((x: string) =>
+      TextToCapitalize(x),
+    );
+    const initialCities = (cities_data?.City || []).map((x: string) =>
+      TextToCapitalize(x),
+    );
     const initialDesignations =
-      (designation_groups_data?.Designation_Groups || []).map((x: string) => TextToCapitalize(x)) ||
-      [];
+      (designation_groups_data?.Designation_Groups || []).map((x: string) =>
+        TextToCapitalize(x),
+      ) || [];
     const initialOrgIndustry =
-      (org_industry?.org_industry || []).map((x: string) => TextToCapitalize(x)) || [];
-    const initialOrgSize = (org_size?.org_size || []).map((x: string) => TextToCapitalize(x)) || [];
-    
+      (org_industry?.org_industry || []).map((x: string) =>
+        TextToCapitalize(x),
+      ) || [];
+    const initialOrgSize =
+      (org_size?.org_size || []).map((x: string) => TextToCapitalize(x)) || [];
+
     const defaultOrganizations = [
-      "Microsoft", "Google", "Amazon", "Apple", "IBM", 
-      "Oracle", "Salesforce", "Meta", "Intel", "Cisco"
+      "Microsoft",
+      "Google",
+      "Amazon",
+      "Apple",
+      "IBM",
+      "Oracle",
+      "Salesforce",
+      "Meta",
+      "Intel",
+      "Cisco",
     ];
 
     baseRef.current.Country = initialCountries;
@@ -719,15 +785,43 @@ const showOrgIndustry = (rowData: any) => {
     return () => {
       debouncedFetchOptions.cancel();
       debouncedGoToPage.cancel();
-      if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
+      if (bulkTypingTimerRef.current)
+        window.clearTimeout(bulkTypingTimerRef.current);
+    };
+  }, []);
+
+  // --- JOYRIDE EVENT LISTENERS ---
+  useEffect(() => {
+    const openBulk = () => setBulkConfigVisible(true);
+    const openAdd = () => {
+      setBulkConfigVisible(false);
+      setAddMode("bulk");
+      setModalVisible(true);
+    };
+    const closeAll = () => {
+      setBulkConfigVisible(false);
+      setModalVisible(false);
+    };
+
+    window.addEventListener("tour:open-bulk", openBulk);
+    window.addEventListener("tour:open-add", openAdd);
+    window.addEventListener("tour:close-modals", closeAll);
+
+    return () => {
+      window.removeEventListener("tour:open-bulk", openBulk);
+      window.removeEventListener("tour:open-add", openAdd);
+      window.removeEventListener("tour:close-modals", closeAll);
     };
   }, []);
 
   const headerCellClass =
     "bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4";
-  const bodyCellClass = "px-6 py-4 text-sm text-gray-600 border-b border-gray-100";
+  const bodyCellClass =
+    "px-6 py-4 text-sm text-gray-600 border-b border-gray-100";
 
-  const designationSearchValue = String(selectedFilterValue?.Designation || "").trim();
+  const designationSearchValue = String(
+    selectedFilterValue?.Designation || "",
+  ).trim();
   const showDesignationSelectAll = Boolean(designationSearchValue);
   const designationSelectedItemsLabel = selectAllDesignation
     ? "Designation (All)"
@@ -790,7 +884,10 @@ const showOrgIndustry = (rowData: any) => {
       setStartRowIdPage(page);
 
       const cacheKey = `${filtersKey}::${page}`;
-      const hasCache = Object.prototype.hasOwnProperty.call(startIdCacheRef.current, cacheKey);
+      const hasCache = Object.prototype.hasOwnProperty.call(
+        startIdCacheRef.current,
+        cacheKey,
+      );
       if (hasCache) {
         const cached = startIdCacheRef.current[cacheKey] || 0;
         if (reqId === startIdReqRef.current) {
@@ -821,7 +918,7 @@ const showOrgIndustry = (rowData: any) => {
         if (reqId === startIdReqRef.current) setResolvingStartId(false);
       }
     },
-    [filtersKey, minRowIdFromRows, selectedFilters]
+    [filtersKey, minRowIdFromRows, selectedFilters],
   );
 
   const resolveStartRowIdForPageRef = useRef(resolveStartRowIdForPage);
@@ -832,7 +929,7 @@ const showOrgIndustry = (rowData: any) => {
   const debouncedResolveStartRowIdForPage = useRef(
     debounce((page: number) => {
       resolveStartRowIdForPageRef.current(page);
-    }, 450)
+    }, 450),
   ).current;
 
   useEffect(() => {
@@ -862,7 +959,15 @@ const showOrgIndustry = (rowData: any) => {
       setStartRowIdPage(page);
       debouncedResolveStartRowIdForPage(page);
     },
-    [debouncedResolveStartRowIdForPage, entries, filtersKey, invalidateStartIdResolver, loading, minRowIdFromRows, pageNumber]
+    [
+      debouncedResolveStartRowIdForPage,
+      entries,
+      filtersKey,
+      invalidateStartIdResolver,
+      loading,
+      minRowIdFromRows,
+      pageNumber,
+    ],
   );
 
   useEffect(() => {
@@ -906,7 +1011,15 @@ const showOrgIndustry = (rowData: any) => {
 
     const cacheKey = `${filtersKey}::${bulkStartPage}`;
     startIdCacheRef.current[cacheKey] = localId;
-  }, [bulkConfigVisible, bulkStartPage, pageNumber, loading, entries, startRowId, filtersKey]);
+  }, [
+    bulkConfigVisible,
+    bulkStartPage,
+    pageNumber,
+    loading,
+    entries,
+    startRowId,
+    filtersKey,
+  ]);
 
   const handleBulkStartPageChange = (e: any) => {
     setBulkPageTyping(true);
@@ -921,7 +1034,8 @@ const showOrgIndustry = (rowData: any) => {
 
     kickResolveStartId(clamped, true);
 
-    if (bulkTypingTimerRef.current) window.clearTimeout(bulkTypingTimerRef.current);
+    if (bulkTypingTimerRef.current)
+      window.clearTimeout(bulkTypingTimerRef.current);
     bulkTypingTimerRef.current = window.setTimeout(() => {
       setBulkPageTyping(false);
     }, 350);
@@ -991,7 +1105,9 @@ const showOrgIndustry = (rowData: any) => {
           <div className="flex flex-col gap-3 m-5 text-center">
             <p className="flex">
               <i className="pi pi-exclamation-triangle text-yellow-700 p-1 rounded"></i>
-              <span className="text-sm">You have insufficient credits to view this profile(s).</span>
+              <span className="text-sm">
+                You have insufficient credits to view this profile(s).
+              </span>
             </p>
           </div>
 
@@ -1000,7 +1116,10 @@ const showOrgIndustry = (rowData: any) => {
               <button
                 onClick={() => navigate("/subscription")}
                 className="transition-colors flex items-center gap-2 cursor-pointer text-white text-md rounded-xl px-6 py-2.5 shadow-lg"
-                style={{ background: "#F35114", boxShadow: "0 14px 35px rgba(243,81,20,0.25)" }}
+                style={{
+                  background: "#F35114",
+                  boxShadow: "0 14px 35px rgba(243,81,20,0.25)",
+                }}
               >
                 Subscribe Now
               </button>
@@ -1018,7 +1137,9 @@ const showOrgIndustry = (rowData: any) => {
             >
               <i className="pi pi-check text-sm" />
             </div>
-            <div className="text-lg font-extrabold text-gray-900">Added to List</div>
+            <div className="text-lg font-extrabold text-gray-900">
+              Added to List
+            </div>
           </div>
         }
         visible={addResultVisible}
@@ -1030,10 +1151,18 @@ const showOrgIndustry = (rowData: any) => {
         <div className="space-y-4">
           <div
             className="rounded-2xl border p-4"
-            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+            style={{
+              borderColor: "rgba(243,81,20,0.20)",
+              background: "rgba(243,81,20,0.06)",
+            }}
           >
-            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">LIST</div>
-            <div className="mt-1 font-extrabold uppercase" style={{ color: "#F35114" }}>
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">
+              LIST
+            </div>
+            <div
+              className="mt-1 font-extrabold uppercase"
+              style={{ color: "#F35114" }}
+            >
               {addResult?.listName || "-"}
             </div>
           </div>
@@ -1044,7 +1173,9 @@ const showOrgIndustry = (rowData: any) => {
                 <i className="pi pi-check text-sm" />
               </div>
               <div>
-                <div className="text-sm font-semibold text-gray-800">Successfully added</div>
+                <div className="text-sm font-semibold text-gray-800">
+                  Successfully added
+                </div>
                 <div className="text-xs text-gray-500">Contacts inserted</div>
               </div>
             </div>
@@ -1079,7 +1210,10 @@ const showOrgIndustry = (rowData: any) => {
             <button
               onClick={() => setAddResultVisible(false)}
               className="px-8 py-3 rounded-xl text-white font-semibold shadow-lg"
-              style={{ background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
+              style={{
+                background: "#F35114",
+                boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+              }}
             >
               Done
             </button>
@@ -1097,11 +1231,15 @@ const showOrgIndustry = (rowData: any) => {
       >
         <div className="space-y-4">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">PAGE RANGE</div>
+            <div className="text-[11px] text-gray-500 font-semibold tracking-wider">
+              PAGE RANGE
+            </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-4">
+            <div id="tour-page-range" className="mt-3 grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm font-medium text-gray-800">Start page</div>
+                <div className="text-sm font-medium text-gray-800">
+                  Start page
+                </div>
                 <input
                   type="number"
                   min={1}
@@ -1114,7 +1252,9 @@ const showOrgIndustry = (rowData: any) => {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-800">End page</div>
+                <div className="text-sm font-medium text-gray-800">
+                  End page
+                </div>
                 <input
                   type="number"
                   min={bulkStartPage}
@@ -1124,14 +1264,19 @@ const showOrgIndustry = (rowData: any) => {
                   onChange={handleBulkEndPageChange}
                   className="mt-2 w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
-                <div className="text-xs text-gray-400 mt-2">Max {MAX_BULK_PAGES} pages</div>
+                <div className="text-xs text-gray-400 mt-2">
+                  Max {MAX_BULK_PAGES} pages
+                </div>
               </div>
             </div>
           </div>
 
           <div
             className="rounded-2xl border p-4 flex items-center gap-3"
-            style={{ borderColor: "rgba(243,81,20,0.20)", background: "rgba(243,81,20,0.06)" }}
+            style={{
+              borderColor: "rgba(243,81,20,0.20)",
+              background: "rgba(243,81,20,0.06)",
+            }}
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white"
@@ -1192,6 +1337,7 @@ const showOrgIndustry = (rowData: any) => {
               Cancel
             </button>
             <button
+              id="tour-proceed-btn"
               onClick={proceedBulk}
               disabled={
                 bulkPageTyping ||
@@ -1216,9 +1362,13 @@ const showOrgIndustry = (rowData: any) => {
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button
+              id="tour-bulk-add-btn"
               onClick={openAddToList}
               className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
-              style={{ background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.25)" }}
+              style={{
+                background: "#F35114",
+                boxShadow: "0 16px 40px rgba(243,81,20,0.25)",
+              }}
             >
               <List className="w-4 h-4" />
               <span>
@@ -1242,7 +1392,10 @@ const showOrgIndustry = (rowData: any) => {
           <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
             <div
               className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
-              style={{ background: "rgba(243,81,20,0.06)", border: "1px solid rgba(243,81,20,0.20)" }}
+              style={{
+                background: "rgba(243,81,20,0.06)",
+                border: "1px solid rgba(243,81,20,0.20)",
+              }}
             >
               <span className="font-semibold" style={{ color: "#F35114" }}>
                 {totalDataCount?.toLocaleString()}
@@ -1302,7 +1455,7 @@ const showOrgIndustry = (rowData: any) => {
           }
         `}</style>
 
-        <div className="flex items-center gap-4">
+        <div id="tour-filters" className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700 text-sm font-medium whitespace-nowrap">
             <FilterIcon className="w-4 h-4 text-gray-600" />
             <span>Filters:</span>
@@ -1385,7 +1538,6 @@ const showOrgIndustry = (rowData: any) => {
                 onChange={(e) => updateDraft("Designation", e.value)}
                 filter
                 filterTemplate={getFilterTemplate("Designation")}
-              
                 placeholder="Designation"
                 maxSelectedLabels={0}
                 selectedItemsLabel={designationSelectedItemsLabel}
@@ -1418,23 +1570,24 @@ const showOrgIndustry = (rowData: any) => {
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={
-                  (selectedFilterValue["Organization"]?.length || 0) > 0 && (selectedFilterValue["Organization"]?.length || 0) < 3
+                  (selectedFilterValue["Organization"]?.length || 0) > 0 &&
+                  (selectedFilterValue["Organization"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "Organization"
-                    ? "Searching..."
-                    : "No organizations found"
+                      ? "Searching..."
+                      : "No organizations found"
                 }
                 emptyFilterMessage={
-                  (selectedFilterValue["Organization"]?.length || 0) > 0 && (selectedFilterValue["Organization"]?.length || 0) < 3
+                  (selectedFilterValue["Organization"]?.length || 0) > 0 &&
+                  (selectedFilterValue["Organization"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "Organization"
-                    ? "Searching..."
-                    : "No organizations found"
+                      ? "Searching..."
+                      : "No organizations found"
                 }
               />
             </div>
 
-            {/* --- PREMIUM FILTERS: Visible & Searchable, but blocked on selection --- */}
             <div className="relative min-w-[160px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <Layers className="w-4 h-4 text-gray-500" />
@@ -1443,12 +1596,13 @@ const showOrgIndustry = (rowData: any) => {
                 value={draftFilters.orgIndustry || []}
                 options={orgIndustryOptions}
                 onChange={(e) => {
-                  // Intercept the click for free users
                   if (isFree) {
-                    toast.warn("Premium Feature: Subscribe to any plan to select Organization Industries!", { position: "bottom-right" });
-                    return; // This stops the checkbox from actually being checked!
+                    toast.warn(
+                      "Premium Feature: Subscribe to any plan to select Organization Industries!",
+                      { position: "bottom-right" },
+                    );
+                    return;
                   }
-                  // If premium, proceed normally
                   updateDraft("orgIndustry", e.value);
                 }}
                 filter
@@ -1463,18 +1617,20 @@ const showOrgIndustry = (rowData: any) => {
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={
-                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 && (selectedFilterValue["orgIndustry"]?.length || 0) < 3
+                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 &&
+                  (selectedFilterValue["orgIndustry"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "orgIndustry"
-                    ? "Searching..."
-                    : "No industries found"
+                      ? "Searching..."
+                      : "No industries found"
                 }
                 emptyFilterMessage={
-                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 && (selectedFilterValue["orgIndustry"]?.length || 0) < 3
+                  (selectedFilterValue["orgIndustry"]?.length || 0) > 0 &&
+                  (selectedFilterValue["orgIndustry"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "orgIndustry"
-                    ? "Searching..."
-                    : "No industries found"
+                      ? "Searching..."
+                      : "No industries found"
                 }
               />
             </div>
@@ -1487,12 +1643,13 @@ const showOrgIndustry = (rowData: any) => {
                 value={draftFilters.orgSize || []}
                 options={orgSizeOptions}
                 onChange={(e) => {
-                  // Intercept the click for free users
                   if (isFree) {
-                    toast.warn("Premium Feature: Subscribe to any plan to select Organization Sizes!", { position: "bottom-right" });
-                    return; // This stops the checkbox from actually being checked!
+                    toast.warn(
+                      "Premium Feature: Subscribe to any plan to select Organization Sizes!",
+                      { position: "bottom-right" },
+                    );
+                    return;
                   }
-                  // If premium, proceed normally
                   updateDraft("orgSize", e.value);
                 }}
                 filter
@@ -1507,22 +1664,23 @@ const showOrgIndustry = (rowData: any) => {
                 dropdownIcon="pi pi-chevron-down"
                 itemClassName={dropdownItemClass}
                 emptyMessage={
-                  (selectedFilterValue["orgSize"]?.length || 0) > 0 && (selectedFilterValue["orgSize"]?.length || 0) < 3
+                  (selectedFilterValue["orgSize"]?.length || 0) > 0 &&
+                  (selectedFilterValue["orgSize"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "orgSize"
-                    ? "Searching..."
-                    : "No sizes found"
+                      ? "Searching..."
+                      : "No sizes found"
                 }
                 emptyFilterMessage={
-                  (selectedFilterValue["orgSize"]?.length || 0) > 0 && (selectedFilterValue["orgSize"]?.length || 0) < 3
+                  (selectedFilterValue["orgSize"]?.length || 0) > 0 &&
+                  (selectedFilterValue["orgSize"]?.length || 0) < 3
                     ? "Keep typing to search..."
                     : loadingDataKey === "orgSize"
-                    ? "Searching..."
-                    : "No sizes found"
+                      ? "Searching..."
+                      : "No sizes found"
                 }
               />
             </div>
-            {/* --- END PREMIUM FILTERS --- */}
           </div>
 
           <div className="flex items-center gap-3">
@@ -1537,7 +1695,10 @@ const showOrgIndustry = (rowData: any) => {
               style={
                 !isDirtyFilters || loading
                   ? {}
-                  : { background: "#F35114", boxShadow: "0 16px 40px rgba(243,81,20,0.18)" }
+                  : {
+                      background: "#F35114",
+                      boxShadow: "0 16px 40px rgba(243,81,20,0.18)",
+                    }
               }
             >
               {loading ? (
@@ -1652,26 +1813,26 @@ const showOrgIndustry = (rowData: any) => {
                       col.field === "Name"
                         ? showName
                         : col.field === "Designation"
-                        ? showDesignation
-                        : col.field === "Phone"
-                        ? showPhone
-                        : col.field === "Email"
-                        ? showEmail
-                        : col.field === "LinkedIn"
-                        ? showLinkedIn
-                        : col.field === "Organization"
-                        ? showOrganization
-                        : col.field === "Org Industry"
-                        ? showOrgIndustry
-                        : col.field === "Org Size"
-                        ? showOrgSize
-                        : col.field === "City"
-                        ? showCity
-                        : col.field === "State"
-                        ? showState
-                        : col.field === "Country"
-                        ? showCountry
-                        : undefined
+                          ? showDesignation
+                          : col.field === "Phone"
+                            ? showPhone
+                            : col.field === "Email"
+                              ? showEmail
+                              : col.field === "LinkedIn"
+                                ? showLinkedIn
+                                : col.field === "Organization"
+                                  ? showOrganization
+                                  : col.field === "Org Industry"
+                                    ? showOrgIndustry
+                                    : col.field === "Org Size"
+                                      ? showOrgSize
+                                      : col.field === "City"
+                                        ? showCity
+                                        : col.field === "State"
+                                          ? showState
+                                          : col.field === "Country"
+                                            ? showCountry
+                                            : undefined
                     }
                   />
                 ))}
@@ -1684,7 +1845,9 @@ const showOrgIndustry = (rowData: any) => {
           <div className="text-sm text-gray-600 hidden sm:flex gap-1">
             Showing{" "}
             <span style={{ color: "#F35114" }} className="font-semibold">
-              {totalDataCount ? `${showingRange.start}-${showingRange.end}` : "0"}
+              {totalDataCount
+                ? `${showingRange.start}-${showingRange.end}`
+                : "0"}
             </span>{" "}
             of{" "}
             <span style={{ color: "#F35114" }} className="font-semibold">
