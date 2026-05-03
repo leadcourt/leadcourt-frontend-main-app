@@ -5,7 +5,7 @@ import {
   userState,
   creditState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react"; // Removed useCallback
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
@@ -22,21 +22,18 @@ export default function UserLayout() {
   const [runTour, setRunTour] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // Prevent the "User Load" from restarting the tour multiple times
   const tourStartedRef = useRef(false);
-
   const location = useLocation();
   const hideTopbar = ["/subscription"].includes(location.pathname);
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
   useEffect(() => {
-    // Disable smooth scrolling via JS to prevent Joyride calculation loops
+    // Force auto-scrolling to prevent Joyride calculation freezes
     document.documentElement.style.scrollBehavior = "auto";
 
     const localDismissed = localStorage.getItem(`tour_seen_${user?.id}`);
 
-    // Only start if we haven't already attempted to start in this session
     if (
       user?.id &&
       creditInfoValue &&
@@ -46,10 +43,11 @@ export default function UserLayout() {
     ) {
       tourStartedRef.current = true;
       console.log("[TOUR] Triggering Start Sequence...");
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setStepIndex(0);
         setRunTour(true);
       }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [user?.id, creditInfoValue]);
 
@@ -103,7 +101,7 @@ export default function UserLayout() {
   const handleJoyrideCallback = async (data: any) => {
     const { action, index, status, type } = data;
 
-    // CRITICAL: Look for these logs in your browser console!
+    // Use these logs in F12 console to see where the transition stops
     console.log(
       `[TOUR EVENT] Type: ${type} | Index: ${index} | Action: ${action}`,
     );
@@ -129,14 +127,13 @@ export default function UserLayout() {
     if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
-          setStepIndex(1); // Move immediately to Step 2
+          setStepIndex(1);
         } else if (index === 1) {
           window.dispatchEvent(new Event("tour:open-bulk"));
-          // Small delay to let React render the modal
-          setTimeout(() => setStepIndex(2), 100);
+          setTimeout(() => setStepIndex(2), 150);
         } else if (index === 3) {
           window.dispatchEvent(new Event("tour:open-add"));
-          setTimeout(() => setStepIndex(4), 100);
+          setTimeout(() => setStepIndex(4), 150);
         } else if (index === 4) {
           window.dispatchEvent(new Event("tour:close-modals"));
           setStepIndex(5);
@@ -172,19 +169,33 @@ export default function UserLayout() {
             } as any
           }
         />
-        {/* ... Rest of your layout JSX (Sidebar, Topbar, etc.) */}
+
         <div className="hidden lg:block h-screen shrink-0">
           <Sidebar />
         </div>
+
+        {displaySide && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={handleSideBar}
+            />
+            <div className="absolute left-0 top-0 h-full">
+              <Sidebar forceExpanded onRequestClose={handleSideBar} />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {!hideTopbar && (
-            <div className="shrink-0 bg-white border-b-2">
+            <div className="shrink-0 bg-white border-b-gray-100 border-b-2">
               <Topbar
                 onToggleSidebar={handleSideBar}
                 mobileSidebarOpen={displaySide}
               />
             </div>
           )}
+
           <div
             id="tour-support"
             className="flex-1 min-w-0 min-h-0 overflow-y-auto"
@@ -195,5 +206,6 @@ export default function UserLayout() {
       </div>
     );
   }
+
   return user?.verify === false ? <VerifyEmail /> : <Navigate to="/" />;
 }
