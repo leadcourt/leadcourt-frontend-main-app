@@ -6,9 +6,9 @@ import {
   creditState,
   tourStepIndexState,
   tourRunningState,
-  tourHasStartedState, // Ensure this atom exists in your authAtom.ts
+  tourHasStartedState,
 } from "../../utils/atom/authAtom";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useMemo } from "react"; // REMOVED useRef HERE
 import Sidebar from "../../component/Sidebar";
 import Topbar from "../../component/Topbar";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
@@ -23,7 +23,7 @@ export default function UserLayout() {
 
   const [displaySide, setDisplaySide] = useRecoilState(sidebarOpenState);
 
-  // Global Tour State to survive Layout Remounts
+  // Global Tour State
   const [stepIndex, setStepIndex] = useRecoilState(tourStepIndexState);
   const [runTour, setRunTour] = useRecoilState(tourRunningState);
   const [tourHasStarted, setTourHasStarted] =
@@ -34,7 +34,6 @@ export default function UserLayout() {
 
   const handleSideBar = () => setDisplaySide((prev) => !prev);
 
-  // Memoize steps to prevent Joyride from resetting due to reference changes
   const steps: Step[] = useMemo(
     () => [
       {
@@ -92,9 +91,8 @@ export default function UserLayout() {
 
     const startTourSequence = () => {
       const target = document.querySelector("#tour-filters");
-      // Check for target and ensure we haven't already started/locked the session
       if (target && !tourHasStarted && !localDismissed) {
-        setTourHasStarted(true); // LOCK: Prevents resetting to step 0 on remount
+        setTourHasStarted(true);
         setStepIndex(0);
         setRunTour(true);
       }
@@ -131,7 +129,7 @@ export default function UserLayout() {
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunTour(false);
       setStepIndex(0);
-      setTourHasStarted(false); // Reset session lock for next login/trigger
+      setTourHasStarted(false);
       localStorage.setItem(`tour_seen_${user?.id}`, "true");
       window.dispatchEvent(new Event("tour:close-modals"));
       try {
@@ -146,13 +144,11 @@ export default function UserLayout() {
       return;
     }
 
-    // 1. FORCED PROGRESSION: If a target is missing, jump to the next step
     if (type === EVENTS.TARGET_NOT_FOUND) {
       setStepIndex(index + 1);
       return;
     }
 
-    // 2. LOGIC FOR STEP TRANSITIONS
     if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
         if (index === 0) {
