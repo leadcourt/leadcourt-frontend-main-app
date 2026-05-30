@@ -30,7 +30,6 @@ export interface Credit {
   starterRemainingDays?: number;  // Restored for build
   proRemainingDays?: number;      // Restored for build
   isLTD?: boolean;                // Restored for build
-  hasSeenTour?: boolean; 
 }
 
 /**
@@ -55,27 +54,6 @@ const cookieStorage = (keyPrefix = '') => ({
 export const { persistAtom } = recoilPersist({
   key: 'recoil-auth',
   storage: cookieStorage('auth_'),
-});
-
-/**
- * Tour State Atoms
- */
-export const tourStepIndexState = atom<number>({
-  key: 'tourStepIndexState',
-  default: 0,
-  effects_UNSTABLE: [persistAtom],
-});
-
-export const tourRunningState = atom<boolean>({
-  key: 'tourRunningState',
-  default: false,
-  effects_UNSTABLE: [persistAtom],
-});
-
-export const tourHasStartedState = atom<boolean>({
-  key: 'tourHasStartedState',
-  default: false,
-  effects_UNSTABLE: [persistAtom],
 });
 
 /**

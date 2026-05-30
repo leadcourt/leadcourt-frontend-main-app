@@ -144,7 +144,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      id="tour-navigation" // <--- TOUR TARGET STEP 7
       className={`h-screen bg-white border-r border-gray-200 shadow-sm z-40 flex flex-col transition-[width] duration-300 ease-in-out lg:sticky lg:top-0 lg:self-start ${
         expanded ? "w-64" : "w-20"
       } ${className}`}

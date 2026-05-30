@@ -784,44 +784,6 @@ export default function DataTablePage() {
     };
   }, []);
 
-  // --- JOYRIDE EVENT LISTENERS ---
-  useEffect(() => {
-    const openBulk = () => setBulkConfigVisible(true);
-
-    const openAdd = () => {
-      setBulkConfigVisible(false);
-
-      // SAFETY FIX: If the tour forces the modal open,
-      // provide a default payload so the component doesn't crash
-      setBulkPayload((prev: any) => {
-        if (prev) return prev;
-        return {
-          filters: selectedFilters,
-          take: 25,
-          startRowId: entries[0]?.row_id || 1,
-        };
-      });
-
-      setAddMode("bulk");
-      setModalVisible(true);
-    };
-
-    const closeAll = () => {
-      setBulkConfigVisible(false);
-      setModalVisible(false);
-    };
-
-    window.addEventListener("tour:open-bulk", openBulk);
-    window.addEventListener("tour:open-add", openAdd);
-    window.addEventListener("tour:close-modals", closeAll);
-
-    return () => {
-      window.removeEventListener("tour:open-bulk", openBulk);
-      window.removeEventListener("tour:open-add", openAdd);
-      window.removeEventListener("tour:close-modals", closeAll);
-    };
-  }, [selectedFilters, entries]);
-
   const headerCellClass =
     "bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider px-6 py-4";
   const bodyCellClass =
@@ -1260,7 +1222,7 @@ export default function DataTablePage() {
               PAGE RANGE
             </div>
 
-            <div id="tour-page-range" className="mt-3 grid grid-cols-2 gap-4">
+            <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm font-medium text-gray-800">
                   Start page
@@ -1362,7 +1324,6 @@ export default function DataTablePage() {
               Cancel
             </button>
             <button
-              id="tour-proceed-btn"
               onClick={proceedBulk}
               disabled={
                 bulkPageTyping ||
@@ -1387,7 +1348,7 @@ export default function DataTablePage() {
         <div className="flex items-center justify-between gap-4 flex-wrap min-w-0">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             {/* The stable wrapper for the tour step */}
-            <div id="tour-bulk-add-btn" className="inline-block">
+            <div className="inline-block">
               <button
                 onClick={openAddToList}
                 className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-lg transition-all"
@@ -1440,7 +1401,7 @@ export default function DataTablePage() {
           .lc-panel .p-multiselect-filter-container input { min-width: 220px; text-overflow: ellipsis; }
         `}</style>
 
-        <div id="tour-filters" className="mt-6 flex items-center gap-4">
+        <div className="mt-6 flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700 text-sm font-medium whitespace-nowrap">
             <FilterIcon className="w-4 h-4 text-gray-600" />
             <span>Filters:</span>

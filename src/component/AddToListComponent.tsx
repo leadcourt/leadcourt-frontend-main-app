@@ -299,7 +299,7 @@ function AddToListComponent({
   }
 
   return (
-    <div id="tour-list-selection" className="w-full">
+    <div className="w-full">
       <style>{`
         .lc-dd.p-dropdown {
           width: 100%;
@@ -459,7 +459,6 @@ function AddToListComponent({
         </button>
 
         <button
-          id="tour-proceed-btn"
           onClick={submit}
           disabled={!canSubmit}
           className="px-7 py-3 rounded-xl text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
