@@ -2,15 +2,16 @@ import { useRecoilValue } from "recoil";
 import { userState } from "../../utils/atom/authAtom";
 import { useFormik } from "formik";
 import { paymentInIndiaValidation } from "../../utils/validation/validation";
-import { makeSabpaisaPayment } from "../../utils/api/payment";
+import { makeDodoPayment } from "../../utils/api/payment";
 import { toast } from "react-toastify";
 
 interface userData {
   fullName: string;
   email: string;
-  mobile: string;
+  zipcode: string;
   subscriptionType: string;
   amount: string;
+  countryCode?: string;
 }
 
 // interface PaymentInIndiaData {
@@ -26,53 +27,37 @@ const PaymentInIndia = ({ paymentData }: any) => {
   const initialValues = {
     fullName: user?.name || "",
     email: user?.email || "",
-    mobile: "",
+    zipcode: "",
     subscriptionType: paymentData?.subscriptionType,
     amount: paymentData?.amount || 0,
+    countryCode: paymentData?.countryCode || "",
   };
 
   const onSubmit = async (values: userData) => {
     const payload = {
       amount: values.amount,
-      mobile: values.mobile,
       subscriptionType: values.subscriptionType,
+      zipcode: values.zipcode,
+      countryCode: values.countryCode || paymentData?.countryCode || "",
     };
-    await makeSabpaisaPayment(payload).then((res) => {
-      if (res?.data?.success) {
-        const URL = res.data.formData.spURL;
-        const sabpaisaPayload = {
-          encData: res.data.formData.encData,
-          clientCode: res.data.formData.clientCode,
-        };
-
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = URL;
-
-        const encInput = document.createElement("input");
-        encInput.type = "hidden";
-        encInput.name = "encData";
-        encInput.value = sabpaisaPayload.encData;
-
-        const codeInput = document.createElement("input");
-        codeInput.type = "hidden";
-        codeInput.name = "clientCode";
-        codeInput.value = sabpaisaPayload.clientCode;
-
-        form.appendChild(encInput);
-        form.appendChild(codeInput);
-        document.body.appendChild(form);
-        form.submit();
-
-        //  postSabpaisaEncData(URL, sabpaisaPayload).then((sabRes) => {
-        //   console.log(sabRes.data);
-
-        // })
+    try {
+      const res = await makeDodoPayment(payload);
+      if (res?.data?.success && res.data.checkout_url) {
+        // Instantly redirect customer to Dodo Payments Checkout page
+        window.location.href = res.data.checkout_url;
       } else {
         toast.error("Payment failed, please try again!");
-        console.error("Payment failed", res.data);
+        console.error("Payment initiation failed", res.data);
       }
-    });
+    } catch (error) {
+      console.error("Dodo checkout error:", error);
+      const responseError =
+        (error as any)?.response?.data?.error ||
+        (error as any)?.response?.data?.details?.error ||
+        (error as any)?.message ||
+        "Payment connection failed. Please try again.";
+      toast.error(responseError);
+    }
   };
 
   const {
@@ -106,7 +91,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
                   htmlFor="subscriptionType"
                   className="text-xs text-gray-900"
                 >
-                  Subscription Type <i className="text-red-400">*</i>
+                  Plan Type <i className="text-red-400">*</i>
                 </label>
                 <input
                   name="subscriptionType"
@@ -252,28 +237,8 @@ const PaymentInIndia = ({ paymentData }: any) => {
                 )}
               </div>
 
-              <div className="">
-                <label
-                  htmlFor="subscriptionType"
-                  className="text-xs text-gray-900"
-                >
-                  Phone Number <i className="text-red-400">*</i>
-                </label>
+              <input name="countryCode" value={values.countryCode} type="hidden" />
 
-                <input
-                  name="mobile"
-                  value={values.mobile}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  type="text"
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
-                  placeholder="Phone Number"
-                />
-
-                {errors.mobile && touched.mobile && (
-                  <p className="error text-sm text-red-400">{errors.mobile}</p>
-                )}
-              </div>
             </fieldset>
 
             <button

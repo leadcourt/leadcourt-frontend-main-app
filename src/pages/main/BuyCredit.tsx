@@ -20,12 +20,14 @@ import { toast } from "react-toastify";
 import { redeemCoupon } from "../../utils/api/LTDCoupons";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
+import { getLocation } from "../../utils/api/location";
 
 interface PaymentPlanType {
   userId: string | undefined;
   plan: string;
   amount: number;
   credit: number;
+  durationMonths?: number;
 }
 
 interface PaymentInIndiaData {
@@ -33,6 +35,7 @@ interface PaymentInIndiaData {
   display: boolean;
   amount: number;
   subscriptionType: string;
+  countryCode: string;
 }
 
 type CouponSuccess = {
@@ -48,7 +51,6 @@ const BuyCredit = () => {
   const credit = useRecoilValue(creditState);
   const setCreditInfo = useSetRecoilState(creditState);
 
-  const [location, setLocation] = useState<string>("");
   const [annualSub, setAnnualSub] = useState<boolean>(false);
   const [creditAmount, setCreditAmount] = useState<number>(10000);
   const [visible, setVisible] = useState(false);
@@ -61,12 +63,15 @@ const BuyCredit = () => {
     display: false,
     amount: 0,
     subscriptionType: "",
+    countryCode: "",
   });
 
+  const [location, setLocation] = useState<string>("");
+
   const [countryCurrency, setCountryCurrency] = useState({
-    rate: 1,
-    currency: "usd",
-    symbol: "$",
+    rate: 83.5,
+    currency: "inr",
+    symbol: "₹",
   });
 
   const [urlSearchParams] = useSearchParams();
@@ -82,48 +87,46 @@ const BuyCredit = () => {
     return Math.round((credits / 1000) * (countryCurrency.rate * 10));
   };
 
+  const getPlanPrice = (planItem: any, isAnnual: boolean): number => {
+    return isAnnual
+      ? Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate * 12 * 0.8)
+      : parseInt(planItem.dollar_amount) * countryCurrency.rate;
+  };
+
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
-    if (location?.toUpperCase() === "IN") {
-      setIndiaPayment({
-        location: "IN",
-        display: true,
-        amount: planType.amount,
-        subscriptionType: planType.plan,
-      });
-    } else {
-      setVisible(true);
-      setPaymentPlan(planType);
-    }
+    // Always use Dodo Payments flow globally
+    setPaymentPlan(planType);
+    setIndiaPayment({
+      location: "IN",
+      display: true,
+      amount: planType.amount,
+      subscriptionType: planType.plan,
+      countryCode: location || "IN",
+    });
   };
 
   const displayDialog = (info: string) => setOptions(info);
 
   const checkLocation = async () => {
     try {
-      // 1. Detect Location
-      const locResponse = await fetch("https://ipapi.co/json/");
-      const locData = await locResponse.json();
-      const isIndia = locData.country === "IN" || locData.country_name?.toUpperCase() === "INDIA";
-      
-      // 2. Fetch Live Exchange Rate
-      let liveRate = 1;
-      if (isIndia) {
-        const rateResponse = await fetch("https://open.er-api.com/v6/latest/USD");
-        const rateData = await rateResponse.json();
-        liveRate = rateData.rates.INR || 83.5; // Fallback to 83.5 if API fails
-      }
+      const res = await getLocation();
+      const countryCode = res?.data?.country;
+      const isIndia = countryCode === "IN";
+      setLocation(countryCode);
 
-      setLocation(locData.country);
+      // Avoid external rate calls in browser (often blocked by extensions). Use INR-friendly default.
+      const liveRate = isIndia ? 83.5 : 1;
+
       setCountryCurrency({
         rate: liveRate,
         currency: isIndia ? "inr" : "usd",
         symbol: isIndia ? "₹" : "$",
       });
 
-      console.log(`📍 Location: ${locData.country_name} | 💹 Rate: ${liveRate}`);
+      console.log(`📍 Location: ${countryCode} | 💹 Rate: ${liveRate}`);
     } catch (error) {
-      console.error("❌ Location/Rate API failed. Defaulting to USD.", error);
-      setCountryCurrency({ rate: 1, currency: "usd", symbol: "$" });
+      console.error("❌ Location API failed. Defaulting to INR.", error);
+      setCountryCurrency({ rate: 83.5, currency: "inr", symbol: "₹" });
     }
   };
 
@@ -243,6 +246,7 @@ const BuyCredit = () => {
             display: false,
             amount: 0,
             subscriptionType: "",
+            countryCode: "",
           });
         }}
       >
@@ -332,7 +336,7 @@ const BuyCredit = () => {
 
       {/* MAIN CONTENT */}
       <div className="lc-container">
-        
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
            
            <div>
@@ -382,9 +386,7 @@ const BuyCredit = () => {
         <div className="pricing-grid">
           {planData.map((planItem, index) => {
             const isFeatured = planItem.name === "Pro";
-            const currentPrice = annualSub
-              ? Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate * 12 * 0.8)
-              : Math.round(parseInt(planItem.dollar_amount) * countryCurrency.rate);
+            const currentPrice = getPlanPrice(planItem, annualSub);
 
             return (
               <div key={index} className={`pricing-card ${isFeatured ? "featured" : ""}`}>
@@ -425,7 +427,7 @@ const BuyCredit = () => {
                       ? handlePaymentPlan({
                           userId: user?.id,
                           plan: (planItem.name + "_annual").toUpperCase(),
-                          credit: planItem.credits,
+                          credit: planItem.credits * 12,
                           amount: currentPrice,
                         })
                       : handlePaymentPlan({
@@ -449,12 +451,11 @@ const BuyCredit = () => {
              <p className="text-xs text-gray-500 mb-6 flex-grow">Our enterprise plans offer custom solutions tailored to your specific requirements.</p>
              
              <ul className="features-list mb-6">
-               {/* Removed pi-check icon to prevent double-ticks from CSS icons */}
-               <li className="text-sm text-gray-600 flex items-center gap-3">Unlimited credits</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3">Custom integrations</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3">SLA guarantee</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3">Dedicated manager</li>
-               <li className="text-sm text-gray-600 flex items-center gap-3">Priority onboarding</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Unlimited credits</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Custom integrations</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> SLA guarantee</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Dedicated manager</li>
+               <li className="text-sm text-gray-600 flex items-center gap-3"><i className="pi pi-check text-[#f34f14] text-xs"></i> Priority onboarding</li>
              </ul>
              
              <button onClick={() => displayDialog("Support")} className="w-full py-3.5 border-2 border-[#f34f14] text-[#f34f14] rounded-xl font-bold hover:bg-orange-50 transition-colors mt-auto">
@@ -468,27 +469,27 @@ const BuyCredit = () => {
            
            <div className="lg:col-span-2 border border-red-200 rounded-2xl bg-white p-6 md:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
              <div className="mb-10">
-               <h3 className="text-xl font-extrabold text-gray-900 mb-2">Custom Credit Purchase</h3>
-               <p className="text-sm text-gray-500">Need a specific amount of credits? Use the slider to select exactly how many credits you want.</p>
+                <h3 className="text-xl font-extrabold text-gray-900 mb-2">Custom Credit Purchase</h3>
+                <p className="text-sm text-gray-500">Need a specific amount of credits? Use the slider to select exactly how many credits you want.</p>
              </div>
 
              <div className="w-full relative z-10 mb-8">
-                <div className="flex justify-between text-xs font-semibold text-gray-400 mb-4">
-                  <span>1,000 credits</span>
-                  <span>50,000 credits</span>
-                </div>
-                
-                <input
-                  type="range"
-                  min="1000"
-                  max="50000"
-                  step="1000"
-                  value={creditAmount}
-                  onChange={(e) => setCreditAmount(parseInt(e.target.value))}
-                  style={{
-                    background: `linear-gradient(to right, #f34f14 ${(creditAmount - 1000) / 49000 * 100}%, #e5e7eb ${(creditAmount - 1000) / 49000 * 100}%)`
-                  }}
-                />
+                 <div className="flex justify-between text-xs font-semibold text-gray-400 mb-4">
+                   <span>1,000 credits</span>
+                   <span>50,000 credits</span>
+                 </div>
+
+                 <input
+                   type="range"
+                   min="1000"
+                   max="50000"
+                   step="1000"
+                   value={creditAmount}
+                   onChange={(e) => setCreditAmount(parseInt(e.target.value))}
+                   style={{
+                     background: `linear-gradient(to right, #f34f14 ${(creditAmount - 1000) / 49000 * 100}%, #e5e7eb ${(creditAmount - 1000) / 49000 * 100}%)`
+                   }}
+                 />
              </div>
 
              <div className="grid grid-cols-2 gap-4 mb-8">
@@ -523,25 +524,25 @@ const BuyCredit = () => {
                  <ul className="space-y-5">
                     <li className="flex justify-between items-start">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        Never expire
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Never expire
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">Credits roll over forever</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        Flexible volume
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Flexible volume
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">1,000 to 50,000 at once</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        Pay as you go
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Pay as you go
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">No recurring commitment</span>
                     </li>
                     <li className="flex justify-between items-start border-t border-gray-200 pt-4">
                       <div className="flex gap-3 items-center text-gray-900 font-bold text-sm">
-                        Best rate at 10k+
+                        <i className="pi pi-check text-[#f34f14] text-xs"></i> Best rate at 10k+
                       </div>
                       <span className="text-gray-500 text-xs text-right mt-0.5">{countryCurrency.symbol}{(calculatePrice(10000) / 10000).toFixed(2)} per credit</span>
                     </li>
@@ -549,12 +550,12 @@ const BuyCredit = () => {
               </div>
               <div className="bg-[#f34f14] p-5 text-white flex justify-between items-end">
                  <div>
-                   <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">Current selection</div>
-                   <div className="font-extrabold text-lg">{creditAmount.toLocaleString()} credits</div>
-                 </div>
-                 <div className="text-right">
-                   <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">You pay</div>
-                   <div className="font-extrabold text-2xl leading-none tracking-tight">{countryCurrency.symbol}{calculatePrice(creditAmount).toLocaleString()}</div>
+                    <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">Current selection</div>
+                    <div className="font-extrabold text-lg">{creditAmount.toLocaleString()} credits</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider opacity-80 mb-1 font-semibold">You pay</div>
+                    <div className="font-extrabold text-2xl leading-none tracking-tight">{countryCurrency.symbol}{calculatePrice(creditAmount).toLocaleString()}</div>
                  </div>
               </div>
            </div>

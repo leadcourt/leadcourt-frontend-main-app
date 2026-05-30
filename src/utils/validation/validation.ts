@@ -75,7 +75,14 @@ const paymentInIndiaValidation = yup.object().shape({
   
   fullName: yup.string().required("First name is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
-  mobile: yup.string().required("Mobile number is required"),
+  zipcode: yup
+    .string()
+    .trim()
+    .notRequired()
+    .matches(/^[0-9]{4,10}$/, {
+      message: "Enter a valid pincode or zip code",
+      excludeEmptyString: true,
+    }),
   subscriptionType: yup.string().required("Subscription type is required"),
   amount: yup.number().required("Amount is required"), 
 })

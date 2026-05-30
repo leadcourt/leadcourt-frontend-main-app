@@ -149,9 +149,9 @@ const LeadCourtCredits2 = () => {
 
           <div className="mb-10">
             <div className="mb-5">
-              <h3 className="text-xl font-bold">Choose a plan</h3>
+              <h3 className="text-xl font-bold">Buy Top Up</h3>
               <p className="text-sm text-gray-400">
-                Choose the perfect plan for your business needs.
+                Choose the top-up amount that fits your needs.
               </p>
             </div>
 
@@ -162,8 +162,8 @@ const LeadCourtCredits2 = () => {
                 Need more leads for your business?
               </h3>
               <p className="text-sm ">
-                Our enterprise plans offer custom solutions tailored to your
-                specific requirements..
+                Our enterprise top-ups offer custom solutions tailored to your
+                specific requirements.
               </p>
               </div>
               <button
@@ -172,10 +172,10 @@ const LeadCourtCredits2 = () => {
             </div>
           </div>
 
-          {/* Subscription Plans Section */}
+          {/* Top Up Options */}
           <section className="mb-10">
             <div className="grid md:grid-cols-3 gap-6">
-              {/* Starter Plan */}
+              {/* Starter Top Up */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200  hover:border-orange-200 p-1 flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all">
                 <div className="bg-gradient-to-b from-[#f34f146c] to-amber-50 rounded-xl p-5 mb-5">
                   <h3 className="text-xl font-bold mb-2">Starter</h3>
@@ -184,7 +184,7 @@ const LeadCourtCredits2 = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-                  {countryCurrency.symbol}{convertStaticPrice(20).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(20).toLocaleString()}
                 </div>
                 <ul className="mb-6 px-5 flex-grow">
 
@@ -255,7 +255,7 @@ const LeadCourtCredits2 = () => {
                 </button>
               </div>
 
-              {/* Pro Plan (Most Popular) */}
+              {/* Pro Top Up (Most Popular) */}
               <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 hover:border-orange-200 flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all relative">
                 <div className="absolute -top-0 right-8 bg-orange-500 text-white text-xs font-semibold py-1 px-4 rounded-b-lg">
                   Most Popular
@@ -265,7 +265,7 @@ const LeadCourtCredits2 = () => {
                   <p className="text-gray-600 mb-4">Ideal for growing teams</p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5">
-                  {countryCurrency.symbol}{convertStaticPrice(60).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(60).toLocaleString()}
                 </div>
                 <ul className="p-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
@@ -352,7 +352,7 @@ const LeadCourtCredits2 = () => {
                 </button>
               </div>
 
-              {/* Business Plan */}
+              {/* Business Top Up */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:border-orange-200 p-1 flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all">
                 <div className="bg-gradient-to-b from-[#f34f146c] to-amber-50 rounded-xl p-5 mb-5">
                   <h3 className="text-xl font-bold mb-2">Business</h3>
@@ -361,7 +361,7 @@ const LeadCourtCredits2 = () => {
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-orange-500 px-5 mb-4">
-                  {countryCurrency.symbol}{convertStaticPrice(100).toLocaleString()}<span className="text-lg text-gray-500">/mo</span>
+                  {countryCurrency.symbol}{convertStaticPrice(100).toLocaleString()}
                 </div>
                 <ul className="px-5 mb-6 flex-grow">
                   <li className="flex items-center mb-3">
