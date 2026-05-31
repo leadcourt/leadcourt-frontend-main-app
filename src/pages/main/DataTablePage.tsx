@@ -1347,7 +1347,6 @@ export default function DataTablePage() {
       <div className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex items-center justify-between gap-4 flex-wrap min-w-0">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
-            {/* The stable wrapper for the tour step */}
             <div className="inline-block">
               <button
                 onClick={openAddToList}
@@ -1374,6 +1373,20 @@ export default function DataTablePage() {
                 placeholder="Search leads by name, company, or role..."
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
+            </div>
+          </div>
+          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+            <div
+              className="px-4 py-2 rounded-xl text-gray-700 text-xs sm:text-sm font-medium whitespace-nowrap"
+              style={{
+                background: "rgba(243,81,20,0.06)",
+                border: "1px solid rgba(243,81,20,0.20)",
+              }}
+            >
+              <span className="font-semibold" style={{ color: "#F35114" }}>
+                {totalDataCount?.toLocaleString()}
+              </span>{" "}
+              people
             </div>
           </div>
         </div>
