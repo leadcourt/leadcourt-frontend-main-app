@@ -79,7 +79,7 @@ const paymentInIndiaValidation = yup.object().shape({
     .string()
     .trim()
     .notRequired()
-    .matches(/^[0-9]{4,10}$/, {
+    .matches(/^[a-zA-Z0-9\s-]{3,12}$/, {
       message: "Enter a valid pincode or zip code",
       excludeEmptyString: true,
     }),

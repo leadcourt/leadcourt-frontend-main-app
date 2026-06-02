@@ -11,6 +11,7 @@ interface userData {
   zipcode: string;
   subscriptionType: string;
   amount: string;
+  customCredits?: number;
   countryCode?: string;
 }
 
@@ -23,22 +24,27 @@ interface userData {
 
 const PaymentInIndia = ({ paymentData }: any) => {
   const user = useRecoilValue(userState);
+  const checkoutCountryCode = String(paymentData?.countryCode || "US").toUpperCase();
+  const checkoutZipcode = checkoutCountryCode === "IN" ? "560001" : "";
 
   const initialValues = {
     fullName: user?.name || "",
     email: user?.email || "",
-    zipcode: "",
+    zipcode: checkoutZipcode,
     subscriptionType: paymentData?.subscriptionType,
     amount: paymentData?.amount || 0,
-    countryCode: paymentData?.countryCode || "",
+    customCredits: paymentData?.customCredits,
+    countryCode: checkoutCountryCode,
   };
 
   const onSubmit = async (values: userData) => {
+    const normalizedCountryCode = String(values.countryCode || paymentData?.countryCode || "US").toUpperCase();
     const payload = {
       amount: values.amount,
       subscriptionType: values.subscriptionType,
-      zipcode: values.zipcode,
-      countryCode: values.countryCode || paymentData?.countryCode || "",
+      customCredits: values.customCredits,
+      zipcode: values.zipcode || (normalizedCountryCode === "IN" ? "560001" : ""),
+      countryCode: normalizedCountryCode,
     };
     try {
       const res = await makeDodoPayment(payload);
@@ -69,6 +75,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
     handleBlur,
     handleChange,
     handleSubmit,
+    setFieldValue,
   } = useFormik({
     validateOnMount: true,
     initialValues: initialValues,
@@ -99,8 +106,8 @@ const PaymentInIndia = ({ paymentData }: any) => {
                   onBlur={handleBlur}
                   type="text"
                   disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
-                  placeholder="First Name"
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-gray-50 text-gray-500"
+                  placeholder="Plan Type"
                 />
                 {errors.subscriptionType &&
                   typeof errors.subscriptionType === "string" &&
@@ -112,7 +119,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
               </div>
               <div className="">
                 <label
-                  htmlFor="subscriptionType"
+                  htmlFor="amount"
                   className="text-xs text-gray-900"
                 >
                   Amount <i className="text-red-400">*</i>
@@ -120,11 +127,10 @@ const PaymentInIndia = ({ paymentData }: any) => {
                 <input
                   name="amount"
                   value={values.amount}
-                  // onChange={handleChange}
                   onBlur={handleBlur}
                   type="text"
                   disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-gray-50 text-gray-500"
                 />
 
                 {errors?.amount &&
@@ -142,7 +148,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
 
               <div className="col-span-2">
                 <label
-                  htmlFor="subscriptionType"
+                  htmlFor="fullName"
                   className="text-xs text-gray-900"
                 >
                   Full Name <i className="text-red-400">*</i>
@@ -154,7 +160,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
                   onBlur={handleBlur}
                   type="text"
                   disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-gray-50 text-gray-500"
                 />
 
                 {errors.fullName && touched.fullName && (
@@ -163,59 +169,10 @@ const PaymentInIndia = ({ paymentData }: any) => {
                   </p>
                 )}
               </div>
-              {/* <div className="">
-                <label
-                  htmlFor="subscriptionType"
-                  className="text-xs text-gray-900"
-                >
-                  First Name <i className="text-red-400">*</i>
-                </label>
-
-                <input
-                  name="firstName"
-                  value={values.firstName}
-                  onBlur={handleBlur}
-                  type="text"
-                  disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
-                />
-
-                {errors.firstName && touched.firstName && (
-                  <p className="error text-sm text-red-400">
-                    {errors.firstName}
-                  </p>
-                )}
-              </div>
 
               <div className="">
                 <label
-                  htmlFor="subscriptionType"
-                  className="text-xs text-gray-900"
-                >
-                  Last Name <i className="text-red-400">*</i>
-                </label>
-
-                <input
-                  name="lastName"
-                  value={values.lastName}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  type="text"
-                  disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
-                  placeholder="Last Name"
-                />
-
-                {errors.lastName && touched.lastName && (
-                  <p className="error text-sm text-red-400">
-                    {errors.lastName}
-                  </p>
-                )}
-              </div> */}
-
-              <div className="">
-                <label
-                  htmlFor="subscriptionType"
+                  htmlFor="email"
                   className="text-xs text-gray-900"
                 >
                   Email <i className="text-red-400">*</i>
@@ -228,7 +185,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
                   onBlur={handleBlur}
                   type="text"
                   disabled
-                  className="border border-gray-400 w-full rounded-lg p-2 text-sm "
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-gray-50 text-gray-500"
                   placeholder="Email"
                 />
 
@@ -237,8 +194,75 @@ const PaymentInIndia = ({ paymentData }: any) => {
                 )}
               </div>
 
-              <input name="countryCode" value={values.countryCode} type="hidden" />
+              {/* Billing Country Dropdown */}
+              <div className="">
+                <label
+                  htmlFor="countryCode"
+                  className="text-xs text-gray-900"
+                >
+                  Billing Country <i className="text-red-400">*</i>
+                </label>
+                <select
+                  name="countryCode"
+                  value={values.countryCode}
+                  onChange={(e) => {
+                    const selectedCountry = e.target.value;
+                    setFieldValue("countryCode", selectedCountry);
+                    // Update Zipcode automatically based on country selection
+                    if (selectedCountry === "IN") {
+                      setFieldValue("zipcode", "560001");
+                    } else {
+                      setFieldValue("zipcode", "");
+                    }
+                  }}
+                  onBlur={handleBlur}
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#f34f14]"
+                >
+                  <option value="US">🇺🇸 United States (US)</option>
+                  <option value="IN">🇮🇳 India (IN)</option>
+                  <option value="CN">🇨🇳 China (CN)</option>
+                  <option value="GB">🇬🇧 United Kingdom (GB)</option>
+                  <option value="CA">🇨🇦 Canada (CA)</option>
+                  <option value="AU">🇦🇺 Australia (AU)</option>
+                  <option value="DE">🇩🇪 Germany (DE)</option>
+                  <option value="FR">🇫🇷 France (FR)</option>
+                  <option value="JP">🇯🇵 Japan (JP)</option>
+                  <option value="AE">🇦🇪 United Arab Emirates (AE)</option>
+                  <option value="SG">🇸🇬 Singapore (SG)</option>
+                  <option value="ZA">🇿🇦 South Africa (ZA)</option>
+                  <option value="BR">🇧🇷 Brazil (BR)</option>
+                  <option value="MX">🇲🇽 Mexico (MX)</option>
+                  <option value="NL">🇳🇱 Netherlands (NL)</option>
+                  <option value="ES">🇪🇸 Spain (ES)</option>
+                  <option value="IT">🇮🇹 Italy (IT)</option>
+                  <option value="SA">🇸🇦 Saudi Arabia (SA)</option>
+                </select>
+                {errors.countryCode && touched.countryCode && (
+                  <p className="error text-sm text-red-400">{errors.countryCode}</p>
+                )}
+              </div>
 
+              {/* Zip / Postal Code Input */}
+              <div className="col-span-2">
+                <label
+                  htmlFor="zipcode"
+                  className="text-xs text-gray-900"
+                >
+                  Zip / Postal Code <i className="text-red-400">*</i>
+                </label>
+                <input
+                  name="zipcode"
+                  value={values.zipcode}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  type="text"
+                  placeholder={values.countryCode === "IN" ? "e.g. 560001" : "e.g. 90210"}
+                  className="border border-gray-400 w-full rounded-lg p-2 text-sm bg-white text-gray-800"
+                />
+                {errors.zipcode && touched.zipcode && (
+                  <p className="error text-sm text-red-400">{errors.zipcode}</p>
+                )}
+              </div>
             </fieldset>
 
             <button

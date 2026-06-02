@@ -19,6 +19,7 @@ interface PaymentInIndiaData {
   display : boolean;
   amount: number,
   subscriptionType: string,
+  customCredits?: number,
 }
 
 const LeadCourtCredits2 = () => {
@@ -30,7 +31,7 @@ const LeadCourtCredits2 = () => {
   const [options, setOptions] = useState<string>();
   const [location, setLocation] = useState<string>('')
 
-  // NEW: State to hold the live rate and symbol
+  // Checkout prices remain fixed in USD for every country.
   const [countryCurrency, setCountryCurrency] = useState({
     rate: 1,
     currency: "usd",
@@ -42,14 +43,15 @@ const LeadCourtCredits2 = () => {
     display : false,
     amount: 0,
     subscriptionType: '',
+    customCredits: undefined,
   })
 
-  // Calculate price based on credits (at $10 per 1000 credits) multiplied by live rate
+  // Calculate price based on credits at $10 per 1000 credits.
   const calculatePrice = (credits: number): number => {
     return Math.round((credits / 1000) * (10 * countryCurrency.rate));
   };
 
-  // Helper to convert the static $20, $60, $100 amounts based on live rate
+  // Static plan prices remain in USD.
   const convertStaticPrice = (usdAmount: number): number => {
     return Math.round(usdAmount * countryCurrency.rate);
   }
@@ -68,6 +70,7 @@ const LeadCourtCredits2 = () => {
         display: true,
         amount: planType.amount,
         subscriptionType: planType.plan,
+        customCredits: planType.plan === "CUSTOM" ? planType.credit : undefined,
       }
       setIndiaPayment(setIndiaPay)
     } else {
@@ -87,19 +90,12 @@ const LeadCourtCredits2 = () => {
       const countryCode = res?.data?.country;
       setLocation(countryCode);
 
-      // If India, fetch the latest exchange rate
-      if (countryCode === "IN") {
-        const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
-        const rateData = await rateRes.json();
-        const liveRate = rateData.rates.INR || 83.5; // fallback to 83.5 if API fails
-        
-        setCountryCurrency({
-          rate: liveRate,
-          currency: "inr",
-          symbol: "₹",
-        });
-        console.log('💹 Live INR Rate fetched:', liveRate);
-      }
+      setCountryCurrency({
+        rate: 1,
+        currency: "usd",
+        symbol: "$",
+      });
+      console.log(`📍 Location: ${countryCode} | Checkout currency: USD`);
     } catch (error) {
       console.error('❌ Failed to fetch location or rates', error);
     }
@@ -137,7 +133,8 @@ const LeadCourtCredits2 = () => {
             if (!indiaPayment.display && indiaPayment.location === 'IN') return;
             setIndiaPayment({location: '', display: false, 
         amount: 0,
-        subscriptionType: '',});
+        subscriptionType: '',
+        customCredits: undefined,});
           }}
         > 
           <PaymentInIndia paymentData={indiaPayment}/>

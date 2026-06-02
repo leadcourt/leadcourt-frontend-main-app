@@ -35,6 +35,7 @@ interface PaymentInIndiaData {
   display: boolean;
   amount: number;
   subscriptionType: string;
+  customCredits?: number;
   countryCode: string;
 }
 
@@ -63,15 +64,16 @@ const BuyCredit = () => {
     display: false,
     amount: 0,
     subscriptionType: "",
+    customCredits: undefined,
     countryCode: "",
   });
 
   const [location, setLocation] = useState<string>("");
 
   const [countryCurrency, setCountryCurrency] = useState({
-    rate: 83.5,
-    currency: "inr",
-    symbol: "₹",
+    rate: 1,
+    currency: "usd",
+    symbol: "$",
   });
 
   const [urlSearchParams] = useSearchParams();
@@ -83,7 +85,7 @@ const BuyCredit = () => {
   };
 
   const calculatePrice = (credits: number): number => {
-    // Uses the live rate fetched during location check
+    // Checkout prices remain fixed in USD for every country.
     return Math.round((credits / 1000) * (countryCurrency.rate * 10));
   };
 
@@ -94,14 +96,17 @@ const BuyCredit = () => {
   };
 
   const handlePaymentPlan = async (planType: PaymentPlanType) => {
+    const checkoutCountryCode = (location || "US").toUpperCase();
+
     // Always use Dodo Payments flow globally
     setPaymentPlan(planType);
     setIndiaPayment({
-      location: "IN",
+      location: checkoutCountryCode,
       display: true,
       amount: planType.amount,
       subscriptionType: planType.plan,
-      countryCode: location || "IN",
+      customCredits: planType.plan === "CUSTOM" ? planType.credit : undefined,
+      countryCode: checkoutCountryCode,
     });
   };
 
@@ -110,23 +115,20 @@ const BuyCredit = () => {
   const checkLocation = async () => {
     try {
       const res = await getLocation();
-      const countryCode = res?.data?.country;
-      const isIndia = countryCode === "IN";
+      const countryCode = String(res?.data?.country || "US").toUpperCase();
       setLocation(countryCode);
 
-      // Avoid external rate calls in browser (often blocked by extensions). Use INR-friendly default.
-      const liveRate = isIndia ? 83.5 : 1;
-
       setCountryCurrency({
-        rate: liveRate,
-        currency: isIndia ? "inr" : "usd",
-        symbol: isIndia ? "₹" : "$",
+        rate: 1,
+        currency: "usd",
+        symbol: "$",
       });
 
-      console.log(`📍 Location: ${countryCode} | 💹 Rate: ${liveRate}`);
+      console.log(`📍 Location: ${countryCode} | Checkout currency: USD`);
     } catch (error) {
-      console.error("❌ Location API failed. Defaulting to INR.", error);
-      setCountryCurrency({ rate: 83.5, currency: "inr", symbol: "₹" });
+      console.error("❌ Location API failed. Defaulting to USD.", error);
+      setLocation("US");
+      setCountryCurrency({ rate: 1, currency: "usd", symbol: "$" });
     }
   };
 
@@ -237,15 +239,16 @@ const BuyCredit = () => {
 
       <Dialog
         header="Payment"
-        visible={indiaPayment.display && indiaPayment.location === "IN"}
+        visible={indiaPayment.display}
         style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
         onHide={() => {
-          if (!indiaPayment.display && indiaPayment.location === "IN") return;
+          if (!indiaPayment.display) return;
           setIndiaPayment({
             location: "",
             display: false,
             amount: 0,
             subscriptionType: "",
+            customCredits: undefined,
             countryCode: "",
           });
         }}
@@ -402,9 +405,9 @@ const BuyCredit = () => {
 
                 <div className="price-section">
                   <div className="price">
+                    <span className="currency">USD</span>
                     <span className="currency">{countryCurrency.symbol}</span>
                     <span className="amount">{currentPrice.toLocaleString()}</span>
-                    <span className="period">{annualSub ? "/yr" : "/mo"}</span>
                   </div>
                 </div>
 
