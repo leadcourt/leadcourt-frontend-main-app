@@ -27,7 +27,6 @@ import Collab_ListDetailPage from '../pages/collaboratorMain/ListDetailPage';
 import Collab_Integrations from '../pages/collaboratorMain/Integrations';
 import Collab_IntegrationCallback from '../pages/collaboratorMain/IntegrationCallback';
 import VerifyEmail from '../pages/auth/VerifyEmail';
-import AuthLayout from './layouts/AuthLayout';
 import IntegrationZohoCallback from '../pages/main/IntegrationZohoCallback';
 import LinkedIn from '../pages/main/LinkedIn';
 const router = createBrowserRouter([
