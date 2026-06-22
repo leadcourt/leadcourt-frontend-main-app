@@ -1,6 +1,7 @@
 import * as yup from "yup";
 
 const passwordRule = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{5,}$/;
+const registerPasswordRule = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
 
 const registerUserValidation = yup
   .object()
@@ -12,11 +13,11 @@ const registerUserValidation = yup
       .required("Email is Required"),
     password: yup
       .string()
-      .min(5)
+      .min(5, "Password must be at least 5 characters")
       .max(25)
       .matches(
-        passwordRule,
-        "Password must contain at least one number, one lowercase letter, and one uppercase letter"
+        registerPasswordRule,
+        "Password must contain at least one number, one lowercase letter, one uppercase letter, and one special character"
       )
       .required("Password is Required"),
     password2: yup
@@ -59,8 +60,8 @@ const resetPasswordValidation = yup.object().shape({
     .min(8)
     .max(25)
     .matches(
-      passwordRule,
-      "Password must contain at least one number, one lowercase letter, and one uppercase letter"
+      registerPasswordRule,
+      "Password must contain at least one number, one lowercase letter, one uppercase letter, and one special character"
     )
     .required("Required"),
 

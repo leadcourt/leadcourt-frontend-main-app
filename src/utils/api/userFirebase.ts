@@ -23,38 +23,43 @@ const userSignUp = async (
   password: UserInput["password"],
   displayName: string
 ) => {
-  return await createUserWithEmailAndPassword(firebaseAuth, email, password)
-    .then((res) => {
-      toast.success("User Signed Up successfully");
+  try {
+    const res = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    toast.success("User Signed Up successfully");
 
-      updateProfile(res.user, {
-        displayName: displayName,
-      })
-        .then(() => {})
-        .catch(() => {
-          toast.error("Error on sign up.");
-        });
-      
-      sendEmailVerification(res.user);
-      return "success";
-      
-
-
-
-    })
-    .catch((error) => {
-      const errorCode = error.code;
-      // const errorMessage = error.message;
-      // console.log('error', error);
-      // console.log('errorCode', errorCode);
-      // console.log('errorMessage', errorMessage);
-
-      if (errorCode === "auth/email-already-in-use") {
-        return "Email already in use.";
-      } else {
-        return "Error signup";
-      }
+    await updateProfile(res.user, {
+      displayName: displayName,
+    }).catch(() => {
+      toast.error("Error on updating profile name.");
     });
+
+    const idToken = await res.user.getIdToken();
+
+    sendEmailVerification(res.user).catch((err) => {
+      console.error("Firebase Initial Verification Email Error:", err);
+    });
+
+    return { status: "success", idToken };
+  } catch (error: any) {
+    console.error("Firebase Sign-Up Error Details:", error);
+    const errorCode = error.code;
+    const errorMessage = error.message;
+
+    let errorMsg = errorMessage || "Error signup";
+    if (errorCode === "auth/email-already-in-use") {
+      errorMsg = "Email already in use.";
+    } else if (errorCode === "auth/weak-password") {
+      errorMsg = "Password is too weak (must be at least 6 characters).";
+    } else if (errorCode === "auth/operation-not-allowed") {
+      errorMsg = "Email/Password sign-in is not enabled in Firebase Console.";
+    } else if (errorCode === "auth/invalid-email") {
+      errorMsg = "Invalid email address.";
+    } else if (errorCode === "auth/password-does-not-meet-requirements") {
+      errorMsg = "Password does not meet requirements (must contain at least one special character).";
+    }
+
+    return { status: "error", message: errorMsg };
+  }
 };
 
 const userLogin = async (
@@ -172,9 +177,14 @@ const userGoogleSignIn = async () => {
 
 const userResetPassword = async (payload: any) => {
   try {
-    await sendPasswordResetEmail(firebaseAuth, payload);
+    const email = typeof payload === 'string' ? payload : payload?.email;
+    if (!email) {
+      throw new Error("Missing email address");
+    }
+    await sendPasswordResetEmail(firebaseAuth, email);
     return { message: "success" };
   } catch (err) {
+    console.error("Firebase Password Reset Error:", err);
     return { error: err, message: "failed" };
   }
 };

@@ -24,7 +24,6 @@ export default function ForgotPassword() {
     await userResetPassword(values)
       .then((res) => {
         if (res.message == 'success') {
-          values.email = ''
           setModalVisible(true);
           return
         } else if (res.message == 'failed') {
@@ -89,7 +88,7 @@ export default function ForgotPassword() {
             <p className="text-gray-500">
               We have just sent an email to{" "}
               <span className="font-bold text-gray-600">{values.email}</span>,
-              check email to proceed.
+              check email to proceed. <br /><span className="text-xs text-gray-400">(Check your Spam or Junk folder if you don't see it in a few minutes)</span>
             </p>
 
 

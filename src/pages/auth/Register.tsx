@@ -41,11 +41,11 @@ export default function Register() {
     try {
       const res = await userSignUp(values.email, values.password, values.displayName);
 
-      if (res !== "success") {
-        toast.error(res);
+      if (res.status !== "success") {
+        toast.error(res.message);
       } else {
         try {
-          await addSubscriber(payload);
+          await addSubscriber(payload, res.idToken);
         } catch (err) {
           console.error("Failed to add subscriber", err);
         }
@@ -143,7 +143,7 @@ export default function Register() {
 
           <div className=" text-center flex flex-col gap-3 mx-5">
             <h4 className=" font-bold text-gray-700">Registration Successful!</h4>
-            <p className="text-gray-500">We have just sent an email to <span className="font-bold text-gray-600">{values.email}</span>, proceed to verify.</p>
+            <p className="text-gray-500">We have just sent an email to <span className="font-bold text-gray-600">{values.email}</span>, proceed to verify. <br /><span className="text-xs text-gray-400">(Check your Spam or Junk folder if you don't see it in a few minutes)</span></p>
             
             <button className="secondary-btn-red">Proceed</button>
           </div>

@@ -65,15 +65,8 @@ const router = createBrowserRouter([
   },
   
   {
-    path: '/',
-    element: <AuthLayout />,
-    children: [ 
-      {
-        path: '/auth/verify',
-        element: <VerifyEmail />
-      }, 
-
-    ]
+    path: '/auth/verify',
+    element: <VerifyEmail />
   },
   {
     path: '/',

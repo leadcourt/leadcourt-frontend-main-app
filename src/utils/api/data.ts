@@ -20,7 +20,10 @@ const exportList = async (payload: any) => await axios.post(`${baseUrl}/list2/ex
 const deleteAList = async (listname: any) => await axios.delete(`${baseUrl}/list2/${listname}`);
 const renameAList = async (payload: any) => await axios.post(`${baseUrl}/list2/rename`, payload);
 
-const addSubscriber = async (payload: any) => await axios.post(`${baseUrl.replace('/api', '/auth')}/ext/login`, payload);
+const addSubscriber = async (payload: any, idToken?: string) => {
+  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
+  return await axios.post(`${baseUrl.replace('/api', '/auth')}/ext/login`, payload, { headers });
+};
 
 // --- BYPASS DELETED ROUTES (Frontend handles this logic now) ---
 // const getListRevealEstimate = async () => ({ data: { phoneCredits: 0, emailCredits: 0, phoneCount: 0, emailCount: 0 } });

@@ -35,11 +35,17 @@ import { toast } from "react-toastify";
     setAction("resendOTP");
 
     if (authUser) {
-      await sendEmailVerification(authUser);
-
-      toast.info(
-        "An email has been sent to your account, please check to proceed."
-      );
+      try {
+        await sendEmailVerification(authUser);
+        toast.info(
+          "An email has been sent to your account, please check to proceed. (Check spam if not received)"
+        );
+      } catch (err: any) {
+        console.error("Firebase Resend Verification Error:", err);
+        toast.error(err.message || "Failed to send verification email. Please try again.");
+      }
+    } else {
+      toast.error("User session not found. Please try logging in again.");
     }
     setAction("");
     setLoading(false);
@@ -83,7 +89,16 @@ import { toast } from "react-toastify";
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    if (mode === "resetPassword") {
+      navigate(`/auth/reset-password?${params.toString()}`);
+      return;
+    }
+
+    if (mode === "verifyEmail" && oobCode) {
+      reloadUser();
+    }
+  }, [mode, oobCode, params, navigate]);
 
   return (
     <div className="flex min-h-full w-full overflow-hidden">
@@ -160,8 +175,8 @@ import { toast } from "react-toastify";
               </p>
             ) : (
               <p className="text-gray-600">
-                An email has been sent to you, Please proceed to your email to
-                verify your account.
+                An email has been sent to you. Please proceed to your email to
+                verify your account. <br /><span className="text-xs text-gray-400">(Check your Spam or Junk folder if you don't see it)</span>
               </p>
             )}
           </div>
