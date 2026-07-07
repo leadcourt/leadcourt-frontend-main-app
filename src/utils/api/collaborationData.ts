@@ -86,8 +86,9 @@ const collaboration_showPhoneAndEmail_api = async (type: string, row: any, user:
   try {
     const res = await collaboration_getDataPhoneAndEmail_api(payload);
     return res;
-  } catch {
-    toast.error("Error occured");
+  } catch (err: any) {
+    const errorMsg = err?.response?.data?.error || "Error occured";
+    toast.error(errorMsg);
   }
 };
 

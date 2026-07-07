@@ -13,8 +13,9 @@ const showPhoneAndEmail = async (type: string, row: any, user: any) => {
     const res = await getDataPhoneAndEmail(payload);
 
     return res;
-  } catch {
-    toast.error("Error occured");
+  } catch (err: any) {
+    const errorMsg = err?.response?.data?.error || "Error occured";
+    toast.error(errorMsg);
   }
 };
 
@@ -33,8 +34,9 @@ const collaboration_showPhoneAndEmail = async (
     const res = await collaboration_getDataPhoneAndEmail_api(payload);
 
     return res;
-  } catch {
-    toast.error("Error occured");
+  } catch (err: any) {
+    const errorMsg = err?.response?.data?.error || "Error occured";
+    toast.error(errorMsg);
   }
 };
 
