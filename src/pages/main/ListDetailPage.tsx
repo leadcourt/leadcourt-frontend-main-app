@@ -408,6 +408,10 @@ export default function ListDetailPage() {
       try {
         const res: any = await showPhoneAndEmail(type, chunkIds, user);
 
+        if (!res) {
+          break;
+        }
+
         if (res?.data?.error) {
           setInsufficientVisible(true);
           break;

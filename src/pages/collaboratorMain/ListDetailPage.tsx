@@ -430,6 +430,11 @@ export default function Collab_ListDetailPage() {
           chunkIds,
           user,
         );
+
+        if (!res) {
+          break;
+        }
+
         if (res?.data?.error) {
           setInsufficientVisible(true);
           break;
