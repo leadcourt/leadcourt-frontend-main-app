@@ -25,7 +25,6 @@ const userSignUp = async (
 ) => {
   try {
     const res = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    toast.success("User Signed Up successfully");
 
     await updateProfile(res.user, {
       displayName: displayName,

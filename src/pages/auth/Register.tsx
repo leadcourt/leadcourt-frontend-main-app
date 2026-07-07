@@ -12,6 +12,8 @@ import { toast } from "react-toastify";
 import { useSetRecoilState } from "recoil";
 import { accessTokenState, refreshTokenState, userState } from "../../utils/atom/authAtom";
 import { addSubscriber } from "../../utils/api/data";
+import { firebaseAuth } from "../../config/firebaseConfig";
+import { getDeviceFingerprint } from "../../utils/fingerprint";
 
 interface FormData {
   displayName: string;
@@ -30,12 +32,24 @@ export default function Register() {
   const setUser = useSetRecoilState(userState);
   const [useEmail, setUseEmail] = useState<boolean>(false);
   const navigate = useNavigate()
+
+  const isPersonalEmail = (email: string) => {
+    if (!email.includes("@")) return false;
+    const personalDomains = [
+      "gmail.com", "yahoo.com", "hotmail.com", "live.com", "outlook.com", 
+      "icloud.com", "aol.com", "ymail.com", "gmx.com", "mail.com", 
+      "zoho.com", "proton.me", "protonmail.com"
+    ];
+    const dom = email.split("@")[1]?.toLowerCase().trim();
+    return personalDomains.includes(dom);
+  };
   
   // Function for Email Sign Up
   const onSubmit = async (values: FormData) => {
     const payload = {
       email: values.email,
       name: values.displayName,
+      deviceId: getDeviceFingerprint(),
     };
 
     try {
@@ -46,12 +60,14 @@ export default function Register() {
       } else {
         try {
           await addSubscriber(payload, res.idToken);
-        } catch (err) {
+          setModalVisible(true);
+          toast.success("Registration Successful! Please check your email.");
+          navigate("/");
+        } catch (err: any) {
           console.error("Failed to add subscriber", err);
+          const errorMsg = err.response?.data?.error || err.message || "Failed to complete registration";
+          toast.error(errorMsg);
         }
-
-        setModalVisible(true);
-        navigate("/");
       }
     } catch (err) {
       toast.error("Error occurred during signup");
@@ -77,15 +93,21 @@ export default function Register() {
               res.user?.name ||
               res.user?.email?.split("@")[0] ||
               "",
+            deviceId: getDeviceFingerprint(),
           };
 
           try {
-            await addSubscriber(payload);
-          } catch (err) {
+            await addSubscriber(payload, res.access);
+            navigate("/");
+          } catch (err: any) {
             console.error("Failed to add subscriber (Google)", err);
+            const errorMsg = err.response?.data?.error || err.message || "Registration failed";
+            toast.error(errorMsg);
+            setAccessToken(null);
+            setRefreshToken(null);
+            setUser(null);
+            await firebaseAuth.signOut().catch((signOutErr) => console.error("Firebase signout error:", signOutErr));
           }
-
-          navigate("/");
         } else {
           toast.error(res.error);
         }
@@ -246,6 +268,11 @@ export default function Register() {
               </div>
               {errors.email && touched.email && (
                 <p className="error text-sm text-red-400">{errors.email}</p>
+              )}
+              {!errors.email && values.email && isPersonalEmail(values.email) && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1 font-medium">
+                  💡 Suggestion: Use a work/business email to avoid feature restrictions.
+                </p>
               )}
             </div>
 

@@ -14,6 +14,9 @@ import {
   userState,
 } from "../../utils/atom/authAtom";
 import logo from "../../assets/logo/logo.png";
+import { addSubscriber } from "../../utils/api/data";
+import { firebaseAuth } from "../../config/firebaseConfig";
+import { getDeviceFingerprint } from "../../utils/fingerprint";
 
 interface FormData {
   email: string;
@@ -69,32 +72,50 @@ const LoginTwo = () => {
 
   // Google auth login
   const googleAuth = async () => {
-
     setLoading({
       loading: true,
       auth: 'google',
-    })
-    await userGoogleSignIn()
-      .then((res) => {
-        if (!res?.error) {
-          toast.success("Log in successful");
-          setAccessToken(res.access);
-          setRefreshToken(res.refresh);
-          setUser(res.user);
+    });
+    try {
+      const res = await userGoogleSignIn();
+      if (!res?.error) {
+        toast.success("Log in successful");
+        setAccessToken(res.access);
+        setRefreshToken(res.refresh);
+        setUser(res.user);
+        const payload = {
+          email: res.user?.email,
+          name:
+            res.user?.displayName ||
+            res.user?.name ||
+            res.user?.email?.split("@")[0] ||
+            "",
+          deviceId: getDeviceFingerprint(),
+        };
 
+        try {
+          await addSubscriber(payload, res.access);
           navigate("/");
-        } else {
-          toast.error(res.error);
+        } catch (err: any) {
+          console.error("Failed to add subscriber (Google)", err);
+          const errorMsg = err.response?.data?.error || err.message || "Registration failed";
+          toast.error(errorMsg);
+          setAccessToken(null);
+          setRefreshToken(null);
+          setUser(null);
+          await firebaseAuth.signOut().catch((signOutErr) => console.error("Firebase signout error:", signOutErr));
         }
-      })
-      .catch(() => {
-        toast.error("Error Occurred, try again!");
+      } else {
+        toast.error(res.error);
+      }
+    } catch (err) {
+      toast.error("Error Occurred, try again!");
+    } finally {
+      setLoading({
+        loading: false,
+        auth: '',
       });
-
-    setLoading({
-      loading: false,
-      auth: '',
-    })
+    }
   };
 
   // Initial value for Formik
