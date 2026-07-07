@@ -352,6 +352,8 @@ export default function ListDetailPage() {
     try {
       const res: any = await showPhoneAndEmail(type, [id], user);
 
+      if (!res) return;
+
       if (res?.data?.error) {
         setInsufficientVisible(true);
         return;

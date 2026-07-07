@@ -351,6 +351,7 @@ export default function Collab_DataTablePage() {
     setLoadRow({ type, row_id: id });
     try {
       const res: any = await collaboration_showPhoneAndEmail_api(type, [id], user);
+      if (!res) return;
       if (res?.data?.error) setVisible(true);
       const updated = entries.map((entry: any) =>
         entry.row_id === id ? { ...entry, ...(res?.data?.results?.[0] || {}) } : entry

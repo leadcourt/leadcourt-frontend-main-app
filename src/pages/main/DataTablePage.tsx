@@ -347,6 +347,7 @@ export default function DataTablePage() {
     setLoadRow({ type, row_id: id });
     try {
       const res: any = await showPhoneAndEmail(type, [id], user);
+      if (!res) return;
       if (res?.data?.error) setVisible(true);
 
       const updated = entries.map((entry: any) =>

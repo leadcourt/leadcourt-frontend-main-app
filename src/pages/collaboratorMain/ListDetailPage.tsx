@@ -367,6 +367,7 @@ export default function Collab_ListDetailPage() {
         [id],
         user,
       );
+      if (!res) return;
       if (res?.data?.error) {
         setInsufficientVisible(true);
         return;
