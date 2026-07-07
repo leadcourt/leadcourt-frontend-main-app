@@ -67,8 +67,10 @@ export default function Register() {
           console.error("Failed to add subscriber", err);
           const errorMsg = err.response?.data?.error || err.message || "Failed to complete registration";
           toast.error(errorMsg);
+          await firebaseAuth.signOut().catch((signOutErr) => console.error("Firebase signout error:", signOutErr));
         }
       }
+
     } catch (err) {
       toast.error("Error occurred during signup");
     } finally {
