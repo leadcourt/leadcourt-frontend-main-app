@@ -455,8 +455,9 @@ export default function Collab_ListDetailPage() {
           ...prev,
           current: Math.min(prev.total, i + CHUNK_SIZE),
         }));
-      } catch (e) {
-        toast.error("An error occurred during bulk reveal. Process paused.");
+      } catch (e: any) {
+        const errorMsg = e?.response?.data?.error || e?.response?.data?.message || "An error occurred during bulk reveal. Process paused.";
+        toast.error(errorMsg);
         break;
       }
     }
@@ -513,8 +514,9 @@ export default function Collab_ListDetailPage() {
       }
       await fetchRevealEstimate();
       await listDetail(pageNumber);
-    } catch (e) {
-      toast.error("Something went wrong. Try again.");
+    } catch (e: any) {
+      const errorMsg = e?.response?.data?.error || e?.response?.data?.message || "Something went wrong. Try again.";
+      toast.error(errorMsg);
     } finally {
       setLoadRow({});
     }
