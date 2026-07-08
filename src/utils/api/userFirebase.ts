@@ -34,7 +34,12 @@ const userSignUp = async (
 
     const idToken = await res.user.getIdToken();
 
-    sendEmailVerification(res.user).catch((err) => {
+    const actionCodeSettings = {
+      url: window.location.origin + "/auth/verify",
+      handleCodeInApp: true,
+    };
+
+    sendEmailVerification(res.user, actionCodeSettings).catch((err) => {
       console.error("Firebase Initial Verification Email Error:", err);
     });
 
