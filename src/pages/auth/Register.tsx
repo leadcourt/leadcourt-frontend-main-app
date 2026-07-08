@@ -273,7 +273,7 @@ export default function Register() {
               )}
               {!errors.email && values.email && isPersonalEmail(values.email) && (
                 <p className="text-xs text-amber-600 mt-1 flex items-center gap-1 font-medium">
-                  💡 Suggestion: Use a work/business email to avoid feature restrictions.
+                  Suggestion: It is preferred to use a work/business email.
                 </p>
               )}
             </div>
