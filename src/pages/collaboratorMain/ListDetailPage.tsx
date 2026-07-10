@@ -603,8 +603,9 @@ export default function Collab_ListDetailPage() {
         toast.success("You will receive a mail shortly");
         setExportModalVisible(false);
       }
-    } catch (e) {
-      toast.error("Something went wrong. Try again.");
+    } catch (e: any) {
+      const errMsg = e.response?.data?.error || e.message || "Something went wrong. Try again.";
+      toast.error(errMsg);
     } finally {
       setExportingTarget("");
     }
