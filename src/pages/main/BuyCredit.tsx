@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import "./BuyCredit.css";
 import PayPalButton from "../../component/PayPalButton";
 import { Dialog } from "primereact/dialog";
@@ -17,10 +18,11 @@ import { useSearchParams } from "react-router-dom";
 import paymentFailed from "../../assets/icons/payment_failed.jpeg";
 import planData from "../../utils/buyCredit.json";
 import { toast } from "react-toastify";
-import { redeemCoupon } from "../../utils/api/LTDCoupons";
+import { redeemCoupon, validatePartnerCoupon } from "../../utils/api/LTDCoupons";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
 import { getLocation } from "../../utils/api/location";
+import { confirmDodoPayment } from "../../utils/api/payment";
 
 interface PaymentPlanType {
   userId: string | undefined;
@@ -79,9 +81,33 @@ const BuyCredit = () => {
   const [urlSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useRecoilState(sidebarOpenState);
 
-  const checkUrlSearchParams = () => {
+  const checkUrlSearchParams = async () => {
     const status = urlSearchParams?.get("status");
-    if (status === "failed") setPaymentStatus(true);
+    const paymentId = urlSearchParams?.get("payment_id") || urlSearchParams?.get("paymentId");
+
+    if (status === "failed") {
+      setPaymentStatus(true);
+      return;
+    }
+
+    if (status === "success" || paymentId) {
+      try {
+        if (paymentId) {
+          await confirmDodoPayment({ paymentId });
+        }
+        const total = await getCreditBalance();
+        if (total?.data) {
+          setCreditInfo({
+            id: user?.id ?? "",
+            credits: total.data.credits || 0,
+            subscriptionType: total.data.subscriptionType || "FREE",
+          });
+        }
+        toast.success("🎉 Congratulations! Your plan purchase has been confirmed. Credits & Plan updated!");
+      } catch (err: any) {
+        console.error("Error confirming Dodo payment:", err);
+      }
+    }
   };
 
   const calculatePrice = (credits: number): number => {
@@ -240,7 +266,7 @@ const BuyCredit = () => {
       <Dialog
         header="Payment"
         visible={indiaPayment.display}
-        style={{ width: "400px", padding: "1.5rem", backgroundColor: "white" }}
+        style={{ width: "430px", maxWidth: "95vw", padding: "1.25rem", backgroundColor: "white" }}
         onHide={() => {
           if (!indiaPayment.display) return;
           setIndiaPayment({

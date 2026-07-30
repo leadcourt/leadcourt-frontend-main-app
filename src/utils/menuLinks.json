@@ -17,17 +17,8 @@
       {
         "text": "Lists",
         "img": "pi-list",
-        "link": "#",
-        "sub": [
-          {
-            "text": "View List",
-            "link": "list"
-          },
-          {
-            "text": "Create New",
-            "link": "list/new-list"
-          }
-        ]
+        "link": "/list",
+        "sub": []
       },
       {
         "text": "Integrations",
@@ -70,17 +61,8 @@
       {
         "text": "Lists",
         "img": "pi-list",
-        "link": "#",
-        "sub": [
-          {
-            "text": "View List",
-            "link": "list"
-          },
-          {
-            "text": "Create New",
-            "link": "list/new-list"
-          }
-        ]
+        "link": "list",
+        "sub": []
       },
       {
         "text": "Integrations",
