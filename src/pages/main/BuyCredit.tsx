@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import "./BuyCredit.css";
 import PayPalButton from "../../component/PayPalButton";
 import { Dialog } from "primereact/dialog";
@@ -18,7 +17,7 @@ import { useSearchParams } from "react-router-dom";
 import paymentFailed from "../../assets/icons/payment_failed.jpeg";
 import planData from "../../utils/buyCredit.json";
 import { toast } from "react-toastify";
-import { redeemCoupon, validatePartnerCoupon } from "../../utils/api/LTDCoupons";
+import { redeemCoupon } from "../../utils/api/LTDCoupons";
 import { getCreditBalance } from "../../utils/api/creditApi";
 import { sidebarOpenState } from "../../utils/atom/layoutAtom";
 import { getLocation } from "../../utils/api/location";

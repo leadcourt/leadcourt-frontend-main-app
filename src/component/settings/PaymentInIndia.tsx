@@ -28,6 +28,7 @@ const PaymentInIndia = ({ paymentData }: any) => {
     isValid: boolean;
     message: string;
     bonusCredits?: number;
+    discountPercent?: number;
     code?: string;
   } | null>(null);
 
