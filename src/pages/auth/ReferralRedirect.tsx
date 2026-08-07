@@ -9,11 +9,13 @@ const ReferralRedirect: React.FC = () => {
   useEffect(() => {
     if (referralCode) {
       // Store in persistent cookie (30 days) and localStorage for robustness
-      Cookies.set("referral_code", referralCode, { expires: 30, sameSite: "strict" });
+      Cookies.set("referral_code", referralCode, { expires: 30, path: "/", sameSite: "lax" });
       localStorage.setItem("referral_code", referralCode);
+      // Redirect to register page with ?ref= parameter
+      navigate(`/auth/register?ref=${encodeURIComponent(referralCode)}`, { replace: true });
+    } else {
+      navigate("/auth/register", { replace: true });
     }
-    // Redirect to register page
-    navigate("/auth/register", { replace: true });
   }, [referralCode, navigate]);
 
   return (
