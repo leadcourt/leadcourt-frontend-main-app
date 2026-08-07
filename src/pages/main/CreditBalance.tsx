@@ -120,7 +120,12 @@ export default function CreditBalance() {
 
   useEffect(() => {
     const method = searchParams.get("method");
-    const paymentId = searchParams.get("payment_id");
+    const allPaymentIds = searchParams.getAll("payment_id");
+    const validRawId = allPaymentIds.find((id) => id && id !== "{payment_id}") ||
+      searchParams.get("paymentId") ||
+      searchParams.get("payment_intent_id") ||
+      searchParams.get("session_id");
+    const paymentId = (validRawId && validRawId !== "{payment_id}") ? validRawId : undefined;
     const shouldPollForCompletion = method === "DODO" && isSuccessfulDodoReturn();
 
     let isMounted = true;
@@ -133,9 +138,9 @@ export default function CreditBalance() {
     };
 
     const reconcileDodoPayment = async () => {
-      if (!shouldPollForCompletion || !paymentId) return;
+      if (!shouldPollForCompletion) return;
       try {
-        await confirmDodoPayment({ paymentId });
+        await confirmDodoPayment(paymentId ? { paymentId } : {});
       } catch (error) {
         console.warn('Dodo payment confirmation skipped or failed:', error);
       }

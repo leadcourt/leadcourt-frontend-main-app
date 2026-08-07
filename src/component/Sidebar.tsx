@@ -15,6 +15,7 @@ import {
   collabCreditState,
   collabProjectState,
 } from "../utils/atom/collabAuthAtom";
+import ReferralModal from "./ReferralModal";
 
 type SubLink = { text: string; link: string };
 type MenuLink = { text: string; img?: string; link?: string; sub?: SubLink[] };
@@ -66,6 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [menuItem, setMenuItem] = useState<string | null>(null);
   const [menuItemDrop, setMenuItemDrop] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetAccessToken = useResetRecoilState(accessTokenState);
@@ -225,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
 
-        <div className="mt-2">
+        <div className="mt-2 space-y-2">
           <Link
             to="/user/setting"
             onClick={() => {
@@ -242,6 +244,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               )}
             </div>
           </Link>
+
+          <div
+            onClick={() => {
+              setIsReferralOpen(true);
+              maybeCloseDrawer();
+            }}
+            className="flex items-center h-12 px-4 rounded-lg cursor-pointer transition-all text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          >
+            <i className="pi pi-gift text-lg" />
+            {expanded && (
+              <span className="ml-4 text-sm font-medium">Refer & Earn</span>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -254,6 +269,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           {expanded && <span className="text-sm font-medium">Log out</span>}
         </button>
       </div>
+
+      <ReferralModal
+        isOpen={isReferralOpen}
+        onClose={() => setIsReferralOpen(false)}
+      />
     </aside>
   );
 };

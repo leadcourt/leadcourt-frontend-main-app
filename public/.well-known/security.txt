@@ -1,0 +1,6 @@
+Contact: mailto:adhiraj@leadcourt.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://www.leadcourt.com/.well-known/security.txt
+Policy: https://www.leadcourt.com/privacy
+Sitemap: https://www.leadcourt.com/sitemap.xml

@@ -29,7 +29,13 @@ import Collab_IntegrationCallback from '../pages/collaboratorMain/IntegrationCal
 import VerifyEmail from '../pages/auth/VerifyEmail';
 import IntegrationZohoCallback from '../pages/main/IntegrationZohoCallback';
 import LinkedIn from '../pages/main/LinkedIn';
+import ReferralRedirect from '../pages/auth/ReferralRedirect';
+
 const router = createBrowserRouter([
+  {
+    path: '/r/:referralCode',
+    element: <ReferralRedirect />
+  },
   {
     path: '/',
     element: <DefaultLayout />,

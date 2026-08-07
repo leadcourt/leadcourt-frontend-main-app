@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, User, Lock, Key } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
@@ -18,6 +18,8 @@ import {
 import { addSubscriber } from "../../utils/api/data";
 import { firebaseAuth } from "../../config/firebaseConfig";
 import { getDeviceFingerprint } from "../../utils/fingerprint";
+
+import Cookies from "js-cookie";
 
 interface FormData {
   displayName: string;
@@ -58,12 +60,26 @@ export default function Register() {
     return personalDomains.includes(dom);
   };
 
+  // Extract referral code from URL search parameters on mount
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlRef = searchParams.get("ref") || searchParams.get("referralCode");
+    if (urlRef) {
+      Cookies.set("referral_code", urlRef, { expires: 30, sameSite: "strict" });
+      localStorage.setItem("referral_code", urlRef);
+    }
+  }, []);
+
   // Function for Email Sign Up
   const onSubmit = async (values: FormData) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlRef = searchParams.get("ref") || searchParams.get("referralCode");
+    const refCode = urlRef || Cookies.get("referral_code") || localStorage.getItem("referral_code") || null;
     const payload = {
       email: values.email,
       name: values.displayName,
       deviceId: getDeviceFingerprint(),
+      ...(refCode ? { referralCode: refCode } : {}),
     };
 
     try {
@@ -112,6 +128,10 @@ export default function Register() {
           setAccessToken(res.access);
           setRefreshToken(res.refresh);
           setUser(res.user);
+          const searchParams = new URLSearchParams(window.location.search);
+          const urlRef = searchParams.get("ref") || searchParams.get("referralCode");
+          const refCode = urlRef || Cookies.get("referral_code") || localStorage.getItem("referral_code") || null;
+
           const payload = {
             email: res.user?.email,
             name:
@@ -120,6 +140,7 @@ export default function Register() {
               res.user?.email?.split("@")[0] ||
               "",
             deviceId: getDeviceFingerprint(),
+            ...(refCode ? { referralCode: refCode } : {}),
           };
 
           try {
@@ -417,12 +438,6 @@ export default function Register() {
                 )}
                 Create an account
               </button>
-
-              <div className="text-center text-sm">
-                <p className=" text-green-600 ">
-                  Get 500 free credits with work email
-                </p>
-              </div>
             </form>
           </div>
         ) : (
