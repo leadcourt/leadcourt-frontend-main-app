@@ -73,9 +73,6 @@ export default function DataTablePage() {
   const user = useRecoilValue(userState);
   const navigate = useNavigate();
 
-  const subscriptionType = creditInfoValue?.subscriptionType || "FREE";
-  const isFree = subscriptionType === "FREE";
-
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<any[]>([]);
@@ -1556,13 +1553,6 @@ export default function DataTablePage() {
                 value={draftFilters.orgIndustry || []}
                 options={orgIndustryOptions}
                 onChange={(e) => {
-                  if (isFree) {
-                    toast.warn(
-                      "Premium Feature: Subscribe to any plan to select Organization Industries!",
-                      { position: "bottom-right" },
-                    );
-                    return;
-                  }
                   updateDraft("orgIndustry", e.value);
                 }}
                 filter
@@ -1587,13 +1577,6 @@ export default function DataTablePage() {
                 value={draftFilters.orgSize || []}
                 options={orgSizeOptions}
                 onChange={(e) => {
-                  if (isFree) {
-                    toast.warn(
-                      "Premium Feature: Subscribe to any plan to select Organization Sizes!",
-                      { position: "bottom-right" },
-                    );
-                    return;
-                  }
                   updateDraft("orgSize", e.value);
                 }}
                 filter

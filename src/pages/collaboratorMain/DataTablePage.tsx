@@ -83,9 +83,6 @@ export default function Collab_DataTablePage() {
   // ROLE CHECK
   const isViewer = user?.permission === "viewer";
 
-  const subscriptionType = creditInfoValue?.subscriptionType || "FREE";
-  const isFree = subscriptionType === "FREE";
-
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<any[]>([]);
@@ -1343,54 +1340,50 @@ export default function Collab_DataTablePage() {
                 emptyMessage={loadingDataKey === "Organization" ? "Data Loading..." : "Search for more..."}
               />
             </div>
-            {!isFree && (
-              <>
-                <div className="relative min-w-[160px]">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                    <Layers className="w-4 h-4 text-gray-500" />
-                  </div>
-                  <MultiSelect
-                    value={draftFilters.orgIndustry || []}
-                    options={orgIndustryOptions}
-                    onChange={(e) => updateDraft("orgIndustry", e.value)}
-                    filter
-                    filterTemplate={getFilterTemplate("orgIndustry")}
-                    loading={msLoading("orgIndustry")}
-                    showSelectAll
-                    placeholder="Org Industry"
-                    maxSelectedLabels={0}
-                    selectedItemsLabel="Org Industry ({0})"
-                    className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-2xl"
-                    dropdownIcon="pi pi-chevron-down"
-                    itemClassName={dropdownItemClass}
-                    emptyMessage={loadingDataKey === "orgIndustry" ? "Data Loading..." : "Search for more..."}
-                  />
-                </div>
-                <div className="relative min-w-[160px]">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                    <Users className="w-4 h-4 text-gray-500" />
-                  </div>
-                  <MultiSelect
-                    value={draftFilters.orgSize || []}
-                    options={orgSizeOptions}
-                    onChange={(e) => updateDraft("orgSize", e.value)}
-                    filter
-                    filterTemplate={getFilterTemplate("orgSize")}
-                    loading={msLoading("orgSize")}
-                    showSelectAll
-                    placeholder="Org Size"
-                    maxSelectedLabels={0}
-                    selectedItemsLabel="Org Size ({0})"
-                    className="lc-pill w-full"
-                    panelClassName="lc-panel rounded-2xl"
-                    dropdownIcon="pi pi-chevron-down"
-                    itemClassName={dropdownItemClass}
-                    emptyMessage={loadingDataKey === "orgSize" ? "Data Loading..." : "Search for more..."}
-                  />
-                </div>
-              </>
-            )}
+            <div className="relative min-w-[160px]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                <Layers className="w-4 h-4 text-gray-500" />
+              </div>
+              <MultiSelect
+                value={draftFilters.orgIndustry || []}
+                options={orgIndustryOptions}
+                onChange={(e) => updateDraft("orgIndustry", e.value)}
+                filter
+                filterTemplate={getFilterTemplate("orgIndustry")}
+                loading={msLoading("orgIndustry")}
+                showSelectAll
+                placeholder="Org Industry"
+                maxSelectedLabels={0}
+                selectedItemsLabel="Org Industry ({0})"
+                className="lc-pill w-full"
+                panelClassName="lc-panel rounded-2xl"
+                dropdownIcon="pi pi-chevron-down"
+                itemClassName={dropdownItemClass}
+                emptyMessage={loadingDataKey === "orgIndustry" ? "Data Loading..." : "Search for more..."}
+              />
+            </div>
+            <div className="relative min-w-[160px]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                <Users className="w-4 h-4 text-gray-500" />
+              </div>
+              <MultiSelect
+                value={draftFilters.orgSize || []}
+                options={orgSizeOptions}
+                onChange={(e) => updateDraft("orgSize", e.value)}
+                filter
+                filterTemplate={getFilterTemplate("orgSize")}
+                loading={msLoading("orgSize")}
+                showSelectAll
+                placeholder="Org Size"
+                maxSelectedLabels={0}
+                selectedItemsLabel="Org Size ({0})"
+                className="lc-pill w-full"
+                panelClassName="lc-panel rounded-2xl"
+                dropdownIcon="pi pi-chevron-down"
+                itemClassName={dropdownItemClass}
+                emptyMessage={loadingDataKey === "orgSize" ? "Data Loading..." : "Search for more..."}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
