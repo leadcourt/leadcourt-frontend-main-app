@@ -9,7 +9,6 @@ import { state_data } from "../utils/data/states";
 import { designation_groups_data } from "../utils/data/designation_groups";
 import { org_size } from "../utils/data/org_size";
 import { org_industry } from "../utils/data/org_industry";
-import { toast } from "react-toastify";
 import { debounce } from "lodash";
 import { useRecoilValue } from "recoil";
 import { creditState } from "../utils/atom/authAtom";
@@ -130,7 +129,7 @@ export default function FilterComponent({
           setDesignations(unique);
         }
       } catch (e) {
-        toast.info("Try again..");
+        console.error("Failed to fetch option suggestions:", e);
       } finally {
         setLoadingData("");
         setLoading(false);

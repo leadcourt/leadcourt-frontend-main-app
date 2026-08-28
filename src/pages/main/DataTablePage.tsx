@@ -8,7 +8,6 @@ import { MultiSelect } from "primereact/multiselect";
 import { debounce } from "lodash";
 import { useNavigate } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { toast } from "react-toastify";
 import {
   Building2,
   Briefcase,
@@ -600,7 +599,7 @@ export default function DataTablePage() {
           setDesignationOptions(unique);
         }
       } catch (e) {
-        toast.info("Try again..");
+        console.error("Failed to fetch option suggestions:", e);
       } finally {
         setLoadingDataKey("");
         setLoadingOptions(false);
