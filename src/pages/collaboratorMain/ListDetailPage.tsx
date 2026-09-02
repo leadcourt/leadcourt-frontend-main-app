@@ -90,6 +90,7 @@ export default function Collab_ListDetailPage() {
   const [loadRow, setLoadRow] = useState<any>({});
   const [insufficientVisible, setInsufficientVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [freeExportLimitModalVisible, setFreeExportLimitModalVisible] = useState(false);
   const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(
     null,
   );
@@ -225,6 +226,8 @@ export default function Collab_ListDetailPage() {
     () => Number(creditInfoValue?.credits || 0),
     [creditInfoValue?.credits],
   );
+
+  const isFreePlan = !creditInfoValue?.subscriptionType || creditInfoValue.subscriptionType === "FREE";
 
   const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
@@ -546,6 +549,16 @@ export default function Collab_ListDetailPage() {
   };
 
   const openExportModal = async () => {
+    if (isFreePlan) {
+      setFreeExportLimitModalVisible(true);
+      return;
+    }
+    setExportModalVisible(true);
+    await refreshConnections();
+  };
+
+  const proceedToExportModal = async () => {
+    setFreeExportLimitModalVisible(false);
     setExportModalVisible(true);
     await refreshConnections();
   };
@@ -602,10 +615,25 @@ export default function Collab_ListDetailPage() {
         await exportList(payload);
         toast.success("You will receive a mail shortly");
         setExportModalVisible(false);
+        setSelectedProfile([]);
       }
     } catch (e: any) {
-      const errMsg = e.response?.data?.error || e.message || "Something went wrong. Try again.";
-      toast.error(errMsg);
+      const errMsg =
+        e.response?.data?.error ||
+        e.message ||
+        "Something went wrong. Try again.";
+      if (
+        typeof errMsg === "string" &&
+        (errMsg.includes("Export limit") ||
+          errMsg.includes("free plan") ||
+          errMsg.includes("Free accounts") ||
+          errMsg.includes("50 contacts"))
+      ) {
+        setExportModalVisible(false);
+        setFreeExportLimitModalVisible(true);
+      } else {
+        toast.error(errMsg);
+      }
     } finally {
       setExportingTarget("");
     }
@@ -885,6 +913,45 @@ export default function Collab_ListDetailPage() {
         </div>
       </Dialog>
 
+      {/* FREE PLAN EXPORT LIMIT POPUP */}
+      <Dialog
+        header="Free Plan Export Limit"
+        visible={freeExportLimitModalVisible}
+        className="p-2 bg-white w-[90vw] max-w-[440px] rounded-2xl"
+        onHide={() => setFreeExportLimitModalVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="p-4 text-center">
+          <div className="w-12 h-12 rounded-full bg-orange-100 text-[#EA580C] flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i className="pi pi-info-circle" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            Daily Export Limit (50 Contacts)
+          </h3>
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            Accounts on the free plan can only export up to <b className="text-gray-900">50 contacts per 24 hours</b>. To export unlimited contacts at once, please upgrade to a paid plan.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => {
+                setFreeExportLimitModalVisible(false);
+                navigate("/subscription");
+              }}
+              className="w-full py-2.5 px-4 bg-[#EA580C] hover:bg-[#C2410C] text-white font-bold rounded-xl text-sm shadow-md transition-all cursor-pointer"
+            >
+              Upgrade Plan
+            </button>
+            <button
+              onClick={proceedToExportModal}
+              className="w-full py-2 px-4 text-gray-600 hover:text-gray-900 text-sm font-semibold transition-all cursor-pointer"
+            >
+              Continue to Export
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
       <Dialog
         header={`Connect to ${TextToCapitalize(connectTarget)}`}
         visible={connectVisible && connectTarget.length > 0}
@@ -1015,14 +1082,25 @@ export default function Collab_ListDetailPage() {
                 if (counts.useSelected) bulkReveal("phone");
                 else revealAll("phone");
               }}
-              className={`w-full py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+              className={`w-full py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 ${
                 isViewer
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-[#F35114] hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               }`}
             >
-              {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              {phoneBusy ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  <span>Revealing...</span>
+                </>
+              ) : estimateLoading && !counts.useSelected ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  <span>Calculating...</span>
+                </>
+              ) : (
+                <span>Reveal {exportStats.mode === "selected" ? "Selected" : "All"}</span>
+              )}
             </button>
           </div>
 
@@ -1049,27 +1127,26 @@ export default function Collab_ListDetailPage() {
                 if (counts.useSelected) bulkReveal("email");
                 else revealAll("email");
               }}
-              className={`w-full py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+              className={`w-full py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 ${
                 isViewer
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               }`}
             >
-              {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              {emailBusy ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  <span>Revealing...</span>
+                </>
+              ) : estimateLoading && !counts.useSelected ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-xs" />
+                  <span>Calculating...</span>
+                </>
+              ) : (
+                <span>Reveal {exportStats.mode === "selected" ? "Selected" : "All"}</span>
+              )}
             </button>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3 text-sm text-gray-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <i className="pi pi-info-circle text-orange-600 mt-0.5 text-lg" />
-          <div className="leading-relaxed">
-            Only the{" "}
-            <b>
-              {Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}
-            </b>{" "}
-            contacts with revealed emails or phone numbers will be included in
-            your export.
           </div>
         </div>
 
@@ -1328,19 +1405,44 @@ export default function Collab_ListDetailPage() {
             </button>
           </div>
 
-          {/* EXPORT BUTTON - Disabled for Viewers */}
-          <button
-            disabled={isViewer}
-            title={isViewer ? "Viewers cannot export lists" : ""}
-            onClick={openExportModal}
-            className={`w-fit flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              isViewer
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-            }`}
-          >
-            Export
-          </button>
+          {/* EXPORT & QUICK EXPORT BUTTONS */}
+          <div className="flex items-center gap-2">
+            <button
+              disabled={isViewer}
+              title={isViewer ? "Viewers cannot export lists" : ""}
+              onClick={openExportModal}
+              className={`w-fit flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                isViewer
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+              }`}
+            >
+              Export
+            </button>
+
+            <button
+              disabled={isViewer || selectedProfile.length === 0 || selectedProfile.length > 50}
+              title={
+                isViewer
+                  ? "Viewers cannot export lists"
+                  : selectedProfile.length === 0
+                  ? "Select up to 50 contacts in your list to use Quick Export"
+                  : selectedProfile.length > 50
+                  ? "Quick Export is limited to 50 contacts at a time"
+                  : `Quick Export ${selectedProfile.length} selected contacts to your email`
+              }
+              onClick={openExportModal}
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                !isViewer && selectedProfile.length > 0 && selectedProfile.length <= 50
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 cursor-pointer"
+                  : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-75"
+              }`}
+            >
+              <span>
+                Quick Export{!isViewer && selectedProfile.length > 0 && selectedProfile.length <= 50 ? ` (${selectedProfile.length})` : ""}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

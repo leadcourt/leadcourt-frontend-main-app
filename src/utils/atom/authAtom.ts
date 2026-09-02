@@ -30,6 +30,7 @@ export interface Credit {
   starterRemainingDays?: number;  // Restored for build
   proRemainingDays?: number;      // Restored for build
   isLTD?: boolean;                // Restored for build
+  hasSeenTour?: boolean;
 }
 
 /**

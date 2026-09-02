@@ -69,8 +69,9 @@ export default function Topbar({
       <div className="flex items-center gap-2 sm:gap-3">
         {rightSlot}
 
-        {/* --- TOUR TARGET STEP 6 --- */}
+        {/* --- TOUR TARGET WALLET --- */}
         <div
+          id="tour-credit-wallet"
           className="flex items-center px-3 sm:px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-gray-700 text-xs sm:text-sm font-medium"
         >
           <i className="pi pi-wallet text-orange-600 mr-2" />

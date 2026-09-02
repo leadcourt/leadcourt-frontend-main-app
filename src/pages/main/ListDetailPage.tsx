@@ -97,6 +97,7 @@ export default function ListDetailPage() {
   const [insufficientVisible, setInsufficientVisible] = useState(false);
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [freeExportLimitModalVisible, setFreeExportLimitModalVisible] = useState(false);
   const [hubspotConnected, setHubspotConnected] = useState<boolean | null>(null);
   const [brevoConnected, setBrevoConnected] = useState<boolean | null>(null);
   const [checkingConnections, setCheckingConnections] = useState(false);
@@ -224,6 +225,8 @@ export default function ListDetailPage() {
     () => Number(creditInfoValue?.credits || 0),
     [creditInfoValue?.credits]
   );
+
+  const isFreePlan = !creditInfoValue?.subscriptionType || creditInfoValue.subscriptionType === "FREE";
 
  const parseEstimate = (raw: any) => {
     const d = raw?.data ?? raw ?? {};
@@ -532,6 +535,16 @@ export default function ListDetailPage() {
   };
 
   const openExportModal = async () => {
+    if (isFreePlan) {
+      setFreeExportLimitModalVisible(true);
+      return;
+    }
+    setExportModalVisible(true);
+    await refreshConnections();
+  };
+
+  const proceedToExportModal = async () => {
+    setFreeExportLimitModalVisible(false);
     setExportModalVisible(true);
     await refreshConnections();
   };
@@ -546,11 +559,9 @@ export default function ListDetailPage() {
 
     const payload: any = { listName };
 
-    // 👉 THE FIX: Added the else block to always send IDs!
+    // Pass the specific row IDs only if the user has explicitly selected checkboxes
     if (selectedProfile.length > 0) {
       payload.rowIds = selectedProfile.map(p => p.row_id);
-    } else {
-      payload.rowIds = entries.map(p => p.row_id);
     }
 
     try {
@@ -592,10 +603,22 @@ export default function ListDetailPage() {
         await exportList(payload);
         toast.success("You will receive a mail shortly");
         setExportModalVisible(false);
+        setSelectedProfile([]);
       }
     } catch (e: any) {
       const errMsg = e.response?.data?.error || e.message || "Something went wrong. Try again.";
-      toast.error(errMsg);
+      if (
+        typeof errMsg === "string" &&
+        (errMsg.includes("Export limit") ||
+          errMsg.includes("free plan") ||
+          errMsg.includes("Free accounts") ||
+          errMsg.includes("50 contacts"))
+      ) {
+        setExportModalVisible(false);
+        setFreeExportLimitModalVisible(true);
+      } else {
+        toast.error(errMsg);
+      }
     } finally {
       setExportingTarget("");
     }
@@ -828,18 +851,22 @@ const showOrgIndustry = (rowData: any) => {
             Revealing {revealProgress.type === "phone" ? "Phone Numbers" : "Emails"}...
           </div>
           
-          {/* Conditional render: Show simple loading message for full lists, or progress bar for chunks */}
+          {/* Conditional render: Show clean progress bar for full lists, or chunk progress */}
           {revealProgress.isBulkAll ? (
-            <div className="mt-3 text-sm text-gray-600 text-center leading-relaxed">
-              Processing <b className="text-gray-900">{revealProgress.total}</b> contacts. <br/>
-              For large lists, this might take a minute or two. <br/>
-              Please don't close this window...
+            <div className="w-full text-center mt-3">
+              <div className="w-full bg-gray-100 rounded-full h-2.5 mb-3 overflow-hidden">
+                <div className="bg-orange-500 h-2.5 rounded-full w-full"></div>
+              </div>
+              <div className="text-sm text-gray-600 leading-relaxed">
+                Unlocking <b className="text-gray-900">{revealProgress.total}</b> contacts in your list... <br/>
+                Please wait a moment while we update the records.
+              </div>
             </div>
           ) : (
             <>
-              <div className="w-full bg-gray-100 rounded-full h-3 mt-4 mb-2 overflow-hidden">
+              <div className="w-full bg-gray-100 rounded-full h-2.5 mt-4 mb-2 overflow-hidden">
                 <div
-                  className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
+                  className="bg-orange-500 h-2.5 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${revealProgress.total > 0 ? Math.round((revealProgress.current / revealProgress.total) * 100) : 0}%` }}
                 ></div>
               </div>
@@ -849,6 +876,45 @@ const showOrgIndustry = (rowData: any) => {
               </div>
             </>
           )}
+        </div>
+      </Dialog>
+
+      {/* FREE PLAN EXPORT LIMIT POPUP */}
+      <Dialog
+        header="Free Plan Export Limit"
+        visible={freeExportLimitModalVisible}
+        className="p-2 bg-white w-[90vw] max-w-[440px] rounded-2xl"
+        onHide={() => setFreeExportLimitModalVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="p-4 text-center">
+          <div className="w-12 h-12 rounded-full bg-orange-100 text-[#EA580C] flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i className="pi pi-info-circle" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            Daily Export Limit (50 Contacts)
+          </h3>
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            Accounts on the free plan can only export up to <b className="text-gray-900">50 contacts per 24 hours</b>. To export unlimited contacts at once, please upgrade to a paid plan.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => {
+                setFreeExportLimitModalVisible(false);
+                navigate("/subscription");
+              }}
+              className="w-full py-2.5 px-4 bg-[#EA580C] hover:bg-[#C2410C] text-white font-bold rounded-xl text-sm shadow-md transition-all cursor-pointer"
+            >
+              Upgrade Plan
+            </button>
+            <button
+              onClick={proceedToExportModal}
+              className="w-full py-2 px-4 text-gray-600 hover:text-gray-900 text-sm font-semibold transition-all cursor-pointer"
+            >
+              Continue to Export
+            </button>
+          </div>
         </div>
       </Dialog>
 
@@ -981,10 +1047,21 @@ const showOrgIndustry = (rowData: any) => {
                 if (counts.useSelected) bulkReveal("phone");
                 else revealAll("phone");
               }}
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+              className="w-full py-2.5 rounded-lg text-sm font-bold transition-all bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
             >
-              {phoneBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              {phoneBusy ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-sm" />
+                  <span>Revealing...</span>
+                </>
+              ) : estimateLoading && !counts.useSelected ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-sm" />
+                  <span>Calculating...</span>
+                </>
+              ) : (
+                <span>Reveal {exportStats.mode === "selected" ? "Selected" : "All"}</span>
+              )}
             </button>
           </div>
 
@@ -1007,18 +1084,22 @@ const showOrgIndustry = (rowData: any) => {
                 if (counts.useSelected) bulkReveal("email");
                 else revealAll("email");
               }}
-              className="w-full py-2 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+              className="w-full py-2.5 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
             >
-              {emailBusy ? <i className="pi pi-spin pi-spinner mr-2" /> : null}
-              Reveal {exportStats.mode === "selected" ? "Selected" : "All"}
+              {emailBusy ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-sm" />
+                  <span>Revealing...</span>
+                </>
+              ) : estimateLoading && !counts.useSelected ? (
+                <>
+                  <i className="pi pi-spin pi-spinner text-sm" />
+                  <span>Calculating...</span>
+                </>
+              ) : (
+                <span>Reveal {exportStats.mode === "selected" ? "Selected" : "All"}</span>
+              )}
             </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 text-sm text-[#9A3412] bg-[#FFF7ED] border border-[#FED7AA] rounded-lg p-3 mb-4">
-          <i className="pi pi-info-circle text-lg" />
-          <div className="leading-relaxed">
-            Only the <b>{Math.max(exportStats.revealedPhones, exportStats.revealedEmails)}</b> contacts with revealed emails or phone numbers will be included in your export.
           </div>
         </div>
 
@@ -1200,12 +1281,35 @@ const showOrgIndustry = (rowData: any) => {
             </button>
           </div>
 
-          <button
-            onClick={openExportModal}
-            className="w-fit flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/20 transition-all"
-          >
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openExportModal}
+              className="w-fit flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-orange-500/20 transition-all cursor-pointer"
+            >
+              Export
+            </button>
+
+            <button
+              disabled={selectedProfile.length === 0 || selectedProfile.length > 50}
+              title={
+                selectedProfile.length === 0
+                  ? "Select up to 50 contacts in your list to use Quick Export"
+                  : selectedProfile.length > 50
+                  ? "Quick Export is limited to 50 contacts at a time"
+                  : `Quick Export ${selectedProfile.length} selected contacts to your email`
+              }
+              onClick={openExportModal}
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedProfile.length > 0 && selectedProfile.length <= 50
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 cursor-pointer"
+                  : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-75"
+              }`}
+            >
+              <span>
+                Quick Export{selectedProfile.length > 0 && selectedProfile.length <= 50 ? ` (${selectedProfile.length})` : ""}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

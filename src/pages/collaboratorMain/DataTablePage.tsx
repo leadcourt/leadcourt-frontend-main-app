@@ -32,7 +32,6 @@ import {
 } from "../../utils/atom/collabAuthAtom";
 import CollaboratorAddToListComponent from "../../component/collaborator/CollaboratorAddToListComponent";
 import TextToCapitalize from "../../component/TextToCapital";
-import noDataImg from "../../assets/icons/nodataImage.jpg";
 import { countries_data } from "../../utils/data/countries";
 import { cities_data } from "../../utils/data/city";
 import { state_data } from "../../utils/data/states";
@@ -306,6 +305,96 @@ export default function Collab_DataTablePage() {
     loadData(1, { filter: {} });
   };
 
+  const relaxLocation = () => {
+    debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
+    const newDraft = { ...draftFilters, City: [], State: [] };
+    setDraftFilters(newDraft);
+    setCityOptions(baseRef.current.City);
+    setStateOptions(baseRef.current.State);
+
+    const payload = buildFilterPayload(newDraft);
+    setSelectedFilters(payload);
+    setIsDirtyFilters(false);
+    setPageNumber(1);
+    loadData(1, { filter: payload });
+  };
+
+  const relaxJobTitles = () => {
+    debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
+    const newDraft = { ...draftFilters, Designation: [] };
+    setDraftFilters(newDraft);
+    setSelectAllDesignation(false);
+    setSelectedFilterValue((prev: any) => ({ ...prev, Designation: "" }));
+    setDesignationOptions(baseRef.current.Designation);
+
+    const payload = buildFilterPayload(newDraft);
+    setSelectedFilters(payload);
+    setIsDirtyFilters(false);
+    setPageNumber(1);
+    loadData(1, { filter: payload });
+  };
+
+  const relaxCompanySize = () => {
+    debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
+    const newDraft = { ...draftFilters, orgSize: [] };
+    setDraftFilters(newDraft);
+    setOrgSizeOptions(baseRef.current.orgSize);
+
+    const payload = buildFilterPayload(newDraft);
+    setSelectedFilters(payload);
+    setIsDirtyFilters(false);
+    setPageNumber(1);
+    loadData(1, { filter: payload });
+  };
+
+  const relaxMostRestrictive = () => {
+    debouncedGoToPage.cancel();
+    clearStartIdCache();
+    invalidateStartIdResolver();
+
+    const newDraft = { ...draftFilters };
+    if (newDraft.City?.length) {
+      newDraft.City = [];
+      setCityOptions(baseRef.current.City);
+    } else if (newDraft.Designation?.length || selectAllDesignation || selectedFilterValue?.Designation) {
+      newDraft.Designation = [];
+      setSelectAllDesignation(false);
+      setSelectedFilterValue((prev: any) => ({ ...prev, Designation: "" }));
+      setDesignationOptions(baseRef.current.Designation);
+    } else if (newDraft.Organization?.length) {
+      newDraft.Organization = [];
+      setOrganizationOptions(baseRef.current.Organization);
+    } else if (newDraft.orgIndustry?.length) {
+      newDraft.orgIndustry = [];
+      setOrgIndustryOptions(baseRef.current.orgIndustry);
+    } else if (newDraft.orgSize?.length) {
+      newDraft.orgSize = [];
+      setOrgSizeOptions(baseRef.current.orgSize);
+    } else if (newDraft.State?.length) {
+      newDraft.State = [];
+      setStateOptions(baseRef.current.State);
+    } else if (newDraft.Country?.length) {
+      newDraft.Country = [];
+      setCountryOptions(baseRef.current.Country);
+    }
+
+    setDraftFilters(newDraft);
+    const payload = buildFilterPayload(newDraft);
+    setSelectedFilters(payload);
+    setIsDirtyFilters(false);
+    setPageNumber(1);
+    loadData(1, { filter: payload });
+  };
+
   const onGlobalFilterChange = (e: any) => {
     const value = e.target.value;
     const _filters: any = { ...filters };
@@ -500,11 +589,83 @@ export default function Collab_DataTablePage() {
 
   const skeletonLoad = () => <Skeleton height="1.2rem" className="bg-gray-200 rounded-md" />;
 
-  const emptyMessageTemplate = () => (
-    <div className="h-[60vh] w-full flex items-center justify-center">
-      <img src={noDataImg} className="max-h-[60vh]" alt="" />
-    </div>
-  );
+  const emptyMessageTemplate = () => {
+    const hasLocationFilter = Boolean(draftFilters.City?.length || draftFilters.State?.length);
+    const hasDesignationFilter = Boolean(draftFilters.Designation?.length || selectAllDesignation || selectedFilterValue?.Designation);
+    const hasOrgSizeFilter = Boolean(draftFilters.orgSize?.length);
+    const hasAnyFilter = Object.values(draftFilters).some((val: any) => Array.isArray(val) && val.length > 0) || Boolean(selectAllDesignation);
+
+    return (
+      <div className="py-14 px-4 w-full flex flex-col items-center justify-center text-center bg-white rounded-2xl border border-gray-100 my-6 shadow-sm">
+        <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-center text-[#EA580C] mb-4 shadow-sm">
+          <Search className="w-7 h-7" />
+        </div>
+        
+        <h3 className="text-xl font-bold text-gray-900 mb-1">
+          No contacts match these exact filters
+        </h3>
+        <p className="text-sm text-gray-500 max-w-md mb-6">
+          Your search criteria may be too narrow. Try one of the suggested adjustments below to uncover matching contacts:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full mb-6">
+          {hasLocationFilter && (
+            <button
+              onClick={relaxLocation}
+              type="button"
+              className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-all text-sm font-semibold text-gray-800 group cursor-pointer"
+            >
+              <MapPin className="w-4 h-4 text-gray-500 group-hover:text-orange-600 shrink-0" />
+              <span>Broaden Location</span>
+            </button>
+          )}
+
+          {hasDesignationFilter && (
+            <button
+              onClick={relaxJobTitles}
+              type="button"
+              className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-all text-sm font-semibold text-gray-800 group cursor-pointer"
+            >
+              <Briefcase className="w-4 h-4 text-gray-500 group-hover:text-orange-600 shrink-0" />
+              <span>Broaden Job Titles</span>
+            </button>
+          )}
+
+          {hasOrgSizeFilter && (
+            <button
+              onClick={relaxCompanySize}
+              type="button"
+              className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-all text-sm font-semibold text-gray-800 group cursor-pointer"
+            >
+              <Building2 className="w-4 h-4 text-gray-500 group-hover:text-orange-600 shrink-0" />
+              <span>Broaden Company Size</span>
+            </button>
+          )}
+
+          {hasAnyFilter && (
+            <button
+              onClick={relaxMostRestrictive}
+              type="button"
+              className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-all text-sm font-semibold text-gray-800 group cursor-pointer"
+            >
+              <FilterIcon className="w-4 h-4 text-gray-500 group-hover:text-orange-600 shrink-0" />
+              <span>Show Closest Matches</span>
+            </button>
+          )}
+        </div>
+
+        {hasAnyFilter && (
+          <button
+            onClick={clearAllFilters}
+            type="button"
+            className="text-xs text-gray-400 hover:text-gray-700 underline transition-colors cursor-pointer"
+          >
+            Or reset all filters to view all leads
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const debouncedFetchOptions = useRef(
     debounce(async (field: string, query: string) => {
